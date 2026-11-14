@@ -1,0 +1,7 @@
+test/harness
+test/bench
+test/harness_ref
+test/ref86box/snd_emu8k_fixed.c
+test/ref86box/inc/86box/snd_emu8k.h
+*.EXE
+*.wav

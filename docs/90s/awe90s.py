@@ -57,5 +57,5 @@ def banner():
 if __name__ == '__main__':
     render(awecard(), (240, 150), scale=6, tilt=0.6, name='vox-awe.gif')
     render(awecard(), (180, 110), scale=4.2, tilt=0.6, name='vox-part-awe.gif', cap='AWE32 / AWE64|EMU8000 wavetable')
-    button('btn-awe32.gif', 'AWE32 synth', 'INSIDE', (0, 0, 64), (255, 140, 0), ((255, 140, 0), 'AWE', (0, 0, 0)), anim=True)
+    button('btn-awe32.gif', 'AWE32 synth', 'INSIDE', (0, 0, 64), (255, 140, 0), ((255, 140, 0), '32', (0, 0, 0)), anim=True)
     banner()

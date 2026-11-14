@@ -19,7 +19,7 @@
 <h2>~*~ Welcome to my DOS Sound Page!!! ~*~</h2>
 
 <i>A Roland Sound Canvas for your DOS games. No MIDI hardware needed!!</i><br>
-<i><b>...and now a Sound Blaster AWE32 too!!</b></i> <picture><img src="docs/90s/doodle-new.gif" width="90" alt="new!"></picture>
+<i><b>...and now a Sound Blaster AWE32 too!!</b></i> <picture><img src="docs/90s/new.gif" width="48" alt="NEW!"></picture>
 
 <br><br>
 
@@ -374,20 +374,20 @@ chip, the one Duke Nukem 3D and Rise of the Triad had their own "AWE32" music se
 This edition of NUKED SB-EMU puts one inside your PC!! SBEMU becomes a Sound Blaster 16
 **with the EMU8000 at port 620**, just like the real card, on any PCI sound chip it supports.
 
-<picture><img src="docs/90s/ic-sparkle.gif" alt="*"></picture> **How do I turn it on??**
+<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **How do I turn it on??**
 
 1. Put a dump of the AWE32's 1 MB sound ROM in `C:\SC55\ROMS` (it's found by what's inside, the
    name doesn't matter: AWE32.RAW, AWEROM.BIN...). Not included, like the SC-55 ROMs!!
 2. `SETTINGS` > MIDI synth > **"AWE32 / AWE64 wavetable (EMU8000)"**, save. (Or just one game: `/AWE:620`.)
 3. In the game's setup pick **AWE32** music (Sound Blaster 16 for the effects), EMU port 620.
 
-<picture><img src="docs/90s/ic-sparkle.gif" alt="*"></picture> **Does it sound right??** I recorded Duke 3D and ROTT
+<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **Does it sound right??** I recorded Duke 3D and ROTT
 next to an emulated AWE64 and the music matches (same notes, same music/effects balance, the tone within about 1 dB up to 12 kHz).
 It's tested with HIMEM only (my usual DOS 7.1 boot) and with JEMM, with a USB pad plugged in too.
 It costs about **2-3% of a Pentium II 400** while the music plays. Not done yet: reverb and chorus,
 and the top end is a little brighter than a real card.
 
-<picture><img src="docs/90s/ic-sparkle.gif" alt="*"></picture> **Options:** `/AWE:620` (or 640, 660, 680),
+<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **Options:** `/AWE:620` (or 640, 660, 680),
 `/AWERAM:512` (sample RAM in KB: 512 like an AWE32, 4096 like an AWE64 Gold, up to 28672), `/AWEROM:file or folder`.
 The AWE32 and the SC-55 take turns: with `/AWE` on, the MPU-401 has no synth behind it.
 All the details are in README.TXT, section 6c.

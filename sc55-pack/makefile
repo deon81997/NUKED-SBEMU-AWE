@@ -7,7 +7,7 @@ DEBUG ?= 0
 # 0: original SBEMU build with the TinySoundFont SoundFont synth
 VSC55 ?= 1
 
-VERSION ?= 1.0.0-beta.119-awe.2-usb-sc55
+VERSION ?= 1.0.0-beta.121-awe.1-usb-sc55
 PACKVER = -DNSB_VER=\"$(VERSION)\" -include tools/packver.h
 
 INCLUDES := -I./mpxplay -I./sbemu -I./drivers/include -I./sc55 -I./third_party/nuked-opl3-fast
@@ -39,7 +39,7 @@ MIDPLAY := output/midplay.exe
 CDGUI := output/cdgui.exe
 SBSET := output/sbset.exe
 ifeq ($(VSC55),1)
-all: $(TARGET) $(SC55WAV) $(SC55LOG) $(MPUTEST) $(MIDPLAY) $(CDGUI) $(SBSET) output/sc55menu.exe output/gametest.exe output/sbdiag.exe output/timetest.exe output/joytest.exe output/usbtest.exe output/kmtest.exe output/usbdrv.exe output/sbemu16.com output/padconv.exe
+all: $(TARGET) $(SC55WAV) $(SC55LOG) $(MPUTEST) $(MIDPLAY) $(CDGUI) $(SBSET) output/sc55menu.exe output/wcset.exe output/gametest.exe output/sbdiag.exe output/timetest.exe output/joytest.exe output/usbtest.exe output/kmtest.exe output/usbdrv.exe output/sbemu16.com output/padconv.exe
 else
 all: $(TARGET)
 endif
@@ -303,6 +303,11 @@ $(SBSET): output/tools/sbset.o $(SC55_OBJS) $(NUKEDOPL_OBJ) output/sbemu/dbopl.o
 	@mkdir -p $(dir $@)
 	$(SILENTMSG) "LINK\t$@\n"
 	$(SILENTCMD)$(CXX) -O2 -o $@ $^ -lstdc++ -lm $(if $(filter 0,$(DEBUG)),-s,)
+
+output/wcset.exe: tools/wcset.c tools/wcset.h output/packver.o
+	@mkdir -p $(dir $@)
+	$(SILENTMSG) "CC\t$@\n"
+	$(SILENTCMD)$(CC) $(PACKVER) -DPACKVER_STR=\"$(VERSION)\" -O2 -Wall -march=i386 -o $@ $< output/packver.o $(if $(filter 0,$(DEBUG)),-s,)
 
 SC55MENU := output/sc55menu.exe
 $(SC55MENU): tools/sc55menu.c $(wildcard tools/*.h) output/packver.o

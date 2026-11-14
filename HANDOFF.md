@@ -47,6 +47,63 @@
   HIMEM only and with JEMM; SETTINGS: pick AWE32, save, reboot, MENU shows "AWE32 at 620"; SBDIAG while it plays.
 - Test downloads: DJGPP v3.4 gcc12.2; 86Box 0935207 + roms; HX (Baron) + crazii/HX (trap API reading); Jemm (QPIEMU
   reading); JWasm + HimemX (built HIMEMX.EXE for the rig); rufus res/freedos.
+## beta.121 (2026-11-14, DOS session): WCSET write-combining shipped (Fast video)
+- Done: WCSET.EXE in the zip (rezip.py NEW list adds new EXEs), MENU Settings "Fast video (WCSET)" = WCSET /ASK,
+  Tests "Video speed (WCSET)" = WCSET /BENCH (view WCBENCH.TXT); README.TXT "FAST VIDEO" under 3D MENU; README news
+  (5 on top, beta.116 moved to Older). Zip = beta.120 zip + rezip.py (all EXEs rebuilt as beta.121).
+- Tested: 86Box P3B-F PII-450 + Voodoo3 3000 PCI (testrig/wcset/86box/86box.cfg; the CL-GD5446 cfg has no VBE LFB):
+  pm (real mode) + rm (JEMM) PASS, WC write path works: MTRR 1 = WC DE000000 16 MB set, cleared, slot free after
+  MENU/MIDPLAY exit; 86Box does not model WC speed (bench x1.00, fps equal). QEMU pm/rm PASS (SeaBIOS UC MTRR ->
+  refused, correct). testrig/menustat 5/5 PASS. SBEMU code unchanged (WCSET only in tools/) -> no SBDIAG/SC55LOG cost.
+- Hardware steps (D810 Radeon X300, P5PE-VM GeForce 6800), boot as usual (HIMEM + SC55, or JEMM):
+  1. MENU > Tests > Video speed (WCSET): send WCBENCH.TXT (expect WC on >> off for stosd if the BIOS leaves a free MTRR).
+  2. C:\SC55> WCSET : send the screen/LIST output (MTRRs, frame buffer range, "WC possible" or why not).
+  3. SET M3PROF=1, MENU, F8 (3D) ~20 s, Esc; again with SET WCSET=OFF: send both M3PROF.TXT (fps).
+  4. Any game in a VESA mode after WCSET ON (kept): glitches? Then WCSET OFF. SBDETAIL.TXT "[wc]" lines.
+- Open: boards with default WB + UC MTRR over the PCI hole get no WC (PAT idea, not started).
+- Next 3 steps: (1) hardware results above -> tune (e.g. offer PAT when MTRRs are taken); (2) D810 48 kHz task
+  (PLAYBOOK prompt); (3) MIDPLAY vector/voxel modes could use WC numbers from step 1.
+
+## beta.120 (2026-11-14, DOS session): P5PE-VM froze with ICH5 SATA "Enhanced" (user; "Compatible" fine)
+- Cause (likely): Enhanced = SATA in native PCI mode, IRQ shared with the Audigy. EMU10K irq_routine returned
+  non-zero for ANY IPR bit (MIDI bits nearly always set) -> SBEMU claimed the shared IRQ, EOI, no chain -> disk wait hung.
+- Fix: sc_sbliv.c snd_emu_10kx_isr/snd_p16v_isr ack + return only IPR_INTERVALTIMER|SAMPLERATETRACKER|FXDSP (the
+  INTE bits SBEMU sets). main.c: SBDETAIL "disk controller ... native PCI mode/legacy ... IRQ line" per IDE/SATA
+  controller, WARNING + yellow screen warning when one shares the card IRQ. README.TXT troubleshooting, README news.
+- Tested: testrig/sata/run.sh ZIP (QEMU, plain + ich9-ahci addr 6-9): warning exactly when AHCI shares IRQ 11 with
+  AC97, MPUTEST + DIR OK; menustat matrix 5/5 PASS. Not testable here: the EMU10K ISR itself (no Audigy in QEMU/86Box),
+  so the real check is the P5PE-VM. Runtime cost: none for other cards (startup PCI scan only), so no 86Box speed run.
+- The beta.120 zip was built from b2ab800 (wip, WITHOUT the WCSET commit d25ca9c): WCSET defaults to AUTO and its
+  MTRR write path is unverified, so it stays out of the pack until its own task finishes (see WCSET section).
+  Yellow warning goes to the console (conio), not into redirected SC55 output.
+- Hardware ask (P5PE-VM): SATA back to Enhanced, beta.120 SC55 -> freeze or not, SBDETAIL.TXT ("disk controller",
+  "WARNING" lines). If it still freezes: P5TEST 1-4 logs.
+- Next 3 steps: 1) P5PE-VM result above; 2) if still frozen, check the other P5PE-VM drivers that may claim foreign
+  bits (USB host ISRs on the same IRQ); 3) continue the WCSET section's steps (86Box WC path, then pack it).
+
+## WCSET write-combining (2026-11-14, DOS session; finished and released in beta.121, see above): faster DOS graphics via MTRR WC on the VESA LFB
+- Done (main, unreleased): tools/wcset.h (shared: CPUID/MTRRcap/phys-width checks, real-mode stub via DPMI 0301h for
+  RDMSR/WRMSR/CR0/WBINVD = real mode under HDPMI raw, V86 under JEMM (Jemm EMU.ASM emulates them); EMM386/QEMM V86 and
+  Windows/NT/OS2 boxes refused; free variable MTRR only, any overlap with a set MTRR = left alone; SBDETAIL "[wc]" line,
+  no duplicates). tools/wcset.c = WCSET.EXE LIST|ON|OFF|AUTO|/BENCH|/ASK (WCSET.CFG, env WCSET overrides; /BENCH =
+  stosd/stosb/movsd MB/s WC off vs on at 640x480 LFB, appended to WCBENCH.TXT). Hooks: MENU main (wc_startup "MENU"),
+  MIDPLAY main after clock_init, m3core.h after each LFB map (M3_WHO). AUTO = restore at exit (atexit); ON = kept.
+  menu3d.h: env M3SECS=N leaves the 3D menu after N s (test rigs, with M3PROF). makefile: output/wcset.exe.
+- Tested (testrig/wcset/run.sh ZIP pm rm, QEMU pentium3): PASS both; pm = "real mode", rm = "V86 (JEMM)"; SeaBIOS sets
+  default WB + UC MTRR 80000000-FFFFFFFF, so WC is refused there (correct by the rule); bench/MENU 3D/MIDPLAY fps
+  equal off vs auto (nothing changed). QEMU numbers: stosd ~1600-2100 MB/s, MENU 3D ~82 fps, MIDPLAY 3D ~19 fps.
+- NOT done: 86Box PII-450 run (needs apt-get install librtmidi6 xvfb; Award P3B-F BIOS should allow the WC write path,
+  never exercised yet), pack integration (WCSET.EXE into pack/FILES/SC55 + zip, MENU Settings item "Fast video
+  (WCSET /ASK)", Tests item "Video speed (WCSET /BENCH)", README/CHANGELOG), SBDIAG/SC55LOG no-slowdown check (SBEMU
+  untouched), release beta.120, D810/P5PE-VM test steps.
+- Open risk: boards whose BIOS uses default WB + a UC MTRR over the PCI hole (like SeaBIOS) get no WC; the fix would be
+  PAT (PIII+ only) - idea, not started. WC write path (op 3 in the stub) unverified on any emulator so far.
+- Next 3 steps: (1) 86Box: EMU="-e 86box -c /home/claude/vms/dos71/86box/86box.cfg" TMO=900 sh testrig/wcset/run.sh
+  ../release/NUKED-SB-EMU-1.0.0-beta.119-usb.zip pm rm - check "ON (MTRR n" lines and that LIST shows the slot free
+  again after MENU/MIDPLAY exit; (2) pack + menu items + docs; (3) release beta.120 with hardware steps (WCSET /BENCH,
+  MENU 3D fps via M3PROF) for D810 (Radeon X300) and P5PE-VM (GeForce 6800).
+- Resume: export PATH=/tmp/dl/djgpp/djgpp/bin:$PATH (curl build-djgpp v3.4); cd sc55-pack; make -j16; restore.sh dos71.
+- Test downloads: DJGPP v3.4 (/tmp/dl/djgpp), LordOfMice/Tools msr.zip (reference), Baron-von-Riedesel/Jemm + HX sources (/tmp/dl).
 
 ## beta.119 (2026-11-14, DOS session): beta.118 froze the ASUS P5PE-VM + Audigy (Win98 -> MS-DOS mode); beta.112 fine
 - Suspect: beta.115 MAIN_CardWatchdog (main.c) calls aui.card_handler->irq_routine from SB port traps and INT 1Ch,

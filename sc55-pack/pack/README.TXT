@@ -214,6 +214,17 @@ CONTENTS
       Windows shows in a window); a VESA mode picked there (full screen,
       ALT+ENTER) asks to be kept every time and is remembered apart from
       the plain-DOS one. The menu gives its idle time back to Windows.
+      FAST VIDEO (WCSET, since beta.121): on a Pentium Pro/II/III/M or
+      newer, MENU and MIDPLAY switch on write-combining for the VESA frame
+      buffer (a free MTRR) while they run and put it back at exit, so 3D
+      pictures reach the card faster. Settings > Fast video (WCSET /ASK)
+      shows the CPU's MTRRs and asks: AUTO (default), ON (kept after exit,
+      for games too) or OFF; saved in WCSET.CFG, SET WCSET=OFF overrides.
+      Tests > Video speed (WCSET /BENCH) measures frame buffer MB/s with
+      WC off and on (WCBENCH.TXT). Works with HIMEM only and with JEMM;
+      refused under EMM386/QEMM and Windows, and left alone when the BIOS
+      already covers the frame buffer with its own MTRR. SBDETAIL.TXT has
+      a "[wc]" line for each change.
       IF MENU CRASHES: the text screen comes back and MENU writes CRASH.TXT
       in C:\SC55 (the error, the CPU registers, 3D mode/style/look/colours,
       the chosen item, free memory and the last 50 keys/actions). Please
@@ -1452,6 +1463,15 @@ CONTENTS
   saved at once, so if the PC hangs while SBEMU starts, the last
   "[step]" line shows where. At the end a table shows how long each
   step took (since beta.73). SET SBEMUDETAIL=OFF turns it off.
+
+  PC FREEZES WITH SATA "ENHANCED" MODE (seen: ASUS P5PE-VM, ICH5):
+  in Enhanced (native) mode the SATA/IDE controller uses a PCI IRQ that
+  can be the same as the sound card's. Before beta.120 the Audigy/Live
+  driver took every interrupt on that IRQ, so the disk's was lost and the
+  PC hung. beta.120 takes only its own. If SC55 still shows the yellow
+  "hard disk controller ... shares IRQ" warning and the PC freezes, set
+  SATA/IDE to Compatible (Legacy) mode in the BIOS. SBDETAIL.TXT lists
+  each disk controller ("disk controller ... native PCI mode ... IRQ").
 
   PC FREEZES AFTER SC55 SINCE beta.115 (seen: ASUS P5PE-VM + Audigy):
   beta.115-118 ran a sound card interrupt watchdog for every card; since

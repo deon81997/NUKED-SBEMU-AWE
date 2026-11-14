@@ -15,6 +15,8 @@
 - Not testable here: beta.120's EMU10K ISR change (no Audigy in emulators; same as MUXED). Hardware to check: as awe.2.
 - Release: NUKED-SB-EMU-1.0.0-beta.121-awe.1-usb.zip (rezip.py from awe.2, file list = MUXED beta.121), tag
   v1.0.0-beta.121-awe.1-usb by the release workflow. Rename to NUKED-SBEMU-AWE still pending (needs the browser).
+- README (after the release): AWE32 edition decorations from docs/90s/awe90s.py (awe-edition.gif banner under the title,
+  vox-part-awe.gif in "What's inside", btn-awe32.gif, vox-awe.gif in the new "AWE32 / AWE64 Wavetable!!" section).
 - Next: 1) user hardware: AWE music on D810 / P5PE-VM (HIMEM only, JEMM), SATA Enhanced on the P5PE-VM; 2) the next
   MUXED beta: same recipe (fetch the tag into remote "muxed", diff from v1.0.0-beta.121-usb); 3) awe.2's open items
   (4-pole filter, reverb/chorus).

@@ -35,6 +35,7 @@
 #include "sbemu/vjoy.h"
 #include "sbemu/vkbc.h"
 #include "sbemu/padmap.h"
+#include "sbemu/vawe.h"
 #include "qemm.h"
 #include "hdpmipt.h"
 #include "serial.h"
@@ -532,6 +533,7 @@ static int mpu_dbg_ctr = 0;
 static BOOL MAIN_MUSB;   /* /MUSB: MPU-401 data bytes also go to the USB MIDI device */
 static uint32_t MAIN_MPU_330(uint32_t port, uint32_t val, uint32_t out)
 {
+  { uint8_t b; if (!out && DIAG_ReadByte(&b)) return b; }   /* SBDIAG report without the virtual MPU (AWE32 mode) */
 #if MPU_DEBUG
   if (mpu_debug) {
     if (out) {
@@ -579,6 +581,7 @@ static uint32_t MAIN_MPU_330(uint32_t port, uint32_t val, uint32_t out)
 }
 static uint32_t MAIN_MPU_331(uint32_t port, uint32_t val, uint32_t out)
 {
+  if (out && DIAG_Command((uint8_t)val)) return val;           /* SBDIAG commands A6-A8h, as VMPU_MPU answers them */
 #if MPU_DEBUG
   if (mpu_debug) {
     if (out) {
@@ -734,6 +737,26 @@ QEMM_IOPT MAIN_VDMA_IOPT_PM3;
 QEMM_IOPT MAIN_VHDMA_IOPT_PM1;
 QEMM_IOPT MAIN_VHDMA_IOPT_PM2;
 QEMM_IOPT MAIN_VHDMA_IOPT_PM3;
+/* HDPMI has 16 port-trap slots. With /AWE (3 more) and a USB pad (joystick + keyboard: 3 more) they run out, so with
+ * /AWE the four DMA page-register traps (81-83h, 87h, 89-8Bh, 8Fh) become one 81h-8Fh trap; the page registers
+ * nobody uses in between (84-86h, 88h, 8C-8Eh) are passed to the hardware unchanged. Without /AWE: as before. */
+static BOOL MAIN_DMAPAGE_Merged;
+static QEMM_IODT MAIN_DMAPAGE_IODT[15];
+static uint32_t MAIN_PortPass(uint32_t port, uint32_t val, uint32_t out)
+{
+    if(out) { HDPMIPT_UntrappedIO_Write((uint16_t)port, (uint8_t)val); return val; }
+    return HDPMIPT_UntrappedIO_Read((uint16_t)port);
+}
+static BOOL MAIN_DMAPAGE_Install(void)   /* the merged 81h-8Fh trap; MAIN_VDMA_IODT must be filled */
+{
+    for(int i = 0; i < 15; ++i) { MAIN_DMAPAGE_IODT[i].port = 0x81 + i; MAIN_DMAPAGE_IODT[i].handler = &MAIN_PortPass; }
+    for(int i = 0; i < 4; ++i)
+    {
+        MAIN_DMAPAGE_IODT[(MAIN_VDMA_IODT[16+i].port & 0xFF) - 0x81] = MAIN_VDMA_IODT[16+i];
+        MAIN_DMAPAGE_IODT[(MAIN_VDMA_IODT[36+i].port & 0xFF) - 0x81] = MAIN_VDMA_IODT[36+i];
+    }
+    return HDPMIPT_Install_IOPortTrap(0x81, 0x8F, MAIN_DMAPAGE_IODT, 15, &MAIN_VDMA_IOPT_PM2);
+}
 QEMM_IOPT MAIN_VIRQ_IOPT_PM1;
 QEMM_IOPT MAIN_VIRQ_IOPT_PM2;
 QEMM_IOPT MAIN_SB_IOPT_PM;
@@ -846,6 +869,9 @@ struct MAIN_OPT
     "/JOYBIOS", "BIOS joystick calls (INT 15h AH=84h) answered from the USB pad too (1=on, 0=off; needs /JOY:1)", 1, MAIN_SETCMD_BASE10,
     "/PADKEYS", "Pad buttons -> keyboard keys with a layout per game, from PADMAP.TXT / PADUSER.TXT in SBEMU's folder (1=on, 0=off: only /JOYKEY; needs /JOY:1)", 1, MAIN_SETCMD_BASE10,
     "/PADLOG", "Show which pad layout the loaded SBEMU picked for the last programs started (SBEMU /PADLOG)", 0, MAIN_SETCMD_BASE10,
+    "/AWE", "AWE32/AWE64 EMU8000 wavetable at this port (620, 640, 660 or 680; 0=off). Turns the SC-55 off and the SB type to 16, adds E620 to BLASTER", 0, 0,
+    "/AWERAM", "AWE sample RAM in KB (0-28672; AWE32 = 512, AWE64 Gold = 4096)", 512, MAIN_SETCMD_BASE10,
+    "/AWEROM", "AWE ROM: a 1 MB EMU8000 ROM dump, or a folder searched by content (default: ROMS, then AWE)", (uintptr_t)"", MAIN_SETCMD_STR,
     NULL, NULL, 0,
 };
 enum EOption
@@ -922,6 +948,9 @@ enum EOption
     OPT_JOYBIOS,
     OPT_PADKEYS,
     OPT_PADLOG,
+    OPT_AWE,
+    OPT_AWERAM,
+    OPT_AWEROM,
     OPT_COUNT,
 };
 
@@ -1131,6 +1160,7 @@ static void MAIN_SetBlasterEnv(struct MAIN_OPT* opt) //alter BLASTER env.
         sprintf(buf, "A%x I%x D%x P%x T%x", opt[OPT_ADDR].value, opt[OPT_IRQ].value, opt[OPT_DMA].value, opt[OPT_MPUADDR].value, opt[OPT_TYPE].value == 5 ? 4 : opt[OPT_TYPE].value);
     else
         sprintf(buf, "A%x I%x D%x T%x H%x P%x", opt[OPT_ADDR].value, opt[OPT_IRQ].value, opt[OPT_DMA].value, opt[OPT_TYPE].value, opt[OPT_HDMA].value, opt[OPT_MPUADDR].value);
+    if(opt[OPT_AWE].value) sprintf(buf + strlen(buf), " E%x", opt[OPT_AWE].value); //AWE32: games find the EMU8000 here
     #ifdef DJGPP //makes vscode happy
     if(setenv("BLASTER", buf, TRUE) != 0)
     {   /* utility.c's setenv writes COMMAND.COM's environment; it fails when that is full */
@@ -1349,6 +1379,9 @@ update_serial_mpu_output()
 }
 
 static BOOL OPLRMInstalled, OPLPMInstalled, MPURMInstalled, MPUPMInstalled;
+static QEMM_IODT MAIN_AWE_IODT[VAWE_PORTS];
+static QEMM_IOPT MAIN_AWE_IOPT, MAIN_AWE_IOPT_PM[3];
+static BOOL MAIN_AWE_RM, MAIN_AWE_PM[3];
 /* USB Xbox 360 pad -> gameport 201h (/JOY) */
 static QEMM_IODT MAIN_JOY_IODT[2] = { { 0x201, (void*)&VJOY_IOHandler }, { 0x206, (void*)&VJOY_InfoHandler } };   /* 206h: real mode only (SBEMU16) */
 static QEMM_IOPT MAIN_JOY_IOPT, MAIN_JOY_IOPT_PM;
@@ -1396,6 +1429,9 @@ static void MAIN_Cleanup()
         QEMM_Uninstall_IOPortTrap(&MPUIOPT);
     if(MPUPMInstalled)
         HDPMIPT_Uninstall_IOPortTrap(&MPUIOPT_PM);
+    if(MAIN_AWE_RM) { QEMM_Uninstall_IOPortTrap(&MAIN_AWE_IOPT); MAIN_AWE_RM = FALSE; }
+    for(int g = 0; g < 3; ++g) if(MAIN_AWE_PM[g]) { HDPMIPT_Uninstall_IOPortTrap(&MAIN_AWE_IOPT_PM[g]); MAIN_AWE_PM[g] = FALSE; }
+    VAWE_Close();
 
 #if SBEMU_PCSPEAKER
     // Uninstall PC Speaker IO traps (mirror the install order in main()).
@@ -1746,6 +1782,29 @@ int main(int argc, char* argv[])
     }
 #endif
 
+    if(MAIN_Options[OPT_AWE].value)
+    {   //AWE32: the EMU8000 sits on an SB16; it and the SC-55 are exclusive (SETTINGS picks one)
+        int b = MAIN_Options[OPT_AWE].value;
+        if(b != 0x620 && b != 0x640 && b != 0x660 && b != 0x680)
+        {
+            MAIN_CPrintf(RED, "Error: Invalid /AWE port %x (620, 640, 660 or 680).\n", b);
+            return 1;
+        }
+        if(MAIN_Options[OPT_AWERAM].value < 0 || MAIN_Options[OPT_AWERAM].value > 28672)
+        {
+            MAIN_CPrintf(RED, "Error: Invalid /AWERAM (0-28672 KB).\n");
+            return 1;
+        }
+        if(MAIN_Options[OPT_TYPE].value != 6)
+        {
+            if(MAIN_Options[OPT_TYPE].setcmd & MAIN_SETCMD_SET) printf("AWE32 needs a Sound Blaster 16: /T%d changed to /T6.\n", (int)MAIN_Options[OPT_TYPE].value);
+            MAIN_Options[OPT_TYPE].value = 6;
+        }
+#if SBEMU_VMPU
+        MAIN_Options[OPT_VMPU_VOICES].value = 0;
+        MAIN_Options[OPT_VMPU_VOICES].setcmd |= MAIN_SETCMD_SET;   //no SC-55 / SoundFont / MT-32 auto-load either
+#endif
+    }
 #if SBEMU_VMPU
     if(MAIN_Options[OPT_MUSB].value && VMPU_ENABLED) //USB MIDI device instead of the SC-55 (the launchers pass /VMPU)
     {
@@ -2066,6 +2125,35 @@ int main(int argc, char* argv[])
         MAIN_Print_Enabled_Newline(true);
     }
 
+    if(MAIN_Options[OPT_AWE].value)
+    {
+        MAIN_Step("AWE32 init");
+        int romok = 0; char romname[128];
+        if(VAWE_Init(MAIN_Options[OPT_AWE].value, MAIN_Options[OPT_AWERAM].value, (const char*)MAIN_Options[OPT_AWEROM].value, &romok, romname, sizeof romname) != 0)
+        {
+            MAIN_CPrintf(RED, "Error: Not enough memory for the AWE32 (/AWERAM:%d needs about %d KB).\n", (int)MAIN_Options[OPT_AWERAM].value, (int)MAIN_Options[OPT_AWERAM].value + 1300);
+            return 1;
+        }
+        VAWE_GetIODT(MAIN_AWE_IODT);
+        if(enableRM && !(MAIN_AWE_RM = QEMM_Install_IOPortTrap(MAIN_AWE_IODT, VAWE_PORTS, &MAIN_AWE_IOPT)))
+        {
+            MAIN_CPrintf(RED, "Error: Failed installing AWE32 IO port trap for QEMM.\n");
+            return 1;
+        }
+        for(int g = 0; g < 3 && enablePM; ++g)
+        {
+            int p = MAIN_Options[OPT_AWE].value + g * 0x400;
+            if(!(MAIN_AWE_PM[g] = HDPMIPT_Install_IOPortTrap(p, p + 3, MAIN_AWE_IODT + g * 4, 4, &MAIN_AWE_IOPT_PM[g])))
+            {
+                MAIN_CPrintf(RED, "Error: Failed installing AWE32 IO port trap for HDPMI (port %x; HDPMI has 16 trap slots - try /JOY:0).\n", p);
+                return 1;
+            }
+        }
+        printf("AWE32 EMU8000 emulation at address %x, %d KB RAM, ROM: %s: ", MAIN_Options[OPT_AWE].value, (int)MAIN_Options[OPT_AWERAM].value,
+            romok ? romname : "not found (put AWE32.RAW / AWEROM.BIN into ROMS; games that load their own samples still play)");
+        MAIN_Print_Enabled_Newline(true);
+    }
+
     MAIN_Step("Sound Blaster init");
     VIRQ_Init();
 
@@ -2110,11 +2198,12 @@ int main(int argc, char* argv[])
     BOOL QEMMInstalledSB = !enableRM || QEMM_Install_IOPortTrap(SB_Iodt, SB_IodtCount, &MAIN_SB_IOPT);
 
     BOOL HDPMIInstalledVDMA1 = !enablePM || HDPMIPT_Install_IOPortTrap(0x0, 0xF, MAIN_VDMA_IODT, 16, &MAIN_VDMA_IOPT_PM1);
-    BOOL HDPMIInstalledVDMA2 = !enablePM || HDPMIPT_Install_IOPortTrap(0x81, 0x83, MAIN_VDMA_IODT+16, 3, &MAIN_VDMA_IOPT_PM2);
-    BOOL HDPMIInstalledVDMA3 = !enablePM || HDPMIPT_Install_IOPortTrap(0x87, 0x87, MAIN_VDMA_IODT+19, 1, &MAIN_VDMA_IOPT_PM3);
+    MAIN_DMAPAGE_Merged = MAIN_Options[OPT_AWE].value != 0;
+    BOOL HDPMIInstalledVDMA2 = !enablePM || (MAIN_DMAPAGE_Merged ? MAIN_DMAPAGE_Install() : HDPMIPT_Install_IOPortTrap(0x81, 0x83, MAIN_VDMA_IODT+16, 3, &MAIN_VDMA_IOPT_PM2));
+    BOOL HDPMIInstalledVDMA3 = !enablePM || MAIN_DMAPAGE_Merged || HDPMIPT_Install_IOPortTrap(0x87, 0x87, MAIN_VDMA_IODT+19, 1, &MAIN_VDMA_IOPT_PM3);
     BOOL HDPMIInstalledVHDMA1 = !enablePM || HDPMIPT_Install_IOPortTrap(0xC0, 0xDE, MAIN_VDMA_IODT+20, 16, &MAIN_VHDMA_IOPT_PM1);
-    BOOL HDPMIInstalledVHDMA2 = !enablePM || HDPMIPT_Install_IOPortTrap(0x89, 0x8B, MAIN_VDMA_IODT+36, 3, &MAIN_VHDMA_IOPT_PM2);
-    BOOL HDPMIInstalledVHDMA3 = !enablePM || HDPMIPT_Install_IOPortTrap(0x8F, 0x8F, MAIN_VDMA_IODT+39, 1, &MAIN_VHDMA_IOPT_PM3);
+    BOOL HDPMIInstalledVHDMA2 = !enablePM || MAIN_DMAPAGE_Merged || HDPMIPT_Install_IOPortTrap(0x89, 0x8B, MAIN_VDMA_IODT+36, 3, &MAIN_VHDMA_IOPT_PM2);
+    BOOL HDPMIInstalledVHDMA3 = !enablePM || MAIN_DMAPAGE_Merged || HDPMIPT_Install_IOPortTrap(0x8F, 0x8F, MAIN_VDMA_IODT+39, 1, &MAIN_VHDMA_IOPT_PM3);
     #if MAIN_TRAP_PMPIC_ONDEMAND
     BOOL HDPMIInstalledVIRQ1 = TRUE;
     BOOL HDPMIInstalledVIRQ2 = TRUE;
@@ -2475,10 +2564,10 @@ int main(int argc, char* argv[])
             MAIN_CPrintf(RED, "Error: Failed installing IO port trap for HDPMI.\n");
         if(enablePM && HDPMIInstalledVDMA1) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM1);
         if(enablePM && HDPMIInstalledVDMA2) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM2);
-        if(enablePM && HDPMIInstalledVDMA3) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM3);
+        if(enablePM && HDPMIInstalledVDMA3 && !MAIN_DMAPAGE_Merged) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM3);
         if(enablePM && HDPMIInstalledVHDMA1) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM1);
-        if(enablePM && HDPMIInstalledVHDMA2) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM2);
-        if(enablePM && HDPMIInstalledVHDMA3) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM3);
+        if(enablePM && HDPMIInstalledVHDMA2 && !MAIN_DMAPAGE_Merged) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM2);
+        if(enablePM && HDPMIInstalledVHDMA3 && !MAIN_DMAPAGE_Merged) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM3);
         #if !MAIN_TRAP_PMPIC_ONDEMAND
         if(enablePM && HDPMIInstalledVIRQ1) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VIRQ_IOPT_PM1);
         if(enablePM && HDPMIInstalledVIRQ2) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VIRQ_IOPT_PM2);
@@ -2976,6 +3065,16 @@ static void MAIN_Interrupt()
     }
 #endif
 
+    if(VAWE_Enabled()) //AWE32: the EMU8000 is music like the MPU (SB16 mixer MIDI + master, /VMIDIVOL)
+    {
+        if(!digital && !(opl_active && !fm_aui.fm) && !vmpu_active) memset(MAIN_PCM, 0, samples*sizeof(int16_t)*2);
+        uint64_t t0 = DIAG_Tsc();
+        CLIS();   //a trapped register write must not land inside a rendered block
+        VAWE_MixInto(MAIN_PCM, samples, aui.freq_card, midivol * vol / 256 * MAIN_Options[OPT_VMIDIVOL].value / 100);
+        STIL();
+        DIAG_Render(DIAG_Tsc() - t0, samples, aui.freq_card, 3); //synth 3 = AWE32 (SBDIAG)
+    }
+
     if(CDLINK_IsActive())
         CDLINK_MixInto(MAIN_PCM, samples, aui.freq_card);
 
@@ -3266,6 +3365,13 @@ static void MAIN_TSR_Interrupt()
             {
                 update_serial_debug_output();
             }
+            if(OPT_CHANGED(OPT_AWE) || OPT_CHANGED(OPT_AWERAM) || OPT_CHANGED(OPT_AWEROM))
+            {   /* the EMU8000's memory and port traps are set up when SBEMU loads: keep what is running */
+                MAIN_Options[OPT_AWE].value = old_opt[OPT_AWE].value;
+                MAIN_Options[OPT_AWERAM].value = old_opt[OPT_AWERAM].value;
+                MAIN_Options[OPT_AWEROM].value = old_opt[OPT_AWEROM].value;
+                printf("AWE32 settings change when SBEMU is loaded next time (reboot).\n");
+            }
             if(OPT_CHANGED(OPT_MPUCOMPORT))
             {
                 unsigned int oldval = old_opt[OPT_MPUCOMPORT].value;
@@ -3397,10 +3503,10 @@ static void MAIN_TSR_Interrupt()
                     if(MAIN_Options[OPT_MPUADDR].value && MAIN_Options[OPT_MPUCOMPORT].value) HDPMIPT_Uninstall_IOPortTrap(&MPUIOPT_PM);
                     HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM1);
                     HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM2);
-                    HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM3);
+                    if(!MAIN_DMAPAGE_Merged) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VDMA_IOPT_PM3);
                     HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM1);
-                    HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM2);
-                    HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM3);
+                    if(!MAIN_DMAPAGE_Merged) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM2);
+                    if(!MAIN_DMAPAGE_Merged) HDPMIPT_Uninstall_IOPortTrap(&MAIN_VHDMA_IOPT_PM3);
                     #if !MAIN_TRAP_PMPIC_ONDEMAND
                     HDPMIPT_Uninstall_IOPortTrap(&MAIN_VIRQ_IOPT_PM1);
                     HDPMIPT_Uninstall_IOPortTrap(&MAIN_VIRQ_IOPT_PM2);
@@ -3483,11 +3589,15 @@ static void MAIN_TSR_Interrupt()
                 {
                     _LOG("install hdpmi\n");
                     HDPMIPT_Install_IOPortTrap(0x0, 0xF, MAIN_VDMA_IODT, 16, &MAIN_VDMA_IOPT_PM1);
+                    if(MAIN_DMAPAGE_Merged) MAIN_DMAPAGE_Install();
+                    else
+                    {
                     HDPMIPT_Install_IOPortTrap(0x81, 0x83, MAIN_VDMA_IODT+16, 3, &MAIN_VDMA_IOPT_PM2);
                     HDPMIPT_Install_IOPortTrap(0x87, 0x87, MAIN_VDMA_IODT+19, 1, &MAIN_VDMA_IOPT_PM3);
-                    HDPMIPT_Install_IOPortTrap(0xC0, 0xDE, MAIN_VDMA_IODT+20, 16, &MAIN_VHDMA_IOPT_PM1);
                     HDPMIPT_Install_IOPortTrap(0x89, 0x8B, MAIN_VDMA_IODT+36, 3, &MAIN_VHDMA_IOPT_PM2);
                     HDPMIPT_Install_IOPortTrap(0x8F, 0x8F, MAIN_VDMA_IODT+39, 1, &MAIN_VHDMA_IOPT_PM3);
+                    }
+                    HDPMIPT_Install_IOPortTrap(0xC0, 0xDE, MAIN_VDMA_IODT+20, 16, &MAIN_VHDMA_IOPT_PM1);
                     #if !MAIN_TRAP_PMPIC_ONDEMAND
                     HDPMIPT_Install_IOPortTrap(0x20, 0x21, MAIN_VIRQ_IODT, 2, &MAIN_VIRQ_IOPT_PM1);
                     HDPMIPT_Install_IOPortTrap(0xA0, 0xA1, MAIN_VIRQ_IODT+2, 2, &MAIN_VIRQ_IOPT_PM2);

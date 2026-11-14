@@ -13,6 +13,10 @@ extern int QEMM_TrapFlags;
 
 typedef uint32_t (*QEMM_IOTRAP_HANDLER)(uint32_t port, uint32_t val, uint32_t out);
 
+//IODT port flag: a 16/32-bit IN/OUT on this port reaches the handler as byte accesses (port, port+1, ...),
+//like HDPMI's trap API does; without it the real-mode path passes AL only (old behaviour, all other ports)
+#define QEMM_IODT_SPLIT 0x40000000 //bits 16-23 hold QEMM's "was already trapped" state (qemm.c)
+
 //user interface, not actual struct
 typedef struct QEMM_IODispatchTable
 {

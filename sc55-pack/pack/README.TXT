@@ -21,6 +21,7 @@ CONTENTS
    5. SETTINGS.BAT (the settings screen)
    6. Using a SoundFont instead of the SC-55
   6b. Roland MT-32 / CM-32L (Munt)
+  6c. Sound Blaster AWE32 / AWE64 (EMU8000 wavetable)
    7. SBEMU command line options (complete list)
    8. Playing MIDI files and testing
    9. Virtual CD drive and disc images
@@ -350,9 +351,10 @@ CONTENTS
      Sound Blaster     Port 220/240, IRQ 5/7/9, 8-bit DMA 0/1/3,
                        16-bit DMA 5/6/7, Type (1-3 SB, 4-5 SB Pro, 6 SB16)
      MIDI              MPU-401 port (330 usual), MIDI synth (SC-55,
-                       SoundFont, MT-32 or CM-32L - see section 6b - or
+                       SoundFont, MT-32 or CM-32L - see section 6b -,
                        "USB MIDI device": a real synth on a USB MIDI
-                       cable, /MUSB, section 10b), and the two sub-menus
+                       cable, /MUSB, section 10b, or "AWE32 / AWE64
+                       wavetable", /AWE:620, section 6c), and the two sub-menus
                        below
      Output            Sample rate 22050/32000/44100/48000 Hz, and the
                        "Timing & advanced" sub-menu
@@ -503,6 +505,36 @@ CONTENTS
 
 
 =============================================================================
+ 6c. SOUND BLASTER AWE32 / AWE64  (EMU8000 wavetable)
+=============================================================================
+
+  Games with an "AWE32" music choice (Duke Nukem 3D, Rise of the Triad,
+  Doom/Heretic with an AWE driver, many 1994-1997 games) can use the AWE32's
+  own wavetable chip, the EMU8000, instead of General MIDI. SBEMU then is a
+  Sound Blaster 16 with the EMU8000 at port 620h, like a real AWE32/AWE64.
+
+  1. Copy a dump of the AWE32's 1 MB sound ROM into C:\SC55\ROMS (or
+     C:\SC55\AWE). It is recognised by content; AWE32.RAW and AWEROM.BIN
+     are the usual names (AWE-DUMP makes one on a real card). Without it the
+     ROM instruments are silent; games that load their own samples (SBK
+     banks) still play.
+  2. SETTINGS > MIDI synth > "AWE32 / AWE64 wavetable (EMU8000)", and save.
+     Or only for one game: Games > Add / edit games > SBEMU options /AWE:620.
+  3. In the game's setup choose "AWE32" (Sound Blaster 16 for the effects),
+     EMU port 620. BLASTER gets E620 and the Sound Blaster type becomes 16.
+
+  The AWE32 and the SC-55 / SoundFont / MT-32 are exclusive: with /AWE the
+  emulated MPU-401 has no synth behind it (a hardware MPU-401 still works).
+  The music volume follows the game's Sound Blaster 16 mixer (MIDI and
+  master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
+  (sample RAM in KB: AWE32 512, AWE64 Gold 4096, up to 28672), /AWEROM:file
+  or folder. CPU: about 2-3% of a Pentium II 400 while Duke 3D's music plays;
+  needs a Pentium Pro / Pentium II or newer (like the SC-55). Differences to
+  a real card (open work): no reverb or chorus yet, and the filter is a
+  little brighter. AWE settings only change when SBEMU is loaded again.
+
+
+=============================================================================
  7. SBEMU COMMAND LINE OPTIONS  (complete list)
 =============================================================================
 
@@ -628,6 +660,12 @@ CONTENTS
                            0 = only /JOYKEY)
      /PADLOG               with SBEMU loaded: show the layout it picked for
                            the last programs started, then quit
+     /AWE:620              AWE32 / AWE64 EMU8000 wavetable at 620 (640,
+                           660, 680; 0 = off): SB16, BLASTER E620, no SC-55
+                           (section 6c)
+     /AWERAM:kb            its sample RAM, 0-28672 KB (default 512)
+     /AWEROM:path          1 MB EMU8000 ROM dump, or a folder searched by
+                           content (default ROMS, then AWE)
 
   Selection and diagnostics
      /SCL                  list installed sound cards

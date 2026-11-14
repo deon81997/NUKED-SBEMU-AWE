@@ -7,7 +7,7 @@ DEBUG ?= 0
 # 0: original SBEMU build with the TinySoundFont SoundFont synth
 VSC55 ?= 1
 
-VERSION ?= 1.0.0-beta.119-usb-sc55
+VERSION ?= 1.0.0-beta.119-awe.2-usb-sc55
 PACKVER = -DNSB_VER=\"$(VERSION)\" -include tools/packver.h
 
 INCLUDES := -I./mpxplay -I./sbemu -I./drivers/include -I./sc55 -I./third_party/nuked-opl3-fast
@@ -119,6 +119,7 @@ SBEMU_SRC := sbemu/dbopl.cpp \
              sbemu/vkbc.c \
              sbemu/padmap.c \
              sbemu/padconvl.c \
+             sbemu/vawe.c \
 	     sbemu/dpmi/xms.c \
 	     sbemu/dpmi/dpmi.c \
 	     sbemu/dpmi/dbgutil.c \
@@ -187,7 +188,10 @@ SC55_OBJS += $(MT32_OBJS)
 LINUX_DRIVERS_SRC := $(CTXFI_SRC) $(EMU10K1_SRC) $(TRIDENT_SRC) $(ALS4000_SRC) $(OXYGEN_SRC) $(ALLEGRO_SRC)
 SRC := $(LINUX_DRIVERS_SRC) $(CARDS_SRC) $(SBEMU_SRC)
 NUKEDOPL_OBJ := output/third_party/nuked-opl3-fast/opl3.o
-OBJS := $(patsubst %.cpp,output/%.o,$(patsubst %.c,output/%.o,$(SRC))) $(SC55_OBJS) $(NUKEDOPL_OBJ)
+# AWE32 EMU8000 synth (awe/synth): only runs with /AWE; built for P6 (CMOV) like the SC-55, own flags, no -flto/-ffast-math
+AWE_CFLAGS := -std=gnu99 -O2 -march=pentium2 -mtune=pentium-m -fomit-frame-pointer -DNDEBUG
+AWE_OBJS := output/awe/synth/emu8k.o output/awe/synth/emu8k_rom.o
+OBJS := $(patsubst %.cpp,output/%.o,$(patsubst %.c,output/%.o,$(SRC))) $(SC55_OBJS) $(NUKEDOPL_OBJ) $(AWE_OBJS)
 # no per-file header tracking: rebuild every object when any project header changes
 # (a stale object built against an older opl3.h corrupted memory in beta.50 testing)
 PROJECT_HEADERS := $(wildcard sbemu/*.h sbemu/*/*.h mpxplay/*.h mpxplay/au_cards/*.h sc55/*.h third_party/*/*.h $(CORE_DIR)/*.h)
@@ -203,6 +207,11 @@ $(TARGET): $(OBJS) output/packver.o
 	$(SILENTCMD)$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Nuked-OPL3-fast (VOPL3): compiled without -ffast-math, bit-exact by design
+$(AWE_OBJS): output/%.o: %.c awe/synth/emu8k.h
+	@mkdir -p $(dir $@)
+	$(SILENTMSG) "CC\t$@\n"
+	$(SILENTCMD)$(CC) $(AWE_CFLAGS) -c $< -o $@
+
 $(NUKEDOPL_OBJ): output/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(SILENTMSG) "CC\t$@\n"

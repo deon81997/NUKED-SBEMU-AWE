@@ -98,7 +98,17 @@ static void QEMM_TrapHandler()
                 {   /* the program's FPU state stays its own (see HDPMIPT_TrapHandler) */
                     unsigned char fpu_state[108];
                     asm volatile("fnsave %0\n\tfldcw %0" : "+m"(fpu_state));
-                    QEMM_TrapHandlerREG.h.al = link->iodt[i].handler(port, val, out);
+                    if((link->iodt[i].port & QEMM_IODT_SPLIT) && (out & 0x18))
+                    {   /* 16/32-bit IN/OUT (CL bits 3-4: 01 word, 10 dword; bit 2 = OUT): one byte call per port,
+                         * low byte first, as HDPMI's trap API does (AWE32 EMU8000 ports) */
+                        int n = (out & 0x10) ? 4 : 2, o = (out & 4) != 0;
+                        uint32_t v = QEMM_TrapHandlerREG.d.eax, r = 0;
+                        for(int k = 0; k < n; ++k)
+                            r |= (link->iodt[i].handler(port + k, (v >> (8 * k)) & 0xFF, o) & 0xFF) << (8 * k);
+                        if(!o) { if(n == 2) QEMM_TrapHandlerREG.w.ax = (uint16_t)r; else QEMM_TrapHandlerREG.d.eax = r; }
+                    }
+                    else
+                        QEMM_TrapHandlerREG.h.al = link->iodt[i].handler(port, val, out);
                     asm volatile("frstor %0" :: "m"(fpu_state));
                 }
                 return;
@@ -238,7 +248,7 @@ BOOL QEMM_Install_IOPortTrap(QEMM_IODT* inputp iodt, uint16_t count, QEMM_IOPT* 
         r.w.cs = QEMM_EntryCS;
         r.w.ip = QEMM_EntryIP;
         r.w.ax = 0x1A08;
-        r.w.dx = mem[i].port;
+        r.w.dx = mem[i].port&0xFFFF;
         DPMI_CallRealModeRETF(&r);
         mem[i].port |= (r.h.bl)<<16; //previously trapped state
 
@@ -274,7 +284,7 @@ BOOL QEMM_Uninstall_IOPortTrap(QEMM_IOPT* inputp iopt)
 
     for(int i = 0; i < link->count; ++i)
     {
-        if(!(link->iodt[i].port&0xFFFF0000L)) //previously not trapped
+        if(!(link->iodt[i].port&0x00FF0000L)) //previously not trapped (bits 16-23; QEMM_IODT_SPLIT is above)
         {
             DPMI_REG r = {0};
             r.w.cs = QEMM_EntryCS;

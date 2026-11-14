@@ -1,3 +1,53 @@
+## beta.119-awe.2 (2026-11-14, AWE session, repo deon81997/spare-01): AWE32/AWE64 EMU8000 in SBEMU, SETTINGS picks AWE or SC-55
+- Repo: spare-01 is the AWE line (meant to be NUKED-SBEMU-AWE; that repo was not reachable from Claude's GitHub app, so the
+  user said use spare-01). main = NUKED-SBEMU-MUXED beta.119 (df2766f) imported + branch synth-emu8000 merged (the EMU8000
+  engine, sc55-pack/awe/synth, by the synth chat). "awe.1" (port trapping from the repo-setup chat) never landed anywhere:
+  the trap layer was written here. Version names: `beta.NN-awe.M` = AWE update M on DOS beta.NN (like -w98.M); zip
+  NUKED-SB-EMU-1.0.0-beta.119-awe.2-usb.zip, tag v1.0.0-beta.119-awe.2-usb. To move the AWE work into MUXED later: the
+  diff is sbemu/vawe.[ch], awe/synth, main.c, qemm.[ch], hdpmipt.c, makefile, tools/sbset.c sc55menu.c sbdiag.c, README.TXT.
+- sbemu/vawe.c: traps base+0..3, +400h..403h, +800h..803h (12 ports, 3 HDPMI traps + 1 QEMM table) -> emu8k_io_write/
+  read. HDPMI (crazii fork, I2FHDPMI.ASM portloop) calls trap handlers once per BYTE, port then port+1, low byte first;
+  vawe latches the even byte and commits the word on the odd byte (Pointer also on its even byte); a read of the even byte
+  reads the whole word, the odd byte returns the latched high half. QEMM/QPIEMU passes AL only plus CL = size bits
+  (Jemm QPIEMU: bit 2 OUT, bits 3-4 byte/word/dword): qemm.c now splits 16/32-bit IN/OUT into byte calls for IODT entries
+  with QEMM_IODT_SPLIT (0x40000000; bits 16-23 of .port already hold QEMM's "was trapped" state - the uninstall test now
+  masks 0x00FF0000). hdpmipt.c matches (port & 0xFFFF). Other ports: unchanged behaviour.
+- main.c: /AWE:620|640|660|680 (hex, 0=off), /AWERAM:KB (512), /AWEROM:file|folder (default ROMS, then AWE; a 1 MB file
+  with "1MGM" at word 2 or 3). /AWE forces /T6, turns VMPU off (SC-55/SF/MT-32: exclusive), BLASTER gets " E620".
+  Mix: after SB+OPL, before CD-Audio: emu8k_render at aui.freq_card, gain = SB16 mixer MIDI x master (SBEMU's linear
+  mapping, like OPL/VMPU) x /VMIDIVOL, rendered with interrupts off (CLIS/STIL) so a trapped write never lands inside a
+  block; WC advances with the rendered frames. Resident re-run: /AWE* changes are ignored ("next time SBEMU loads").
+- HDPMI has 16 trap slots (?IOTP_COUNT). /AWE (3) + /JOY:1 with USB (joystick 1 + keyboard 2) ran out: SBEMU did not load
+  on the P2B-LS rig. With /AWE the DMA page traps 81-83h, 87h, 89-8Bh, 8Fh become one 81h-8Fh trap (MAIN_DMAPAGE_Install;
+  84-86h, 88h, 8C-8Eh passed through untrapped). Without /AWE: the old four traps.
+- SBDIAG with /AWE: the plain MPU handlers (VMPU off) now answer SBDIAG's A6-A8h side channel too; AWE render time is
+  reported as synth 3 = "AWE32" (sbdiag.c prints it).
+- SETTINGS: MIDI synth gets "AWE32 / AWE64 wavetable (EMU8000)" (6th choice, writes /AWE:620; reads /AWE:x back); the old
+  `cur >= 2` MT-32 checks became `== 2 || == 3`. MENU status line: "AWE32 at 620". README.TXT: section 6c + option list.
+- awe/synth compiled with its own flags (AWE_CFLAGS: -O2 -march=pentium2, no -flto/-ffast-math); only runs with /AWE.
+- Tests (testrig/awe/README.md, 86Box 0935207 P2B-LS PII-400; A = its AWE64 (PnP, 1 MB), S = ES1371 + SBEMU, ROM = 86Box
+  roms awe32.raw):
+  - Duke 3D 1.3D (MusicDevice 6): same music: envelope correlation 0.93 (log, 10 ms), band spectra within 0.3 dB up to
+    6.4 kHz, 1.2 dB less at 6.4-12.8 kHz. SBEMU's music/effects balance = 86Box's (~12 dB). Absolute level: /VOL:80 + /K:22050
+    default -13 dB vs 86Box, /VOL:100 /K:44100 +5 dB (SBEMU's card volume, not the AWE path).
+  - ROTT 1.3 (SNDSETUP: AWE32 music, SB16 FX): envelope correlation 0.955, bands within 0.6 dB to 6.4 kHz.
+  - Above 12.8 kHz SBEMU has much more energy (-17 dB vs -44 dB of total, ~20 kHz, also at /K:48000 so it is not 86Box's
+    resampling): the engine's 2-pole filter (86Box: 4-pole Moog) lets the ROM samples' aliasing through. Open: decide with
+    a real AWE32 recording whether to switch to 4-pole, and reverb/chorus are stubs in the engine (86Box has both).
+  - Modes: HIMEMX only + HDPMI32I (user's usual) /JOY:1 with USB: Duke plays; JEMMEX+QPIEMU: Duke plays. Real-mode word
+    path: testrig/awe/awedet.asm under QEMU JEMMEX+QPIEMU = 86Box AWE64 word for word (ID, HWCF1/2, SMALW/SMLD write,
+    SMALR/SMLD + SMARR/SMRD read-back incl. the buffered first read); byte read of ID passes here, fails on 86Box (fine).
+    Without /AWE the ports stay untrapped (probe reads FFFF) and SBEMU defaults are unchanged (SB Pro).
+  - Speed (testrig/midi/perf.sh, PII-450, /JOY:1 /VMPU:1): beta.119 344 int/s, 0.02 ms, 1% = this build without /AWE.
+    /AWE idle (no game): 0.04 ms, 1%. Duke 3D AWE music (PII-400, HIMEMX, SBDIAG): 329 int/s, avg 0.09 ms, longest
+    0.72 ms, 3% CPU (synth 62% of it), AWE needs 2% of real time, game got 867 of 878 ticks. SC-55 code unchanged, so
+    SC55LOG not re-measured (only its /VER string differs).
+  - SBEMU needs XMS: without HIMEM it stops with "Failed allocating XMS" (beta.119 too).
+- Real hardware to check (D810, P5PE-VM): a game with AWE32 music (Duke 3D / ROTT) with AWE32.RAW in ROMS, both with
+  HIMEM only and with JEMM; SETTINGS: pick AWE32, save, reboot, MENU shows "AWE32 at 620"; SBDIAG while it plays.
+- Test downloads: DJGPP v3.4 gcc12.2; 86Box 0935207 + roms; HX (Baron) + crazii/HX (trap API reading); Jemm (QPIEMU
+  reading); JWasm + HimemX (built HIMEMX.EXE for the rig); rufus res/freedos.
+
 ## beta.119 (2026-11-14, DOS session): beta.118 froze the ASUS P5PE-VM + Audigy (Win98 -> MS-DOS mode); beta.112 fine
 - Suspect: beta.115 MAIN_CardWatchdog (main.c) calls aui.card_handler->irq_routine from SB port traps and INT 1Ch,
   outside the interrupt, for every card; proven only on ES1371 (86Box). Not reproducible here (no emulator has an

@@ -144,7 +144,7 @@ static void show(const char* argv0, const SUM* m)
     {
         tu_head("SBDIAG", "why game music plays too slow", NULL);
         tui_panel(2, 3, 77, 4, 1, 0x1E, "Measurement");
-        snprintf(t, sizeof t, "%.0f s on a %.0f MHz CPU, synth %s", m->secs, m->mhz, m->synth == 2 ? "MT-32" : m->synth ? "SoundFont" : "SC-55");
+        snprintf(t, sizeof t, "%.0f s on a %.0f MHz CPU, synth %s", m->secs, m->mhz, m->synth == 3 ? "AWE32" : m->synth == 2 ? "MT-32" : m->synth ? "SoundFont" : "SC-55");
         tui_put(4, 4, 0x1F, t);
         snprintf(t, sizeof t, m->reasons == 1 ? "1 reason found" : "%d reasons found", m->reasons);
         tu_state(4, 5, m->reasons ? -1 : 1, m->reasons ? t : "no problem found");
@@ -266,7 +266,7 @@ report:
     traps = (double)d[F_TMPU] + d[F_TSB] + d[F_TOPL] + d[F_TPIT] + d[F_TPIC] + d[F_TOTH];
     trap_pct = 100.0 * traps * trapcost / 1e6 / secs;
 
-    out("Measured %.0f s on a %.0f MHz CPU. Synth: %s", secs, cps / 1e6, d[F_SYNTH] == 2 ? "MT-32" : d[F_SYNTH] ? "SoundFont" : "SC-55");
+    out("Measured %.0f s on a %.0f MHz CPU. Synth: %s", secs, cps / 1e6, d[F_SYNTH] == 3 ? "AWE32" : d[F_SYNTH] == 2 ? "MT-32" : d[F_SYNTH] ? "SoundFont" : "SC-55");
     if (!d[F_SYNTH]) out(" (reverb/chorus %s, voices %s, speed-control level %lu)",
                          d[F_FX] ? "on" : "off", d[F_VOICES] ? "limited" : "all", d[F_GOV]);
     out("\n\n");
@@ -296,7 +296,7 @@ report:
             100.0 * d[F_BGOT] / d[F_BEXP], d[F_BGOT], d[F_BEXP]);
     out("\nSYNTH\n");
     out("  %s needs %.0f%% of real time to render (100%% = all of the CPU); longest block %.2f ms\n",
-        d[F_SYNTH] == 2 ? "MT-32" : d[F_SYNTH] ? "SoundFont" : "SC-55", load, d[F_RENMAX] / 1000.0);
+        d[F_SYNTH] == 3 ? "AWE32" : d[F_SYNTH] == 2 ? "MT-32" : d[F_SYNTH] ? "SoundFont" : "SC-55", load, d[F_RENMAX] / 1000.0);
     out("  output %lu Hz, largest block %lu frames (%.1f ms of sound)\n", d[F_FREQ], d[F_FRMAX],
         d[F_FREQ] ? d[F_FRMAX] * 1000.0 / d[F_FREQ] : 0);
     if (d[F_VER] >= 3 && d[F_FIFOMIN] != 0xFFFFFFFFUL)

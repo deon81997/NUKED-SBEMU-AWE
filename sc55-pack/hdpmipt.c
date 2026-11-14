@@ -64,7 +64,7 @@ uint32_t __attribute__((noinline, used)) HDPMIPT_TrapHandler()
         {
             //if(port>=0&&port<=0xF)
             //    _LOG("port: %s %04x, %04x, %04x\n",out ? "out" : "in",port, link->iodt[i].port, value);
-            if(link->iodt[i].port == port)
+            if((link->iodt[i].port & 0xFFFF) == port)   /* high bits: flags (QEMM_IODT_SPLIT; HDPMI splits by itself) */
             {   /* the program was stopped at its port access, maybe in the middle of FPU math; some handlers use
                  * the FPU (SB DSP writes, DBOPL, the joystick axes): they get a clean one, the program keeps its own */
                 unsigned char fpu_state[108]; uint32_t r;

@@ -1,0 +1,199 @@
+diff --git a/src/86box.c b/src/86box.c
+index 49876ab26..a2983c7ba 100644
+--- a/src/86box.c
++++ b/src/86box.c
+@@ -1984,6 +1984,7 @@ pc_reset_hard_init(void)
+        other USB device attaches. */
+     usb_card_reset();
+     usb_hub_reset();
++    usb_xpad_reset();
+ 
+     /* Reset and reconfigure the Sound Card layer. */
+     sound_card_reset();
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 89e290876..ced7e9a18 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -53,6 +53,7 @@ add_executable(86Box
+     usb_card_via.c
+     usb_dev.c
+     usb_hid.c
++    usb_xpad.c
+     usb_hub.c
+     usb_legacy.c
+     usb_msd.c
+diff --git a/src/automation.c b/src/automation.c
+index 7c9e06ca1..d32820244 100644
+--- a/src/automation.c
++++ b/src/automation.c
+@@ -85,6 +85,7 @@ typedef int sock_t;
+ #include <86box/char.h>
+ #include <86box/serial.h>
+ #include <86box/automation.h>
++#include <86box/usb.h>
+ #include <zstd.h>
+ #ifdef USE_GDBSTUB
+ #    include <86box/gdbstub.h>
+@@ -2055,6 +2056,28 @@ handle_request(char *line)
+         sb_printf(&resp, ",\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"ff\":%s,\"w\":%d,\"h\":%d,\"bios_mode\":%d,\"quantum_ms\":%d}",
+                   (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
+                   dopause ? "true" : "false", fast_forward ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
++    } else if (!strcmp(argv[0], "usb") && (argc == 1)) {
++        /* usb: each hot-plug slot's device, whether it is connected and online. */
++        resp.len = 0;
++        sb_printf(&resp, "{\"ok\":true,\"slots\":[");
++        for (int i = 0; i < USB_SLOTS; i++)
++            sb_printf(&resp, "%s{\"slot\":\"%s\",\"present\":%s,\"connected\":%s,\"online\":%s}", i ? "," : "",
++                      usb_slot_internal_name(i), usb_slot_device(i) ? "true" : "false",
++                      usb_slot_connected(i) ? "true" : "false", usb_slot_online(i) ? "true" : "false");
++        sb_printf(&resp, "]}");
++    } else if (!strcmp(argv[0], "usb") && (argc == 3) && (!strcmp(argv[1], "plug") || !strcmp(argv[1], "unplug"))) {
++        /* usb plug|unplug <slot>: as the GUI's Connected item (local test addition). */
++        int slot = -1;
++        for (int i = 0; i < USB_SLOTS; i++)
++            if (!strcmp(argv[2], usb_slot_internal_name(i)))
++                slot = i;
++        if (slot < 0)
++            respond_error("no such USB slot");
++        else {
++            usb_slot_want(slot, !strcmp(argv[1], "plug"));
++            usb_hotplug_process();
++            respond_ok_time();
++        }
+     } else if (!strcmp(argv[0], "hold")) {
+         held = 1;
+         respond_ok_time();
+diff --git a/src/device/kbc_at.c b/src/device/kbc_at.c
+index 8d99a1492..00f256de2 100644
+--- a/src/device/kbc_at.c
++++ b/src/device/kbc_at.c
+@@ -110,6 +110,7 @@ typedef struct atkbc_t {
+     uint8_t channel;
+     uint8_t stat_hi;
+     uint8_t pending;
++    uint64_t ob_ready_at;   /* test rig KBC_OB_DELAY_US: D2h/D3h byte not in the output buffer before this */
+     uint8_t irq_state;
+     uint8_t do_irq;
+     uint8_t aux_delay;
+@@ -454,6 +455,7 @@ kbc_delay_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
+ }
+ 
+ static void kbc_at_process_cmd(void *priv);
++static uint64_t kbc_ob_delay_us;   /* test rig: $KBC_OB_DELAY_US */
+ 
+ static void
+ set_enable_kbd(atkbc_t *dev, uint8_t enable)
+@@ -572,6 +574,18 @@ at_main_ibf:
+             }
+             break;
+         case STATE_KBC_DELAY_OUT:
++            if (dev->ob_ready_at && (tsc < dev->ob_ready_at)) {
++                /* Test rig model of a slow embedded controller (Dell D810): the D2h/D3h byte is still on its
++                   way while the status already reads idle; a new command in that gap loses it. */
++                if (dev->status & STAT_IFULL) {
++                    dev->pending = 0;
++                    dev->ob_ready_at = 0;
++                    dev->state = STATE_MAIN_IBF;
++                    kbc_ibf_process(dev);
++                }
++                break;
++            }
++            dev->ob_ready_at = 0;
+             /* Keyboard controller command want to output a single byte. */
+             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
+             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+@@ -716,6 +730,18 @@ kbc_at_poll_ps2(atkbc_t *dev)
+                 dev->state = STATE_MAIN_AUX;
+             break;
+         case STATE_KBC_DELAY_OUT:
++            if (dev->ob_ready_at && (tsc < dev->ob_ready_at)) {
++                /* Test rig model of a slow embedded controller (Dell D810): the D2h/D3h byte is still on its
++                   way while the status already reads idle; a new command in that gap loses it. */
++                if (dev->status & STAT_IFULL) {
++                    dev->pending = 0;
++                    dev->ob_ready_at = 0;
++                    dev->state = STATE_MAIN_IBF;
++                    kbc_ibf_process(dev);
++                }
++                break;
++            }
++            dev->ob_ready_at = 0;
+             /* Keyboard controller command want to output a single byte. */
+             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
+             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+@@ -2678,11 +2704,13 @@ kbc_at_process_cmd(void *priv)
+             case 0xd2: /* write to keyboard output buffer */
+                 kbc_at_log("ATkbc: write to keyboard output buffer\n");
+                 kbc_delay_to_ob(dev, dev->ib, 0, 0x00);
++                if (kbc_ob_delay_us) dev->ob_ready_at = tsc + ((kbc_ob_delay_us * TIMER_USEC) >> 32);   /* TIMER_USEC is 32.32 */
+                 break;
+ 
+             case 0xd3: /* write to auxiliary output buffer */
+                 kbc_at_log("ATkbc: write to auxiliary output buffer\n");
+                 kbc_delay_to_ob(dev, dev->ib, 2, 0x00);
++                if (kbc_ob_delay_us) dev->ob_ready_at = tsc + ((kbc_ob_delay_us * TIMER_USEC) >> 32);   /* TIMER_USEC is 32.32 */
+                 break;
+ 
+             case 0xd4: /* write to auxiliary port */
+@@ -3000,6 +3028,10 @@ kbc_at_set_p2_write_hook(void *priv,
+ static void *
+ kbc_at_init(const device_t *info)
+ {
++    {   /* test rig: a slow D2h/D3h like the Dell D810's embedded controller */
++        const char *e = getenv("KBC_OB_DELAY_US");
++        kbc_ob_delay_us = e ? (uint64_t) atoi(e) : 0;
++    }
+     atkbc_t *dev;
+     int max_ports;
+ 
+diff --git a/src/include/86box/usb.h b/src/include/86box/usb.h
+index d321550ef..0bedf6afb 100644
+--- a/src/include/86box/usb.h
++++ b/src/include/86box/usb.h
+@@ -59,6 +59,8 @@ extern const device_t *usb_hub_get_device(int hub);
+ extern const char     *usb_hub_get_internal_name(int hub);
+ extern int             usb_hub_get_from_internal_name(const char *s);
+ extern void            usb_hub_reset(void);
++/* Emulated Xbox 360 pads (usb_xpad.c, local test addition). */
++extern void            usb_xpad_reset(void);
+ /* PCI USB host controller cards, listed on the Ports page; usb_card_type 0
+    is none. */
+ extern const device_t usb_opti_82c861_device;
+@@ -80,7 +82,7 @@ extern void            usb_card_reset(void);
+    made on the emulation thread by usb_hotplug_process(), which runs
+    between CPU slices, so no controller or device state is ever touched
+    from the GUI. What the user wants is kept in the config. */
+-#define USB_SLOTS 6
++#define USB_SLOTS 8
+ 
+ extern const char     *usb_slot_internal_name(int slot);
+ /* The device that holds the slot, NULL when the machine has none. */
+diff --git a/src/usb.c b/src/usb.c
+index ce51cfb01..98eb93067 100644
+--- a/src/usb.c
++++ b/src/usb.c
+@@ -2065,7 +2065,7 @@ typedef struct usb_slot_t {
+ } usb_slot_t;
+ 
+ static const char *const usb_slot_names[USB_SLOTS] = {
+-    "usb_hub_4port", "usb_mouse", "usb_tablet", "usb_keyboard", "usb_speaker", "usb_msd"
++    "usb_hub_4port", "usb_mouse", "usb_tablet", "usb_keyboard", "usb_speaker", "usb_msd", "usb_xpad", "usb_xpad2"
+ };
+ 
+ static usb_slot_t usb_slots[USB_SLOTS];
+diff --git a/src/usb_dev.c b/src/usb_dev.c
+index 211d0a08d..7e8444d7a 100644
+--- a/src/usb_dev.c
++++ b/src/usb_dev.c
+@@ -313,6 +313,11 @@ usb_dev_standard(usb_dev_t *dev, const uint8_t *setup, uint8_t *buf)
+                127 has unspecified behavior and is refused. */
+             dev->new_addr = wvalue;
+             dev->set_addr = 1;
++            {   /* test rig: USB_IGNADDR=n - the first n SET_ADDRESS requests are acked but not applied */
++                static int ign = -1;
++                if (ign < 0) { const char *e = getenv("USB_IGNADDR"); ign = e ? atoi(e) : 0; }
++                if (ign > 0 && wvalue) { ign--; dev->set_addr = 0; }
++            }
+             return 0;
+ 
+         case REQ_GET_DESCRIPTOR:

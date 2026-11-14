@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED
+# Rebuilds the README's scrolling news ticker whenever README.md changes, from the newest "What's NEW!!"
+# entries (docs/90s/ticker_news.py), and uploads it to the "news-ticker" pre-release (the repository rules
+# do not let the Actions bot push to any branch). The README shows
+#   https://github.com/deon81997/NUKED-SBEMU-MUXED/releases/download/news-ticker/ticker-hd.gif
+name: News ticker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'docs/90s/ticker_news.py'
+      - 'docs/90s/nav90s.py'
+      - '.github/workflows/ticker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ticker
+  cancel-in-progress: true
+
+jobs:
+  ticker:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}    # gh runs outside the checkout in the upload step
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pillow and the DejaVu fonts
+        run: |
+          sudo apt-get install -y -q fonts-dejavu-core > /dev/null
+          pip install -q pillow
+      - name: The text of the ticker that is up now
+        run: |
+          mkdir -p "$RUNNER_TEMP/t"
+          gh release download news-ticker -p ticker-hd.txt -D "$RUNNER_TEMP/t" 2>/dev/null || true
+      - name: Rebuild the ticker
+        id: build
+        run: |
+          set -o pipefail
+          # The README heading is now "## <picture>star.gif</picture> What's NEW!! <picture>...": put it back to the
+          # "## ★ What's NEW!! ★" form ticker_news.py looks for (runner's checkout only, never committed).
+          sed -i "s|^## .*What's NEW!!.*\$|## ★ What's NEW!! ★|" README.md
+          python3 docs/90s/ticker_news.py "$RUNNER_TEMP/t" | tee "$RUNNER_TEMP/out.txt"
+          if grep -q '^unchanged' "$RUNNER_TEMP/out.txt"; then echo "changed=0" >> "$GITHUB_OUTPUT"; else echo "changed=1" >> "$GITHUB_OUTPUT"; fi
+      - name: Upload it
+        if: steps.build.outputs.changed == '1'
+        run: |
+          cd "$RUNNER_TEMP/t"
+          if ! gh release view news-ticker >/dev/null 2>&1; then
+            gh release create news-ticker --prerelease --target main --title "News ticker (for the README)" \
+              --notes "The scrolling news on the README page. Rebuilt by .github/workflows/ticker.yml from the newest README news; not a download."
+          fi
+          gh release upload news-ticker ticker-hd.gif ticker-hd.txt --clobber

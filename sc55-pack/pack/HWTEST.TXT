@@ -1,0 +1,74 @@
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.114)
+Things an emulator cannot confirm. Tick each one; for any failure keep
+C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+DELL LATITUDE D810 (ICH6 UHCI + EHCI, SigmaTel AC'97, Dell keyboard controller)
+[ ] Sound: first note of a MIDI file and first sound of a game after some
+    seconds of silence - no click, nothing missing.
+[ ] Sound at 48 kHz (Settings > sample rate) - clean, not garbled (22 kHz is).
+[ ] After Windows 98 "Restart in MS-DOS mode": SBEMU has sound, USB pad works.
+[ ] USB Xbox 360 pad: JOYTEST sticks/buttons, then one real game with the pad.
+[ ] USB keyboard + USB mouse in SBEMU: KMTEST, then MENU and a game.
+[ ] Touchpad still works next to a USB mouse (CTMOUSE / MOUSE.COM).
+[ ] USB stick with /USBDISK:1 (MENU > Settings > Joystick > USB sticks):
+    FAT16, FAT32, exFAT and NTFS sticks get letters; COPY a big file from
+    each; unplug / replug; a game running from the stick while music plays.
+[ ] Two-partition stick used in Windows 98 first, then MS-DOS mode: both
+    letters readable (MENU > CD-ROM > USB drives).
+[ ] CD image (CD-ROM screen) with CD audio in a game, booted via BOOTCFG.
+[ ] MIDPLAY: 80x25, 80x50, 640x480 (F4) and 3D (S); 3D looks V (solid,
+    vector, voxel) - is voxel smooth enough?; Options > 3D screen mode.
+[ ] MENU 3D (F8): every style (F3), F4, F6.
+[ ] A 3D DOS game (Quake / Descent / Duke 3D) with SB sound + pad: no glitches.
+
+ASUS P5PE-VM (+ NEC uPD720101 USB card, wired Xbox 360 pad, Logitech receiver)
+[ ] beta.114 M-Audio Uno (froze the PC in beta.113 on every port). Boot as
+    usual (Win98 boot menu > command prompt, HIMEM only, no QEMM/JEMM),
+    Uno plugged into a board port, nothing else needed. In this order:
+    1. HDPMI32I as always, then C:\SC55\USBTEST (do NOT run SC55 first).
+       Wait for the middle C; press N (again), M (descriptors), unplug
+       the Uno and plug it back in, N, then Esc.
+       Freeze? Reboot, send C:\SC55\USBTEST.TXT (its last line = the step).
+       Works? Send USBTEST.TXT anyway (the M dump = the real Uno).
+    2. CD \SC55, then MIDPLAY /USB with a MIDI file; unplug / replug the
+       Uno while it plays; Esc.  Freeze? Send C:\SC55\USBMIDI.TXT.
+    3. SETTINGS > MIDI synth > USB MIDI device, SC55.BAT, a General MIDI
+       game; unplug / replug while it plays; quit the game.
+       Freeze? Reboot, send C:\SC55\SBDETAIL.TXT and C:\SC55\SBTRACE.TXT.
+    4. Steps 1-3 again with the Uno on the NEC card.
+    If the device misbehaves now, it is dropped instead of the PC: the
+    files say "[midi] ... USB MIDI device not used any more" and why.
+[ ] beta.110: board USB AND the NEC card both on, keyboard, mouse, stick
+    plugged in: SC55.BAT starts (no freeze). If it freezes: reboot, send
+    C:\SC55\SBDETAIL.TXT (last "[usb]" line = where). Then try
+    SC55 /USBSKIP:1033:00E0 and SC55 /USB:0 and say which start.
+[ ] beta.102 fix: Logitech receiver on the NEC card - MENU 3D F2/F3 and
+    MIDPLAY 3D V / C / J for a few minutes each: no GPF / "Stack Fault".
+    If it crashes: photo of the whole crash screen (all registers).
+[ ] Wired 360 pad on the NEC card and on the board's own USB: JOYTEST.
+[ ] USB stick on the NEC card (EHCI) with /USBDISK:1: DIR, COPY, a game.
+[ ] USBTEST.EXE (SBEMU not loaded): every device found, input shown.
+[ ] MIDPLAY 3D speed with voxel look; Options > 3D screen mode / refresh.
+[ ] Sound card in use: MIDI + digital sound in one game, 10 minutes.
+
+BOTH
+[ ] beta.108 USB MIDI (M-Audio Uno): USBTEST (no SBEMU) lists "USB MIDI
+    out 0763:..." and the synth plays a short middle C; N plays it again;
+    a key on the synth's MIDI OUT -> Uno MIDI IN shows "MIDI IN: 90 ..".
+    D810 (ICH6) and the NEC card; through a hub too. (P5PE-VM: see its
+    beta.114 item first.)
+[ ] SETTINGS > MIDI synth > USB MIDI device, then a General MIDI game and
+    MIDPLAY: music on the external synth, no stuck notes; pull the Uno out
+    and back in while it plays - the music comes back.
+[ ] MIDPLAY /USB (no SBEMU, PS/2 keyboard): plays on the Uno.
+[ ] MS-DOS 7.1 (Win98 boot) and, if you have it, MS-DOS 6.22 boot disk:
+    SBEMU with USB sticks - spare letters D:/E: and exFAT/NTFS letters.
+[ ] MIDPLAY in a Windows 98 DOS box: windowed (Alt+Enter) and full screen,
+    text, panel and 3D views.
+[ ] SBEMU unload (if used) and back to the prompt without a hang.
+[ ] beta.112 sticks plugged in AFTER SBEMU (/USBDISK:1): a stick with two
+    FAT partitions gets both waiting letters; an exFAT or NTFS stick gets
+    its read-only letter; USBDRV shows them. A CD image on that exFAT/NTFS
+    stick mounts in MENU > CD-ROM and the game starts from it.
+[ ] Any PC with USB 3 ports (if you have one): a stick on a USB 3 port with
+    /USBDISK:1 - DIR, COPY a big file both ways, a game; music keeps playing.

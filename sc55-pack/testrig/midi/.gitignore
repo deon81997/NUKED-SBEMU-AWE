@@ -1,0 +1,9 @@
+out-*.txt
+fakemidi*.log
+done-*.txt
+usbtest-*.txt
+usbmidi-*.txt
+sbdetail-*.txt
+crash-*.txt
+results.txt
+perf-*.txt

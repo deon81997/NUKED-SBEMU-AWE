@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED
+"""Draws the 90s home-page graphics used by README.md (all original, made with Pillow).
+
+    python3 docs/90s/make90s.py      -> writes the GIFs next to this script
+"""
+import math, os, random
+from PIL import Image, ImageDraw, ImageFont
+
+OUT = os.path.dirname(os.path.abspath(__file__))
+FD = '/usr/share/fonts/truetype/dejavu/'
+F = lambda n, s: ImageFont.truetype(FD + n, s)
+random.seed(1996)
+
+
+SCALE = 2  # every graphic is drawn at 1x and stored at 2x with hard pixel edges (sharp on any screen)
+
+
+def save(frames, name, ms=120):
+    frames = [f.convert('RGB').resize((f.width * SCALE, f.height * SCALE), Image.NEAREST) for f in frames]
+    frames = [f.convert('P', palette=Image.ADAPTIVE, colors=64) for f in frames]
+    frames[0].save(os.path.join(OUT, name), save_all=len(frames) > 1, append_images=frames[1:],
+                   duration=ms, loop=0, optimize=True, disposal=2)
+
+
+def crisp(d):
+    d.fontmode = '1'  # no anti-aliasing: real 1997 pixels
+    return d
+
+
+def rainbow(t):
+    """hue 0..1 -> RGB"""
+    i = int(t * 6) % 6
+    f = t * 6 - int(t * 6)
+    q, p = int(255 * (1 - f)), int(255 * f)
+    return [(255, p, 0), (q, 255, 0), (0, 255, p), (0, q, 255), (p, 0, 255), (255, 0, q)][i]
+
+
+def starfield(w, h, n=60):
+    return [(random.randrange(w), random.randrange(h), random.choice([1, 1, 1, 2])) for _ in range(n)]
+
+
+# ---------------------------------------------------------------- WordArt title with twinkling stars
+def title():
+    w, h = 720, 120
+    stars = starfield(w, h, 90)
+    font = F('DejaVuSerif-Bold.ttf', 64)
+    text = 'NUKED SB-EMU'
+    frames = []
+    for k in range(12):
+        im = Image.new('RGB', (w, h), (0, 0, 32))
+        d = crisp(ImageDraw.Draw(im))
+        for i, (x, y, s) in enumerate(stars):
+            if (i + k) % 5:
+                c = 255 if (i + k) % 3 else 140
+                d.rectangle([x, y, x + s - 1, y + s - 1], fill=(c, c, c))
+        tw = d.textlength(text, font=font)
+        x0 = (w - tw) / 2
+        x = x0
+        for j, ch in enumerate(text):
+            y = 20 + 8 * math.sin((j + k) * 0.6)
+            d.text((x + 4, y + 4), ch, font=font, fill=(60, 0, 90))            # drop shadow
+            d.text((x, y), ch, font=font, fill=rainbow(((j + k) / 12) % 1))
+            x += d.textlength(ch, font=font)
+        frames.append(im)
+    save(frames, 'title.gif', 110)
+
+
+# ---------------------------------------------------------------- "under construction" sign
+def construction():
+    w, h = 300, 60
+    font = F('DejaVuSans-Bold.ttf', 15)
+    frames = []
+    for k in range(8):
+        im = Image.new('RGB', (w, h), (255, 220, 0))
+        d = crisp(ImageDraw.Draw(im))
+        for s in range(-h, w + h, 20):           # moving hazard stripes top and bottom
+            for y0 in (0, h - 12):
+                xs = s + k * 5
+                d.polygon([(xs, y0), (xs + 10, y0), (xs + 22, y0 + 12), (xs + 12, y0 + 12)], fill=(0, 0, 0))
+        d.rectangle([0, 14, w, h - 15], fill=(255, 220, 0))
+        msg = 'UNDER CONSTRUCTION'
+        d.text(((w - d.textlength(msg, font=font)) / 2, 20), msg, font=font,
+               fill=(0, 0, 0) if k % 2 else (200, 0, 0))
+        # little worker: hard hat + shovel
+        d.ellipse([12, 17, 30, 35], fill=(255, 120, 0), outline=(0, 0, 0))
+        d.line([w - 30, 18, w - 16 + (k % 2) * 3, 40], fill=(90, 50, 0), width=3)
+        d.rectangle([w - 20 + (k % 2) * 3, 38, w - 12 + (k % 2) * 3, 44], fill=(120, 120, 120))
+        frames.append(im)
+    save(frames, 'construction.gif', 150)
+
+
+# ---------------------------------------------------------------- blinking NEW!
+def new():
+    w, h = 48, 20
+    font = F('DejaVuSans-Bold.ttf', 13)
+    frames = []
+    for k in range(2):
+        im = Image.new('RGB', (w, h), (255, 255, 255))
+        d = crisp(ImageDraw.Draw(im))
+        if k == 0:
+            d.polygon([(0, 10), (6, 0), (42, 0), (48, 10), (42, 19), (6, 19)], fill=(255, 0, 0))
+            d.text((7, 2), 'NEW!', font=font, fill=(255, 255, 0))
+        frames.append(im)
+    save(frames, 'new.gif', 450)
+
+
+# ---------------------------------------------------------------- 88x31 buttons
+def button(name, top, bottom, bg, fg, left=None, anim=None):
+    frames = []
+    nf = 1 if anim is None else 6
+    small, big = F('DejaVuSansCondensed-Bold.ttf', 9), F('DejaVuSansCondensed-Bold.ttf', 11)
+    for k in range(nf):
+        im = Image.new('RGB', (88, 31), bg)
+        d = crisp(ImageDraw.Draw(im))
+        d.rectangle([0, 0, 87, 30], outline=(255, 255, 255))
+        d.line([(87, 0), (87, 30), (0, 30)], fill=(64, 64, 64))
+        x = 3
+        if left:
+            d.rectangle([3, 3, 26, 27], fill=left[0])
+            d.text((15 - d.textlength(left[1], font=big) / 2, 8), left[1], font=big, fill=left[2])
+            x = 30
+        cw = 88 - x - 3
+        col = fg if anim is None else rainbow(k / nf)
+        d.text((x + (cw - d.textlength(top, font=small)) / 2, 4), top, font=small, fill=col)
+        d.text((x + (cw - d.textlength(bottom, font=big)) / 2, 15), bottom, font=big, fill=fg)
+        frames.append(im)
+    save(frames, name, 200)
+
+
+def buttons():
+    button('btn-ie.gif', 'viewed with', 'IE 4.0', (0, 0, 128), (255, 255, 255), ((0, 102, 204), 'e', (255, 255, 0)))
+    button('btn-800.gif', 'best viewed at', '800 x 600', (0, 0, 0), (0, 255, 0))
+    button('btn-notepad.gif', 'made with', 'NOTEPAD', (255, 255, 255), (0, 0, 0), ((0, 0, 128), 'N', (255, 255, 255)))
+    button('btn-dos.gif', 'powered by', 'DOS 7.1', (0, 0, 0), (192, 192, 192), ((128, 128, 128), 'C:\\', (0, 0, 0)))
+    button('btn-sc55.gif', 'SC-55 synth', 'INSIDE', (40, 40, 40), (255, 160, 0), ((0, 0, 0), '55', (255, 160, 0)), anim=True)
+    button('btn-gpl.gif', 'free software', 'GPL 2.0+', (128, 0, 0), (255, 255, 255))
+    button('btn-download.gif', 'click here to', 'DOWNLOAD!', (0, 128, 0), (255, 255, 0), anim=True)
+    button('btn-sb16.gif', 'sound by', 'SB16', (0, 0, 0), (255, 64, 64), ((200, 0, 0), 'SB', (255, 255, 255)))
+
+
+# ---------------------------------------------------------------- odometer "counter" (it counts releases)
+def counter(n=109):
+    digits = '%06d' % n
+    font = F('DejaVuSansMono-Bold.ttf', 18)
+    w, h = 6 * 16 + 4, 26
+    im = Image.new('RGB', (w, h), (0, 0, 0))
+    d = crisp(ImageDraw.Draw(im))
+    for i, c in enumerate(digits):
+        x = 2 + i * 16
+        d.rectangle([x, 2, x + 14, h - 3], fill=(30, 30, 30), outline=(90, 90, 90))
+        d.line([x, h // 2, x + 14, h // 2], fill=(0, 0, 0))
+        d.text((x + 2, 1), c, font=font, fill=(0, 255, 0))
+    save([im], 'counter.gif')
+
+
+# ---------------------------------------------------------------- rainbow divider bar
+def bar():
+    w, h = 600, 6
+    frames = []
+    for k in range(10):
+        im = Image.new('RGB', (w, h))
+        d = ImageDraw.Draw(im)
+        for x in range(w):
+            d.line([x, 0, x, h], fill=rainbow(((x / w) + k / 10) % 1))
+        frames.append(im)
+    save(frames, 'bar.gif', 100)
+
+
+# ---------------------------------------------------------------- spinning-ish floppy and mailbox icons
+def floppy():
+    frames = []
+    for k in range(4):
+        im = Image.new('RGB', (32, 32), (255, 255, 255))
+        d = ImageDraw.Draw(im)
+        d.polygon([(2, 2), (27, 2), (30, 5), (30, 30), (2, 30)], fill=(30, 30, 140))
+        d.rectangle([8, 2, 24, 11], fill=(200, 200, 200))
+        d.rectangle([18 - k % 2 * 4, 3, 21 - k % 2 * 4, 10], fill=(30, 30, 140))
+        d.rectangle([6, 16, 26, 30], fill=(255, 255, 255))
+        for y in (19, 22, 25):
+            d.line([8, y, 24, y], fill=(255, 0, 0) if (y + k) % 2 else (0, 0, 255))
+        frames.append(im)
+    save(frames, 'floppy.gif', 300)
+
+
+def mailbox():
+    frames = []
+    for k in range(2):
+        im = Image.new('RGB', (32, 32), (255, 255, 255))
+        d = ImageDraw.Draw(im)
+        d.rectangle([14, 18, 17, 31], fill=(110, 70, 30))
+        d.rounded_rectangle([3, 6, 28, 19], 5, fill=(30, 60, 200))
+        d.rectangle([3, 12, 10, 19], fill=(20, 40, 150))
+        d.line([24, 4, 24, 10 if k else 6], fill=(255, 0, 0), width=2)
+        d.rectangle([21, 3 if k else 1, 27, 5 if k else 3], fill=(255, 0, 0))
+        frames.append(im)
+    save(frames, 'mail.gif', 500)
+
+
+# ---------------------------------------------------------------- embedded MIDI player box ("now playing")
+def jukebox():
+    w, h = 300, 64
+    title = '~*~ now playing: PORT220_THEME.MID (SC-55 mix) ~*~ turn your speakers up!! ~*~    '
+    font, small = F('DejaVuSansMono-Bold.ttf', 12), F('DejaVuSans-Bold.ttf', 10)
+    frames = []
+    for k in range(24):
+        im = Image.new('RGB', (w, h), (192, 192, 192))
+        d = crisp(ImageDraw.Draw(im))
+        d.rectangle([0, 0, w - 1, h - 1], outline=(255, 255, 255)); d.line([w - 1, 0, w - 1, h - 1], fill=(64, 64, 64))
+        d.line([0, h - 1, w - 1, h - 1], fill=(64, 64, 64))
+        d.rectangle([3, 3, w - 4, 14], fill=(0, 0, 128))
+        d.text((6, 3), 'MIDI Player - Untitled', font=small, fill=(255, 255, 255))
+        d.rectangle([6, 18, w - 7, 34], fill=(0, 0, 0))
+        off = (k * 7) % (len(title) * 7)
+        d.text((8 - off, 19), title * 2, font=font, fill=(0, 255, 0))
+        d.rectangle([0, 18, 5, 34], fill=(192, 192, 192)); d.rectangle([w - 6, 18, w - 1, 34], fill=(192, 192, 192))
+        for i, sym in enumerate(('|<', '>', '||', '[]', '>|')):         # buttons, PLAY held down
+            x = 8 + i * 30
+            down = i == 1
+            d.rectangle([x, 39, x + 26, 57], fill=(192, 192, 192), outline=(64, 64, 64) if down else (255, 255, 255))
+            d.text((x + 13, 48), sym, font=small, fill=(0, 0, 0), anchor='mm')
+        for b in range(12):                                             # level meter
+            v = abs(math.sin(k * 0.8 + b * 1.1)) * 16
+            d.rectangle([166 + b * 10, 57 - int(v), 172 + b * 10, 57], fill=(0, 200, 0) if v < 11 else (255, 255, 0) if v < 14 else (255, 0, 0))
+        frames.append(im)
+    save(frames, 'jukebox.gif', 110)
+
+
+# ---------------------------------------------------------------- web award + Y2K badge
+def award():
+    w, h = 120, 120
+    frames = []
+    for k in range(8):
+        im = Image.new('RGB', (w, h), (0, 0, 0))
+        d = crisp(ImageDraw.Draw(im))
+        for i in range(16):                                             # rosette
+            a = i * math.pi / 8 + k * 0.1
+            d.polygon([(60, 54), (60 + 52 * math.cos(a), 54 + 52 * math.sin(a)), (60 + 52 * math.cos(a + 0.3), 54 + 52 * math.sin(a + 0.3))],
+                      fill=(255, 215, 0) if i % 2 else (200, 140, 0))
+        d.ellipse([22, 16, 98, 92], fill=(128, 0, 0), outline=(255, 255, 255))
+        d.text((60, 36), 'COOL', font=F('DejaVuSerif-Bold.ttf', 15), fill=(255, 255, 0), anchor='mm')
+        d.text((60, 54), 'DOS SITE', font=F('DejaVuSans-Bold.ttf', 11), fill=(255, 255, 255), anchor='mm')
+        d.text((60, 70), 'of the day', font=F('DejaVuSans.ttf', 10), fill=rainbow(k / 8), anchor='mm')
+        d.polygon([(40, 92), (34, 118), (48, 110), (54, 96)], fill=(0, 0, 160)); d.polygon([(80, 92), (86, 118), (72, 110), (66, 96)], fill=(0, 0, 160))
+        frames.append(im)
+    save(frames, 'award.gif', 140)
+    im = Image.new('RGB', (88, 31), (0, 0, 0))
+    d = crisp(ImageDraw.Draw(im))
+    d.rectangle([0, 0, 87, 30], outline=(0, 255, 0))
+    d.text((44, 9), 'Y2K', font=F('DejaVuSans-Bold.ttf', 13), fill=(0, 255, 0), anchor='mm')
+    d.text((44, 23), 'COMPLIANT!!', font=F('DejaVuSans-Bold.ttf', 9), fill=(255, 255, 255), anchor='mm')
+    save([im], 'btn-y2k.gif')
+
+
+if __name__ == '__main__':
+    import sys
+    if sys.argv[1:]:
+        for fn in sys.argv[1:]: globals()[fn]()
+        sys.exit()
+    title(); construction(); new(); buttons(); counter(); bar(); floppy(); mailbox(); jukebox(); award()
+    for f in sorted(os.listdir(OUT)):
+        if f.endswith('.gif'):
+            print(f, os.path.getsize(os.path.join(OUT, f)))

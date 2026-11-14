@@ -1,0 +1,13 @@
+output/*
+.vscode
+.idea
+*.o
+*.ROM
+*.rom
+FILES/ROMS/
+pack/FILES/ROMS/
+*.img
+*.iso
+testrig/rufus/
+testrig/fakepad.log
+testrig/mon.sock

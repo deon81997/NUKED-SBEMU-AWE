@@ -1,0 +1,105 @@
+Open Watcom Linker Version 2.0 beta Nov  8 2026 06:40:35 (64-bit)
+Copyright (c) 2002-2026 The Open Watcom Contributors. All Rights Reserved.
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       26/11/10 10:04:25
+Executable Image: SC55W.VXD
+creating a Windows VxD dynamic link library
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          0002:00000000        000015f6
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+_LDATA                 LCODE          AUTO           0001:00000000   00000088
+_LTEXT                 LCODE          AUTO           0001:00000088   0000050e
+_TEXT                  CODE           AUTO           0001:00000598   00003178
+_DATA                  DATA           DGROUP         0002:00000000   00000008
+CONST                  DATA           DGROUP         0002:00000008   00000000
+CONST2                 DATA           DGROUP         0002:00000008   0000013f
+_BSS                   BSS            DGROUP         0002:00000148   000014ae
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: sc55w.o(sc55w.o)
+0001:000001dd  _vxd_time_us
+0001:00000217  _vxd_muldiv
+0001:00000232  _vxd_raise_irq
+0001:00000257  _vxd_lower_irq
+0001:0000027c  _vxd_dma_get
+0001:000002cf  _vxd_dma_set
+0001:00000316  _vxd_timer_arm
+0001:00000339  _vxd_install_io
+0001:0000034f  _vxd_remove_io
+0001:0000035a  _vxd_virt_irq
+0001:00000382  _vxd_unvirt_irq
+0001:00000395  _vxd_virt_dma
+0001:000003db  _vxd_unvirt_dma
+0001:000003f3  _vxd_map_block
+0001:00000435  _vxd_unmap_block
+0001:0000054d  _vxd_min_period
+0001:00000530  _vxd_sys_vm
+0001:0000053b  _vxd_port_in
+0001:00000543  _vxd_port_out
+0001:0000046c  _vxd_hook_int15
+0001:000004b8  _vxd_hook_int21
+0001:00000510  _vxd_kbd_owner
+0001:0000051b  _vxd_force_keys
+0001:000004de  _vxd_nest_begin
+0001:000004f1  _vxd_nest_int21
+0001:000004fd  _vxd_nest_end
+0001:00000000  SC55W_DDB
+0001:00000088* SC55W_Control
+0001:000000ff* PM_API
+0001:00000178* IO_Stub
+0001:0000019f* Timer_CB
+0001:000001b1* Hw_Int
+0001:000001b3* EOI_Proc
+0001:000001bf* DMA_CB0
+0001:000001ce* DMA_CB1
+0001:00000452* Int15_Hook
+0001:00000492* Int21_Hook
+Module: sbcore.obj(sbcore.obj)
+0001:000009fb  _sc_eoi
+0001:00001798  _sc_tick
+0001:0000199a  _sc_dma_changed
+0001:00002643  _sc_int15
+0001:0000279e  _sc_in
+0001:0000295d  _sc_out
+0001:00002c66  _sc_vm_gone
+0001:00002f53  _sc_int21
+0001:00002ffc  _sc_exit
+0001:000034a5  _sc_ioctl
+0001:000036c6  _sc_api_midi
+0001:000036db  _sc_api_volume
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  0000 (0.)
+Memory size:  4d06 (19718.)
+Link time: 00:00.43

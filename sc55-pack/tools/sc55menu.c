@@ -1,0 +1,1302 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED */
+/* SC55MENU - one screen for everything in NUKED SB-EMU (the SC-55 pack). Started by C:\SC55\MENU.BAT.
+ *
+ * The menu never starts SBEMU (or a game) itself: it writes the chosen command to MENUGO.BAT and
+ * exits, and MENU.BAT runs that file from plain DOS. SBEMU stays resident, so it must not be loaded
+ * from inside another program. After most choices MENU.BAT brings the menu back (MENUBACK=1);
+ * Esc just exits. MENUVIEW=<file> in MENUGO.BAT makes the menu show that file on return.
+ *
+ * Games are played with the SBEMU settings that tested best for them in GAMETEST (GTBEST.CFG), if
+ * there are any: the resident SBEMU takes them over before the game and goes back to your saved
+ * settings afterwards. F2 plays with your saved settings instead.
+ *
+ *   SC55MENU [home folder]     (default: the folder SC55MENU.EXE is in)
+ */
+#ifndef MENU_VER
+#define MENU_VER "1.0.0"
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <dir.h>
+#include "tui.h"
+#include "safewr.h"
+#include "mpuport.h"
+#include "sbemuchk.h"
+#include "crit24.h"
+#include <stdarg.h>
+#include <time.h>
+
+static int MPU = 0x330;          /* the MPU-401 port from the saved settings (/P) */
+#define NGAMES 4
+
+static char g_home[200];
+static int  g_running;          /* SBEMU is loaded (AMIS signature or its MPU-401 answers) */
+static SBCHK g_sbc;             /* how it was found: state (loaded / not / unknown), version, mode, MPU port */
+static char g_lasterr[80];      /* why SBEMU last refused to load (SBLOG.TXT), "" = no error */
+static char g_opts[300];        /* saved settings (SBOPTS.TXT / SBOPTS.BAT) */
+static char g_optfile[16];      /* "@SBOPTS.TXT" or "@SBOPTS.BAT" or "" */
+static int  g_gt_green, g_gt_yellow, g_gt_red, g_gt_lock;
+
+enum { IT_BAT, IT_VIEW, IT_GAME, IT_EDIT, IT_M3D };
+enum { C_SOUND, C_SETTINGS, C_TESTS, C_GAMES, C_CD, C_FILES, NCAT };
+static const char* g_catname[NCAT] = { "Sound", "Settings", "Tests", "Games", "CD-ROM", "Files" };
+static const unsigned char g_caticon[NCAT] = { 0x0E, 0x0F, 0xFB, 0x02, 0x0A, 0xF0 };
+typedef struct {
+    int cat;                    /* category (tab on the left) */
+    char label[40];
+    char desc[400];
+    int kind;
+    char cmd[300];              /* IT_BAT: lines for MENUGO.BAT ('|' = new line); IT_VIEW: file name */
+    int needs_sbemu;            /* 1: only when SBEMU is loaded, -1: only when it is not */
+    int pause;                  /* PAUSE after the command */
+    char view[16];              /* file shown when the menu comes back */
+    char best[120];             /* IT_GAME: SBEMU options that tested best ("" = none) */
+    char cmd2[300];             /* IT_GAME: the same game with the saved settings (F2) */
+    int gp;                     /* IT_GAME: game profile number */
+} ITEM;
+static ITEM g_it[80];
+static int g_n;
+
+/* the last 50 things the user did (keys, menus, 3D modes, what was run): written to CRASH.TXT if the menu crashes */
+#define UL_N 50
+static char g_ulog[UL_N][48]; static unsigned g_ulog_n;
+static int g_in3d;              /* the 3D menu is on the screen */
+static int g_win;               /* running in a Windows DOS box (INT 2Fh AX=1600h) */
+static void ui_log(const char* fmt, ...)
+{
+    char* d = g_ulog[g_ulog_n++ % UL_N]; int k;
+    va_list ap; va_start(ap, fmt);
+    k = snprintf(d, 12, "%7.1f ", (double)uclock() / UCLOCKS_PER_SEC);
+    if (k < 0 || k > 11) k = 0;
+    vsnprintf(d + k, sizeof g_ulog[0] - (size_t)k, fmt, ap); va_end(ap);
+}
+
+/* ---------------------------------------------------------------- helpers */
+static int sbemu_present(void)
+{
+    /* SBEMU's AMIS signature (needs no port trap: beta.116 and older MENUs said "Not loaded" whenever the MPU probe
+     * did not reach SBEMU's trap), then its MPU-401: the saved /P first, then BLASTER's P, then the usual ports */
+    sbemu_check(&g_sbc, MPU, g_win);
+    if (g_sbc.mpu) MPU = g_sbc.mpu;
+    ui_log("sbemu %s amis=%d mpu=%X %s", g_sbc.state == SBC_LOADED ? "loaded" : g_sbc.state == SBC_UNKNOWN ? "unknown" : "not", g_sbc.amis, g_sbc.mpu, g_sbc.info);
+    return g_sbc.state == SBC_LOADED;
+}
+/* the status word for the screens: "Loaded", "Not loaded", "Unknown" */
+static const char* sbemu_word(void) { return g_sbc.state == SBC_LOADED ? "Loaded" : g_sbc.state == SBC_UNKNOWN ? "Unknown" : "Not loaded"; }
+/* SC-55 / SoundFont render load from SBEMU (MPU command 0xB0, beta.34+), permille; -1 = not known */
+static int g_load = -1;
+static unsigned long g_load_tick;
+static void sbemu_load(void)
+{
+    unsigned char b[150]; int i;
+    unsigned long t = _farpeekl(_dos_ds, 0x46C);
+    if (!g_running || !g_sbc.mpu || (g_load_tick && t - g_load_tick < 18)) return;   /* once a second */
+    g_load_tick = t ? t : 1;
+    outportb(MPU + 1, 0xB0);
+    for (i = 0; i < 150; i++) b[i] = (unsigned char)inportb(MPU);       /* the whole report, so nothing is left over */
+    mpu_drain(MPU);
+    g_load = b[0] == 'L' ? b[3] | (b[4] << 8) : -1;
+}
+static void home_path(char* out, const char* name) { sprintf(out, "%s\\%s", g_home, name); }
+static int home_exists(const char* name) { char p[300]; home_path(p, name); return access(p, R_OK) == 0; }
+
+static void read_sbopts(void)
+{
+    char p[300], line[300]; FILE* f;
+    g_opts[0] = 0; g_optfile[0] = 0;
+    home_path(p, "SBOPTS.TXT");
+    if ((f = fopen(p, "r")) != NULL)
+    {
+        if (fgets(line, sizeof line, f)) { line[strcspn(line, "\r\n")] = 0; strcpy(g_opts, line); }
+        fclose(f); strcpy(g_optfile, "@SBOPTS.TXT");
+        return;
+    }
+    home_path(p, "SBOPTS.BAT");
+    if ((f = fopen(p, "r")) == NULL) return;
+    while (fgets(line, sizeof line, f))
+    {
+        line[strcspn(line, "\r\n")] = 0;
+        if (!strncasecmp(line, "SET SBOPTS=", 11)) { strncpy(g_opts, line + 11, sizeof g_opts - 1); g_opts[sizeof g_opts - 1] = 0; }
+    }
+    fclose(f); strcpy(g_optfile, "@SBOPTS.BAT");
+}
+/* value of "/A:220" style option in the saved settings, or def */
+static const char* opt_val(const char* name, const char* def)
+{
+    static char ring[4][80]; static int k;
+    char* v = ring[k++ & 3];                    /* several values can be used in one printf */
+    const char* p = g_opts; size_t n = strlen(name);
+    while ((p = strstr(p, name)) != NULL)
+    {
+        if ((p == g_opts || p[-1] == ' ') && (p[n] == ':' || p[n] == '='))
+        {
+            int i = 0; p += n + 1;
+            while (*p && *p != ' ' && i < 79) v[i++] = *p++;
+            v[i] = 0; return v;
+        }
+        p += n;
+    }
+    return def;
+}
+/* the first error SBEMU wrote to SBLOG.TXT the last time it was started (SC55.BAT logs there) */
+static void read_lasterr(void)
+{
+    char p[300], line[200]; FILE* f;
+    g_lasterr[0] = 0;
+    home_path(p, "SBLOG.TXT");
+    if ((f = fopen(p, "r")) == NULL) return;
+    while (fgets(line, sizeof line, f))
+    {
+        char* t = line;
+        line[strcspn(line, "\r\n")] = 0;
+        while (*t == ' ') t++;
+        if (strstr(t, "rror") || strstr(t, "abort") || strstr(t, "not found") || strstr(t, "soundcard found") || strstr(t, "failed"))
+        { strncpy(g_lasterr, t, sizeof g_lasterr - 1); g_lasterr[sizeof g_lasterr - 1] = 0; break; }
+    }
+    fclose(f);
+}
+
+/* clock classes: 0 green 99-101%, 1 yellow 95-99% or 101-105%, 2 red (too slow / too fast / locked up) */
+static int clk_class(double v) { return (v >= 99.0 && v <= 101.0) ? 0 : ((v >= 95.0 && v <= 105.0) ? 1 : 2); }
+
+static void read_gametest_summary(void)
+{
+    char p[300], line[400]; FILE* f;
+    g_gt_green = g_gt_yellow = g_gt_red = g_gt_lock = 0;
+    home_path(p, "GAMETEST.TXT");
+    if ((f = fopen(p, "r")) == NULL) return;
+    while (fgets(line, sizeof line, f))
+    {
+        const char* c = strstr(line, "clock ");
+        double v;
+        if (strstr(line, "LOCKED")) { ++g_gt_lock; continue; }
+        if (c && sscanf(c + 6, " %lf%%", &v) == 1)
+        { int k = clk_class(v); if (k == 0) ++g_gt_green; else if (k == 1) ++g_gt_yellow; else ++g_gt_red; }
+    }
+    fclose(f);
+}
+
+static ITEM* add(int cat, const char* label, const char* desc, int kind, const char* cmd, int needs, int pause, const char* view)
+{
+    ITEM* it;
+    if (g_n >= 80) return NULL;
+    it = &g_it[g_n++];
+    memset(it, 0, sizeof *it);
+    it->cat = cat; it->kind = kind; it->needs_sbemu = needs; it->pause = pause;
+    snprintf(it->label, sizeof it->label, "%s", label);
+    snprintf(it->desc, sizeof it->desc, "%s", desc);
+    if (cmd) snprintf(it->cmd, sizeof it->cmd, "%s", cmd);
+    if (view) snprintf(it->view, sizeof it->view, "%s", view);
+    return it;
+}
+
+/* ---------------------------------------------------------------- game profiles (GAMES.CFG)
+ * One line per game:  name|program|arguments|SBEMU options|CD image
+ *   program        full path of the .EXE / .COM / .BAT
+ *   SBEMU options  used while this game runs (on top of the saved settings), e.g. /VSCSET:mk1-v1.21 /K:22050
+ *   CD image       mounted on drive M: before the game starts ("" = none): a name in C:\CDIMAGES
+ *                  (GAMES\DUKE3D.CUE) or a full path anywhere else (D:\ISO\DUKE3D.CUE)
+ * Made from GAMETEST's games the first time. GTBEST.CFG (GAMETEST): BEST<n>=<clock x10>|<options>; a
+ * profile whose program is GAMETEST game n uses those options too (its own come after them and win). */
+#define MAXGP 24
+typedef struct { char name[32], exe[80], args[64], opts[120], cd[96]; } GAMEP;
+static GAMEP g_gp[MAXGP];
+static int g_ngp;
+static char g_gtpath[NGAMES][80], g_best[NGAMES][120]; static int g_bestclk[NGAMES];
+
+static void field(char* dst, size_t sz, char** p)
+{
+    char* e = strchr(*p, '|');
+    size_t len = e ? (size_t)(e - *p) : strlen(*p), n = len < sz ? len : sz - 1;
+    memcpy(dst, *p, n); dst[n] = 0;
+    *p += len + (e ? 1 : 0);
+}
+static void gp_load(void)
+{
+    char p[300], line[512]; FILE* f; int i;
+    static const char* names[NGAMES] = { "Duke Nukem 3D", "Doom", "Doom II", "" };
+    char defpath[NGAMES][80] = { "C:\\DUKE3D\\DUKE3D.EXE", "C:\\DOOM\\DOOM.EXE", "C:\\DOOM2\\DOOM2.EXE", "" };
+    memset(g_gtpath, 0, sizeof g_gtpath); memset(g_best, 0, sizeof g_best); memset(g_bestclk, 0, sizeof g_bestclk);
+    for (i = 0; i < NGAMES; i++) snprintf(g_gtpath[i], sizeof g_gtpath[i], "%s", defpath[i]);
+    home_path(p, "GAMETEST.CFG");
+    if ((f = fopen(p, "r")) != NULL)
+    {
+        while (fgets(line, sizeof line, f))
+        {
+            char *a, *b;
+            line[strcspn(line, "\r\n")] = 0;
+            if (sscanf(line, "GAME%d=", &i) == 1 && i >= 0 && i < NGAMES && (a = strchr(line, '|')) != NULL && (b = strchr(a + 1, '|')) != NULL)
+            { *b = 0; snprintf(g_gtpath[i], sizeof g_gtpath[i], "%s", a + 1); }
+        }
+        fclose(f);
+    }
+    home_path(p, "GTBEST.CFG");
+    if ((f = fopen(p, "r")) != NULL)
+    {
+        while (fgets(line, sizeof line, f))
+        {
+            char* a; int clk;
+            line[strcspn(line, "\r\n")] = 0;
+            if (sscanf(line, "BEST%d=%d|", &i, &clk) == 2 && i >= 0 && i < NGAMES && (a = strchr(line, '|')) != NULL)
+            { g_bestclk[i] = clk; snprintf(g_best[i], sizeof g_best[i], "%s", a + 1); }
+        }
+        fclose(f);
+    }
+    g_ngp = 0;
+    home_path(p, "GAMES.CFG");
+    if ((f = fopen(p, "r")) != NULL)
+    {
+        while (fgets(line, sizeof line, f) && g_ngp < MAXGP)
+        {
+            char* q = line; GAMEP* g = &g_gp[g_ngp];
+            line[strcspn(line, "\r\n")] = 0;
+            if (!line[0] || line[0] == ';' || !strchr(line, '|')) continue;
+            memset(g, 0, sizeof *g);
+            field(g->name, sizeof g->name, &q); field(g->exe, sizeof g->exe, &q); field(g->args, sizeof g->args, &q);
+            field(g->opts, sizeof g->opts, &q); field(g->cd, sizeof g->cd, &q);
+            if (g->exe[0]) g_ngp++;
+        }
+        fclose(f);
+        return;
+    }
+    /* first time: GAMETEST's games that exist */
+    for (i = 0; i < NGAMES && g_ngp < MAXGP; i++)
+        if (g_gtpath[i][0] && access(g_gtpath[i], R_OK) == 0)
+        {
+            GAMEP* g = &g_gp[g_ngp++]; const char* bs = strrchr(g_gtpath[i], '\\');
+            memset(g, 0, sizeof *g);
+            snprintf(g->name, sizeof g->name, "%s", names[i][0] ? names[i] : (bs ? bs + 1 : g_gtpath[i]));
+            snprintf(g->exe, sizeof g->exe, "%s", g_gtpath[i]);
+        }
+}
+static int gp_save(void)
+{
+    char p[300], tmp[310]; FILE* f; int i;
+    home_path(p, "GAMES.CFG");
+    if (!(f = sw_open(p, tmp, "wb"))) return 0;
+    fprintf(f, "; NUKED SB-EMU game list: name|program|arguments|SBEMU options|CD image (edit in MENU > Games)\r\n");
+    for (i = 0; i < g_ngp; i++)
+        fprintf(f, "%s|%s|%s|%s|%s\r\n", g_gp[i].name, g_gp[i].exe, g_gp[i].args, g_gp[i].opts, g_gp[i].cd);
+    return sw_close(f, tmp, p);
+}
+static int gp_test_slot(const GAMEP* g)
+{
+    int i;
+    for (i = 0; i < NGAMES; i++) if (g_gtpath[i][0] && !strcasecmp(g_gtpath[i], g->exe)) return i;
+    return -1;
+}
+
+static void add_games(void)
+{
+    int i;
+    gp_load();
+    for (i = 0; i < g_ngp; ++i)
+    {
+        const GAMEP* g = &g_gp[i];
+        char lab[40], desc[400], cmd[300], dir[80], exe[80], extra[200], *bs;
+        int slot = gp_test_slot(g), have = access(g->exe, R_OK) == 0, isbat;
+        ITEM* it;
+        snprintf(dir, sizeof dir, "%s", g->exe);
+        bs = strrchr(dir, '\\'); if (!bs || dir[1] != ':') continue;
+        snprintf(exe, sizeof exe, "%s", bs + 1); *bs = 0;
+        if (strlen(dir) == 2) strcat(dir, "\\");
+        isbat = strlen(exe) > 4 && !strcasecmp(exe + strlen(exe) - 4, ".BAT");
+        snprintf(lab, sizeof lab, "Play %.30s", g->name);
+        snprintf(cmd, sizeof cmd, "%c:|CD %s|%s%s%s%s", toupper((unsigned char)dir[0]), dir + 2, isbat ? "CALL " : "", exe,
+                 g->args[0] ? " " : "", g->args);
+        extra[0] = 0;
+        if (g->cd[0]) snprintf(extra + strlen(extra), sizeof extra - strlen(extra), " Mounts %s on drive M: first.", g->cd);
+        if (g->opts[0]) snprintf(extra + strlen(extra), sizeof extra - strlen(extra), " Own SBEMU options: %.100s.", g->opts);
+        if (!have)
+            snprintf(desc, sizeof desc, "%s is not there (moved or on another drive?). Change it in \"Add / edit games\".", g->exe);
+        else if (slot >= 0 && g_best[slot][0])
+            snprintf(desc, sizeof desc, "Starts %s%s%s with GAMETEST's best SBEMU settings for it (music clock %d.%d%%): %s.%s"
+                     " Your saved settings come back afterwards. F2: saved settings only.",
+                     g->exe, g->args[0] ? " " : "", g->args, g_bestclk[slot] / 10, g_bestclk[slot] % 10, g_best[slot], extra);
+        else
+            snprintf(desc, sizeof desc, "Starts %s%s%s and brings you back here when you quit it.%s Start the SC-55 first for"
+                     " General MIDI music.", g->exe, g->args[0] ? " " : "", g->args, extra);
+        it = add(C_GAMES, lab, desc, IT_GAME, cmd, 0, 0, NULL);
+        if (it)
+        {
+            snprintf(it->cmd2, sizeof it->cmd2, "%s", cmd);
+            if (slot >= 0) snprintf(it->best, sizeof it->best, "%s", g_best[slot]);
+            it->gp = i;
+            if (!have) it->needs_sbemu = 2;            /* greyed out */
+        }
+    }
+    add(C_GAMES, "Add / edit games", "Your list of games: name, program, arguments, SBEMU options just for that game (for example"
+        " another ROM set or sample rate) and a CD image to mount before it starts. Saved in GAMES.CFG.", IT_EDIT, "", 0, 0, NULL);
+}
+
+static int g_menugen;                   /* +1 each time the items are made again (3D caches) */
+static int g_goerr;                     /* the 3D menu could not write MENUGO.BAT: say so in the text menu */
+static void build_menu(void)
+{
+    char c[300];
+    g_n = 0; g_menugen++;
+    /* Sound */
+    snprintf(c, sizeof c, "CALL %s\\SC55.BAT", g_home);
+    add(C_SOUND, "Start SC-55 / SoundFont", "Loads SBEMU with your saved settings: a Sound Blaster plus an MPU-401 (port 330 unless changed in Settings) played by the"
+        " SC-55 (or your SoundFont). For protected-mode games (DOS4GW and the like): Duke 3D, Doom, most 90s games."
+        " Shows SBEMU's messages, then comes back here.", IT_BAT, c, -1, 1, NULL);
+    if (home_exists("SC55JEM.BAT"))
+    { snprintf(c, sizeof c, "CALL %s\\SC55JEM.BAT", g_home);
+      add(C_SOUND, "Start for real-mode (JEMM)", "The same, but also for real-mode games (older games that do not use DOS4GW)."
+          " Needs JEMMEX loaded from CONFIG.SYS - JEMMCFG.BAT sets that up, RESET.BAT undoes it.", IT_BAT, c, -1, 1, NULL); }
+    if (home_exists("SC55QMM.BAT"))
+    { snprintf(c, sizeof c, "CALL %s\\SC55QMM.BAT", g_home);
+      add(C_SOUND, "Start for real-mode (QEMM)", "The same, for real-mode games too, with QEMM instead of JEMM. Needs QEMM386.SYS"
+          " loaded from CONFIG.SYS (your own copy of QEMM).", IT_BAT, c, -1, 1, NULL); }
+    /* Settings */
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT", g_home);
+    add(C_SETTINGS, "Sound Blaster & MIDI", "The main settings screen: Sound Blaster port, IRQ, DMA and type, the MPU-401 port, the MIDI"
+        " synth (SC-55, MT-32, CM-32L or a SoundFont), and the sample rate. Saved to SBOPTS.TXT. If SBEMU is already loaded, restart the PC so the new"
+        " settings are used.", IT_BAT, c, 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /TUNE", g_home);
+    add(C_SETTINGS, "Automatic setup", "Measures how much CPU the SC-55 needs on this PC and picks the best-sounding ROM set, reverb/chorus,"
+        " sample rate and note limit that leave enough for the game. A minute or more, silent; you choose whether to save."
+        " Only while SBEMU is not loaded (restart the PC first).", IT_BAT, c, -1, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:SC", g_home);
+    add(C_SETTINGS, "SC-55 options", "SC-55 emulation: which ROM set (auto, SC-55, SC-55mkII), its volume (/VSCGAIN),"
+        " reverb and chorus on or off (/VSCFX), a note limit (/VSCVOICES) and the automatic speed control (/VSCAUTO).",
+        IT_BAT, c, 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:SF", g_home);
+    add(C_SETTINGS, "SoundFont options", "Use a SoundFont (.sf2) instead of the SC-55: the file, how many voices, reverb level,"
+        " room size and damping, chorus level, speed and depth, and whether the song's own reverb/chorus amounts are used."
+        " Much lighter on the CPU than the SC-55.", IT_BAT, c, 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:VOL", g_home);
+    add(C_SETTINGS, "Volume", "Master volume (/VOL), sound effects (/VSBVOL), FM music (/VOPLVOL) and General MIDI music"
+        " (/VMIDIVOL), plus the SC-55 gain and the CD-audio volume. All on top of each game's own volume settings.",
+        IT_BAT, c, 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:ADV", g_home);
+    add(C_SETTINGS, "Timing & advanced", "Render-ahead and timer give-back (these keep game music at the right tempo), OPL on/off"
+        " and core, output jack, sample-rate fix, CD audio, protected/real-mode support, which sound card, MIDI out port.",
+        IT_BAT, c, 0, 0, NULL);
+    add(C_SETTINGS, "3D menu (F8)", "Shows this menu in 3D (any VESA mode or VGA 320x200, drawn by the CPU - no 3D card needed). F3 style (Panels,"
+        " Carousel, Module), F4 screen mode, F6 colours, F7 look, F1 keys. F8 comes back to the text menu; holding"
+        " Shift at start always gives the text menu.",
+        IT_M3D, NULL, 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:JOY", g_home);
+    add(C_SETTINGS, "Joystick (USB pad)", "A wired USB Xbox 360 pad (or compatible) as the gameport joystick (/JOY): sticks, buttons, dead zone,"
+        " pad keys (Start = Enter, Back = Esc). Any USB controller or hub. On by default; turn it off if you"
+        " use a USB keyboard or mouse in DOS (SBEMU takes the USB ports). Applies next start.",
+        IT_BAT, c, 0, 0, NULL);
+    /* Tests */
+    add(C_TESTS, "MIDI player (MIDPLAY)", "Browse your folders for .MID files and play them through the running SC-55 or"
+        " SoundFont. A quick way to hear the synth without a game.", IT_BAT, "MIDPLAY.EXE /B", 1, 0, NULL);
+    add(C_TESTS, "Test tune (MPUTEST)", "Plays a short tune on the MPU-401 (found on whatever port SBEMU uses). If you hear it, General MIDI works.",
+        IT_BAT, "MPUTEST.EXE", 1, 0, NULL);
+    add(C_TESTS, "Joystick test (JOYTEST)", "Shows what games see on the gameport: the four axes and four buttons, live."
+        " With the USB pad on (Settings > Joystick) move the sticks and press A/B/X/Y. Esc or Q quits.",
+        IT_BAT, "JOYTEST.EXE", 1, 0, NULL);
+    add(C_TESTS, "GrIP pad test (JOYTEST /GRIP)", "Every button of up to two Gravis GamePad Pro (GrIP) pads, as games with"
+        " GrIP support read them. Needs Settings > Joystick > Stick type = Gravis GamePad Pro. Esc or Q quits.",
+        IT_BAT, "JOYTEST.EXE /GRIP", 1, 0, NULL);
+    add(C_TESTS, "Keyboard / mouse test (KMTEST)", "Shows the keys DOS gets (scan code, character) and the mouse driver's"
+        " position and buttons, live. Checks SBEMU's USB keyboard and mouse (load CTMOUSE / MOUSE.COM after SBEMU). Esc twice quits.",
+        IT_BAT, "KMTEST.EXE", 1, 0, NULL);
+    add(C_TESTS, "USB finder (USBTEST)", "Looks for USB pads, keyboards and mice the way SBEMU /JOY does and shows every step:"
+        " the USB controllers, what is plugged into their ports, both pads, keys and mouse live, and every plug / unplug."
+        " Writes USBTEST.TXT for a bug report. Only while SBEMU is not loaded (restart the PC first).",
+        IT_BAT, "USBTEST.EXE USBTEST.TXT", -1, 0, "USBTEST.TXT");
+    snprintf(c, sizeof c, "CALL %s\\TEST.BAT", g_home);
+    add(C_TESTS, "ROM + speed test", "Checks that your SC-55 ROMs boot and measures how fast this PC runs the emulation"
+        " (written to SC55LOG.TXT). Under 1.5x real time is too slow for the SC-55.", IT_BAT, c, 0, 1, NULL);
+    add(C_TESTS, "Game test (GAMETEST)", "Runs Duke 3D, Doom and Doom II with each SBEMU option you pick and measures the"
+        " music timing. Unattended: the games quit by themselves. Remembers the best settings for each game, which Play uses.",
+        IT_BAT, "GAMETEST.EXE", 1, 0, NULL);
+    add(C_TESTS, "SBDIAG: start measuring", "Starts SBEMU's self-measurement. Then play a game for a minute, quit it, and pick"
+        " 'SBDIAG: report' to see why music would play too slow.", IT_BAT, "SBDIAG.EXE START", 1, 0, NULL);
+    add(C_TESTS, "SBDIAG: report", "Reads the last measurement: lost timer ticks, how long SBEMU's sound interrupt takes,"
+        " synth load, and what would fix it. Also saved to SBDIAG.TXT.", IT_BAT, "SBDIAG.EXE", 1, 0, NULL);
+    /* Games */
+    add_games();
+    /* CD-ROM */
+    if (home_exists("CDROM.BAT"))
+    { snprintf(c, sizeof c, "CALL %s\\CDROM.BAT", g_home);
+      add(C_CD, "CD-ROM drive letter", "Gives the real CD-ROM drive a letter (D:) with MSCDEX. The CD-ROM driver must already"
+          " be loaded from CONFIG.SYS (BOOTCFG.BAT does that) - see DOSMODE\\CDROM-D810.TXT.", IT_BAT, c, 0, 1, NULL); }
+    if (access("C:\\CDSET\\GUI.BAT", R_OK) == 0)
+    { snprintf(c, sizeof c, "CALL C:\\CDSET\\GUI.BAT %s", g_home);
+      add(C_CD, "CD images", "Mount .CUE/.BIN, .ISO or .MDM disc images from any folder on any drive as drive M: (D: next drive, F2 home"
+          " folder). Shows tracks and size, fixes CUE files that name a BIN with a long name (F) and says if the mount"
+          " worked. CD audio (music tracks) plays through SBEMU.", IT_BAT, c, 0, 0, NULL); }
+    add(C_CD, "USB drives", "USB sticks and card readers with a DOS drive letter (Settings > Joystick > USB sticks"
+        " = On, then restart): letter, stick, file system, size and free space. R refreshes (a stick just plugged in"
+        " gets one of the spare letters).", IT_BAT, "USBDRV.EXE", 1, 0, NULL);
+    /* Files */
+    add(C_FILES, "SBEMU messages (SBLOG)", "What SBEMU printed when it was last started: sound card, sample rate, SC-55 ROM"
+        " set, errors.", IT_VIEW, "SBLOG.TXT", 0, 0, NULL);
+    add(C_FILES, "Last SBDIAG report", "SBDIAG.TXT: the reasons game music would play too slow, most important first.",
+        IT_VIEW, "SBDIAG.TXT", 0, 0, NULL);
+    add(C_FILES, "GAMETEST results", "GAMETEST.TXT: one line per test. Green = right tempo, yellow = a bit off, red = slow,"
+        " too fast or locked up. Right arrow shows the rest of each line.", IT_VIEW, "GAMETEST.TXT", 0, 0, NULL);
+    add(C_FILES, "GAMETEST full reports", "GTFULL.TXT: the complete SBDIAG report of every GAMETEST test.",
+        IT_VIEW, "GTFULL.TXT", 0, 0, NULL);
+    add(C_FILES, "SBEMU start-up details", "SBDETAIL.TXT: everything SBEMU found and decided at its last start - options and"
+        " where they came from, DOS and memory managers, the CPU, every PCI sound device and its IRQ, each start-up step.",
+        IT_VIEW, "SBDETAIL.TXT", 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\BUGREP.BAT %s", g_home, g_home);
+    add(C_FILES, "Make a bug report", "Collects the settings, CONFIG.SYS, AUTOEXEC.BAT, memory, SBEMU's messages and"
+        " start-up details, test results and the Windows 98 log into one file, BUGREP.TXT, then shows it. Attach it"
+        " when you report a problem.", IT_BAT, c, 0, 0, "BUGREP.TXT");
+    add(C_FILES, "README", "The pack's manual: installing, every option, the tools, troubleshooting.",
+        IT_VIEW, "README.TXT", 0, 0, NULL);
+}
+
+static int usable(const ITEM* it)
+{
+    if (it->needs_sbemu == 2) return 0;
+    if (it->needs_sbemu > 0 && !g_running) return 0;
+    if (it->needs_sbemu < 0 && g_running) return 0;
+    return 1;
+}
+
+/* items of one category, in order */
+static int cat_items(int cat, int* out)
+{
+    int i, n = 0;
+    for (i = 0; i < g_n; i++) if (g_it[i].cat == cat) out[n++] = i;
+    return n;
+}
+
+/* ---------------------------------------------------------------- drawing */
+#define BG_DESK   1     /* deep blue */
+static int g_phase;
+static const unsigned char g_rainbow[] = { 9, 11, 10, 14, 12, 13 };
+
+static void draw_header(void)
+{
+    int x;
+    tui_fill(1, 1, 80, 5, BG_DESK << 4, ' ');
+    if (TUI_FANCY)
+    {
+        x = 1 + tui_biglogo(1, 1, BG_DESK, "NUKED", g_rainbow, sizeof g_rainbow, g_phase);
+        tui_biglogo(x + 1, 1, BG_DESK, "SB-EMU", g_rainbow, sizeof g_rainbow, g_phase + 5);
+    }
+    else
+    {
+        static const unsigned char plain[] = { 15 };
+        x = 1 + tui_biglogo(1, 1, BG_DESK, "NUKED", plain, 1, 0);
+        tui_biglogo(x + 1, 1, BG_DESK, "SB-EMU", (const unsigned char*)"\x0B", 1, 0);
+    }
+    if (!g_running && g_lasterr[0])
+        tui_printf(2, 5, (BG_DESK << 4) | 0x0C, "Last start failed: %.37s", g_lasterr);
+    else
+    {   /* the pack's version (from the makefile's VERSION, e.g. 1.0.0-beta.86-usb-sc55 -> beta.86) */
+        char v[24] = ""; const char* b = strstr(MENU_VER, "beta");
+        if (b) { int i = 0; while (b[i] && b[i] != '-' && i < 23) { v[i] = b[i]; i++; } v[i] = 0; } else snprintf(v, sizeof v, "%.20s", MENU_VER);
+        tui_put(2, 5, (BG_DESK << 4) | 0x0B, "SBEMU \xFA Nuked-SC55 \xFA MT-32 \xFA SoundFont");
+        tui_printf(44, 5, (BG_DESK << 4) | 0x0E, "%s", v);
+    }
+}
+
+static void draw_status(void)
+{
+    const char* sf = opt_val("/VSF", "");
+    int a = (BG_DESK << 4);
+    /* narrower than the other screens' panels: the NUKED SB-EMU logo needs the room */
+    tui_panel(59, 1, 21, 5, 0, 0x0E, "SBEMU");
+    if (g_running)
+    {
+        tui_put(61, 2, 0x0A, "\xFE Loaded");
+        if (!g_sbc.mpu) tui_put(70, 2, 0x0E, "MPU ?");   /* found by AMIS only: its MPU-401 does not answer here */
+        sbemu_load();
+        if (g_load >= 0)
+            tui_printf(70, 2, g_load < 500 ? 0x0A : g_load < 800 ? 0x0E : 0x0C, "CPU %3d%%", (g_load + 5) / 10 > 999 ? 999 : (g_load + 5) / 10);
+    }
+    else tui_put(61, 2, g_sbc.state == SBC_UNKNOWN ? 0x0E : 0x0C, g_sbc.state == SBC_UNKNOWN ? "\xFE Unknown" : "\xFE Not loaded");
+    const char* mt = opt_val("/VMT32", "");
+    if (!strcmp(opt_val("/MUSB", "0"), "1")) tui_printf(61, 3, 0x07, "USB MIDI device");
+    else if (mt[0] && strcmp(mt, "0") && strcasecmp(mt, "OFF")) tui_printf(61, 3, 0x07, "%s (Munt)", !strcasecmp(mt, "CM32L") ? "CM-32L" : "MT-32");
+    else if (sf[0]) { const char* b = strrchr(sf, '\\'); tui_printf(61, 3, 0x07, "SF %.14s", b ? b + 1 : sf); }
+    else tui_printf(61, 3, 0x07, "SC-55 %.11s", opt_val("/VSCSET", "auto"));
+    if (g_running && getenv("BLASTER"))
+    {   /* what the running SBEMU really uses: it writes these to BLASTER */
+        const char* b = getenv("BLASTER"); char a[8] = "?", irq[4] = "?", d[4] = "?"; const char* s;
+        for (s = b; *s; s++)
+        {
+            if (s != b && s[-1] != ' ') continue;
+            if (*s == 'A' || *s == 'a') sscanf(s + 1, "%7[0-9A-Fa-f]", a);
+            if (*s == 'I' || *s == 'i') sscanf(s + 1, "%3[0-9]", irq);
+            if (*s == 'D' || *s == 'd') sscanf(s + 1, "%3[0-9]", d);
+        }
+        tui_printf(61, 4, 0x07, "SB%s I%s D%s P%X", a, irq, d, MPU);
+    }
+    else tui_printf(61, 4, 0x07, "SB%s I%s D%s P%s", opt_val("/A", "220"), opt_val("/I", "7"), opt_val("/D", "1"), opt_val("/P", "330"));
+    (void)a;
+}
+
+static int g_itop;                    /* first item shown (the list scrolls past 6 items) */
+static int g_reveal = 99;             /* items shown so far after a category change (animation) */
+/* the key bar; a click on one of its keys is that key (keybar_key) */
+static const char g_keybar[] = "Enter F1 help F2 saved F3 style F4 screen F5 MIDI F6 anim F7 font F8 3D Esc";
+static int keybar_key(const char* bar, int x0, int mx)
+{   /* the word under column mx (bar drawn from column x0): "Enter", "Esc" or "Fn" with the word after it */
+    int i = mx - x0, s, len = (int)strlen(bar);
+    if (i < 0 || i >= len) return 0;
+    for (s = i; s > 0 && !(bar[s - 1] == ' ' && (bar[s] == 'F' || bar[s] == 'E')); s--) ;
+    if (bar[s] == 'F' && isdigit((unsigned char)bar[s + 1])) return 0x13A + (bar[s + 1] - '0');
+    if (!strncmp(bar + s, "Enter", 5)) return K_ENTER;
+    if (!strncmp(bar + s, "Esc", 3)) return K_ESC;
+    return 0;
+}
+static void draw(int cat, int sel)
+{
+    int idx[80], n = cat_items(cat, idx), i, y;
+    if (n > g_reveal) n = g_reveal;
+    const ITEM* it = &g_it[sel];
+    tui_clear(BG_DESK << 4);
+    draw_header();
+    draw_status();
+
+    /* categories */
+    tui_panel(2, 7, 17, 9, 3, 0x3F, "Menu");
+    for (i = 0; i < NCAT; i++)
+    {
+        int k[80], cnt = cat_items(i, k), a;
+        char b[20];
+        if (!cnt) a = 0x38;
+        else if (i == cat) a = TUI_FANCY ? 0x5F : 0x1F;
+        else a = 0x30;
+        snprintf(b, sizeof b, " %c %-10s", g_caticon[i], g_catname[i]);
+        tui_putw(3, 9 + i, 15, a, b);
+        if (i == cat) { tui_cell(17, 9 + i, a, 0x10); }
+    }
+
+    /* items of the chosen category */
+    {
+        char t[48];
+        snprintf(t, sizeof t, "%c %s", g_caticon[cat], g_catname[cat]);
+        tui_panel(20, 7, 60, 9, 7, 0x1F, t);
+    }
+    if (!n) tui_put(23, 9, 0x78, "(nothing here - see the description)");
+    {
+        int pos = 0, top;
+        for (i = 0; i < n; i++) if (idx[i] == sel) pos = i;
+        top = pos >= 6 ? pos - 5 : 0;
+        g_itop = top;
+        if (top) { memmove(idx, idx + top, (size_t)(n - top) * sizeof idx[0]); n -= top; tui_cell(78, 8, 0x78, 0x18); }
+        if (n > 6) tui_cell(78, 15, 0x78, 0x19);
+    }
+    for (i = 0, y = 9; i < n && i < 6; i++, y++)
+    {
+        const ITEM* t = &g_it[idx[i]];
+        int on = usable(t), a;
+        char b[64];
+        if (idx[i] == sel) a = TUI_FANCY ? (on ? 0x5F : 0x57) : (on ? 0x1F : 0x17);
+        else a = on ? 0x70 : 0x78;
+        if (g_itop + i < 9) snprintf(b, sizeof b, " %d  %s", g_itop + i + 1, t->label);
+        else snprintf(b, sizeof b, "    %s", t->label);
+        tui_putw(22, y, 56, a, b);
+        if (t->kind == IT_GAME && t->best[0]) tui_cell(76, y, idx[i] == sel ? (a & 0xF0) | 0x0E : 0x72, 0x04);
+        if (idx[i] == sel) tui_cell(21, y, 0x7D, 0x10);
+    }
+
+    /* full description of the highlighted item */
+    tui_panel(2, 16, 78, 8, 0, 0x0E, it->label);
+    {
+        int used = tui_wrap(4, 17, 74, 5, 0x07, it->desc);
+        if (!usable(it))
+            tui_putw(4, 17 + used, 74, 0x0C, it->needs_sbemu == 2 ? "\xFE Program not found - fix it in Games > Add / edit games."
+                                                                  : it->needs_sbemu > 0 ? "\xFE Start the SC-55 first (Sound > Start SC-55 / SoundFont)."
+                                                                  : "\xFE SBEMU is already loaded. Restart the PC to load it again.");
+    }
+
+    /* bottom: GAMETEST summary and keys */
+    tui_fill(1, 24, 80, 1, BG_DESK << 4, ' ');
+    {
+        int x = 3;
+        if (g_gt_green + g_gt_yellow + g_gt_red + g_gt_lock)
+        {
+            x += tui_put(x, 24, (BG_DESK << 4) | 0x07, "GAMETEST: ");
+            x += tui_printf(x, 24, (BG_DESK << 4) | 0x0A, "%d right  ", g_gt_green);
+            x += tui_printf(x, 24, (BG_DESK << 4) | 0x0E, "%d a bit off  ", g_gt_yellow);
+            x += tui_printf(x, 24, (BG_DESK << 4) | 0x0C, "%d slow/fast/locked up", g_gt_red + g_gt_lock);
+        }
+        else tui_put(x, 24, (BG_DESK << 4) | 0x08, "No GAMETEST results yet.");
+        tui_printf(60, 24, (BG_DESK << 4) | 0x0B, "%s \xFA %dx%d", tui_theme_name[tui_theme], tui_cols, tui_rows);
+    }
+    tui_fill(1, 25, 80, 1, 0x30, ' ');
+    tui_put(2, 25, 0x30, g_keybar);
+}
+
+static int g_cat, g_sel;
+
+/* ---------------------------------------------------------------- game list editor (Games > Add / edit games) */
+typedef struct { char name[13]; int dir; } PENT;
+static int pent_cmp(const void* a, const void* b)
+{
+    const PENT *x = (const PENT*)a, *y = (const PENT*)b;
+    if (x->dir != y->dir) return y->dir - x->dir;
+    return strcmp(x->name, y->name);
+}
+/* folder browser over every drive. cd = 0: picks a program (.EXE .COM .BAT), T types the path;
+ * cd = 1: picks a disc image (.CUE .ISO .MDM) for drive M:, N = no image; an image in C:\CDIMAGES is
+ * returned by its name there (GAMES\DUKE3D.CUE, as before), anything else by its full path.
+ * Tab: next drive, G: the CD images screen's home folder. Returns 1 with out set. */
+static int img_ext(const char* x) { return x && (!strcasecmp(x, ".CUE") || !strcasecmp(x, ".ISO") || !strcasecmp(x, ".MDM")); }
+static int prg_ext(const char* x) { return x && (!strcasecmp(x, ".EXE") || !strcasecmp(x, ".COM") || !strcasecmp(x, ".BAT")); }
+static void cd_home(char* out, size_t sz)     /* the home folder set in the CD images screen (F2 there) */
+{
+    char line[200]; FILE* f = fopen("C:\\CDSET\\CDGUI.CFG", "r");
+    snprintf(out, sz, "C:\\CDIMAGES\\");
+    if (!f) return;
+    while (fgets(line, sizeof line, f))
+        if (!strncmp(line, "HOME=", 5) && line[5] > ' ')
+        { line[strcspn(line, "\r\n")] = 0; snprintf(out, sz, "%s%s", line + 5, line[strlen(line) - 1] == '\\' ? "" : "\\"); }
+    fclose(f);
+}
+static int pick_file(char* out, size_t sz, int cd)
+{
+    static PENT e[400];
+    char dir[160], pat[200];
+    int n, sel = 0, top = 0, i, c, res = 0;
+    uint16_t save[TUI_H][TUI_W];
+    if (cd && out[0] && !strchr(out, ':')) snprintf(dir, sizeof dir, "C:\\CDIMAGES\\%s", out);
+    else snprintf(dir, sizeof dir, "%s", out[0] && out[1] == ':' ? out : cd ? "" : "C:\\");
+    if (!dir[0]) cd_home(dir, sizeof dir);
+    { char* bs = strrchr(dir, '\\'); if (bs && out[0]) bs[1] = 0; }
+    crit_on();
+    if (!crit_dir_ok(dir)) { if (cd) cd_home(dir, sizeof dir); if (!crit_dir_ok(dir)) snprintf(dir, sizeof dir, "C:\\"); }
+    void (*anim_was)(unsigned long) = tui_anim;
+    memcpy(save, tui_scr, sizeof save);
+    tui_anim = 0;               /* the header animation would draw over the title and the folder line */
+    tui_zoom(10, 3, 60, 21, 0x1F);
+    for (;;)
+    {
+        struct ffblk ff; int r;
+        n = 0;
+        if (strlen(dir) > 3) { strcpy(e[n].name, ".."); e[n++].dir = 2; }
+        snprintf(pat, sizeof pat, "%s*.*", dir);
+        for (r = findfirst(pat, &ff, FA_DIREC | FA_RDONLY | FA_ARCH); r == 0 && n < 400; r = findnext(&ff))
+        {
+            const char* x = strrchr(ff.ff_name, '.');
+            int isdir = (ff.ff_attrib & FA_DIREC) != 0;
+            if (ff.ff_name[0] == '.') continue;
+            if (!isdir && !(cd ? img_ext(x) : prg_ext(x))) continue;
+            snprintf(e[n].name, sizeof e[n].name, "%s", ff.ff_name); e[n++].dir = isdir;
+        }
+        qsort(e, (size_t)n, sizeof e[0], pent_cmp);
+        if (sel >= n) sel = n ? n - 1 : 0;
+        for (;;)
+        {
+            char b[80];
+            if (sel < top) top = sel;
+            if (sel >= top + 15) top = sel - 14;
+            tui_window(10, 3, 60, 21, 0x1F, cd ? "Choose the game's CD image" : "Choose the game's program");
+            tui_putw(12, 4, 56, 0x1E, dir);
+            for (i = 0; i < 15; i++)
+            {
+                int k = top + i;
+                if (k >= n) { tui_putw(12, 6 + i, 56, 0x1F, ""); continue; }
+                snprintf(b, sizeof b, " %s%s", e[k].name, e[k].dir == 1 ? "\\" : e[k].dir == 2 ? "  (up)" : "");
+                tui_putw(12, 6 + i, 56, k == sel ? 0x5F : (e[k].dir ? 0x1B : 0x1F), b);
+            }
+            if (!n) tui_put(13, 6, 0x17, cd ? "(no disc images or folders here)" : "(no programs or folders here)");
+            tui_put(12, 22, 0x13, cd ? "Enter choose  Bksp up  Tab drive  G home  N none  Esc"
+                                     : "Enter choose  Bksp up  Tab drive  T type path  Esc");
+            c = tui_key();
+            if (c == K_RCLICK) c = K_ESC;                                     /* right click: back */
+            if (c == K_MOUSE)
+            {   /* click a name to choose it, the chosen one again to open / take it */
+                if (!tui_hit(12, 6, 56, 15) || top + tui_my - 6 >= n) continue;
+                if (top + tui_my - 6 != sel) { sel = top + tui_my - 6; continue; }
+                c = K_ENTER;
+            }
+            if (c == K_ESC) goto done;
+            if (c == K_UP && sel > 0) sel--;
+            else if (c == K_DOWN && sel + 1 < n) sel++;
+            else if (c == K_PGUP) { sel -= 15; if (sel < 0) sel = 0; }
+            else if (c == K_PGDN) { sel += 15; if (sel >= n) sel = n ? n - 1 : 0; }
+            else if (c == K_HOME) sel = 0;
+            else if (c == K_END) sel = n ? n - 1 : 0;
+            else if (!cd && (c == 't' || c == 'T'))
+            {
+                char t[80]; snprintf(t, sizeof t, "%s", out);
+                if (tui_input("Program", "Full path of the program, e.g. C:\\DUKE3D\\DUKE3D.EXE", t, sizeof t, 1) && t[0])
+                { snprintf(out, sz, "%s", t); res = 1; goto done; }
+            }
+            else if (cd && (c == 'n' || c == 'N')) { out[0] = 0; res = 1; goto done; }
+            else if (cd && (c == 'g' || c == 'G')) { cd_home(dir, sizeof dir); if (!crit_dir_ok(dir)) snprintf(dir, sizeof dir, "C:\\"); sel = top = 0; break; }
+            else if (c == 8 && strlen(dir) > 3) { dir[strlen(dir) - 1] = 0; *(strrchr(dir, '\\') + 1) = 0; sel = top = 0; break; }
+            else if (c == K_TAB)
+            {   /* next drive that can be read (C: and up, floppies skipped) */
+                int d = toupper((unsigned char)dir[0]), k;
+                if (d < 'C' || d > 'Z') d = 'C' - 1 + 24;                  /* from A: / B: (or junk): start at C: */
+                for (k = 1; k <= 24; k++)
+                {
+                    char nd[8]; int dl = 'C' + (d - 'C' + k) % 24;
+                    snprintf(nd, sizeof nd, "%c:\\", dl);
+                    if (crit_dir_ok(nd)) { snprintf(dir, sizeof dir, "%s", nd); break; }
+                }
+                sel = top = 0; break;
+            }
+            else if (c == K_ENTER && n)
+            {
+                if (e[sel].dir == 2) { dir[strlen(dir) - 1] = 0; *(strrchr(dir, '\\') + 1) = 0; sel = top = 0; break; }
+                if (e[sel].dir == 1)
+                {
+                    char nd[160]; snprintf(nd, sizeof nd, "%s%s\\", dir, e[sel].name);
+                    if (!crit_dir_ok(nd)) { tui_message("Folder", "That folder cannot be read."); continue; }
+                    snprintf(dir, sizeof dir, "%s", nd); sel = top = 0; break;
+                }
+                if (cd && !strncasecmp(dir, "C:\\CDIMAGES\\", 12)) snprintf(out, sz, "%s%s", dir + 12, e[sel].name);
+                else snprintf(out, sz, "%s%s", dir, e[sel].name);
+                res = 1; goto done;
+            }
+        }
+    }
+done:
+    crit_off();
+    tui_anim = anim_was;
+    memcpy(tui_scr, save, sizeof save);
+    return res;
+}
+static int pick_program(char* out, size_t sz) { return pick_file(out, sz, 0); }
+
+static void draw_header(void);
+static void draw_status(void);
+static void game_editor(void)
+{
+    static const char* lab[5] = { "Name", "Program", "Arguments", "SBEMU options", "CD image" };
+    static const char* hint[5] = {
+        "What the menu calls it: \"Play <name>\".",
+        "The game's .EXE, .COM or .BAT. Enter opens a folder browser (T in it types the path).",
+        "Added after the program, e.g. -nosound or /setup. Leave empty for none.",
+        "Used only while this game runs, on top of your saved settings, e.g. /VSCSET:mk1-v1.21 /K:22050 /VSCVOICES:16."
+        " Needs SBEMU loaded. Empty = your saved settings (plus GAMETEST's best, if any).",
+        "A disc image mounted on drive M: before the game starts (games that check for their CD, or have CD music)."
+        " Enter picks one on any drive; N in there = none." };
+    int sel = 0, fld = -1, c, i, dirty = 0, etop = 0;
+    for (;;)
+    {
+        GAMEP* g = sel < g_ngp ? &g_gp[sel] : NULL;
+        tui_clear(1 << 4);
+        draw_header(); draw_status();
+        tui_panel(2, 7, 28, 17, 3, 0x3F, "Games");
+        if (sel < etop) etop = sel;
+        if (sel >= etop + 14) etop = sel - 13;
+        for (i = etop; i <= g_ngp && i < MAXGP && i < etop + 14; i++)
+        {
+            char b[32];
+            int on = i == sel, a = on ? (fld < 0 ? (TUI_FANCY ? 0x5F : 0x1F) : 0x1B) : 0x30;
+            if (i < g_ngp) snprintf(b, sizeof b, " %.24s", g_gp[i].name); else snprintf(b, sizeof b, " + new game");
+            tui_putw(3, 9 + i - etop, 26, i < g_ngp ? a : (on ? a : 0x3E), b);
+        }
+        if (etop) tui_cell(28, 8, 0x3F, 0x18);
+        if (etop + 14 < (g_ngp < MAXGP ? g_ngp + 1 : MAXGP)) tui_cell(28, 23, 0x3F, 0x19);
+        tui_panel(31, 7, 49, 17, 7, 0x1F, g ? g->name : "New game");
+        if (g)
+        {
+            const char* val[5]; char cdb[100];
+            snprintf(cdb, sizeof cdb, "%s", g->cd[0] ? g->cd : "(none)");
+            val[0] = g->name; val[1] = g->exe; val[2] = g->args; val[3] = g->opts; val[4] = cdb;
+            for (i = 0; i < 5; i++)
+            {
+                int on = i == fld;
+                tui_putw(33, 9 + i * 2, 45, on ? 0x70 : 0x78, lab[i]);
+                tui_putw(33, 10 + i * 2, 45, on ? (TUI_FANCY ? 0x5F : 0x1F) : 0x70, val[i][0] ? val[i] : "-");
+            }
+            if (access(g->exe, R_OK) != 0) tui_put(33, 19, 0x7C, "\xFE The program is not there.");
+            tui_wrap(33, 20, 45, 3, 0x71, fld >= 0 ? hint[fld] : "Enter: edit this game   Del: remove it");
+        }
+        else tui_wrap(33, 9, 45, 4, 0x70, "Press Enter to add a game: you pick its program first, then give it a name.");
+        tui_fill(1, 25, 80, 1, 0x30, ' ');
+        tui_put(2, 25, 0x30, fld < 0 ? "\x18\x19 choose  Enter edit / add  Del remove  Esc save and back"
+                                     : "\x18\x19 field  Enter change it  Esc back to the list");
+        c = tui_key();
+        if (c == K_RCLICK) c = K_ESC;                                         /* right click: back */
+        if (c == K_MOUSE)
+        {   /* a game in the list, or a field of the chosen game; clicking the chosen one again = Enter */
+            int row = tui_my - 9;
+            c = 0;
+            if (tui_hit(3, 9, 26, 14) && row <= g_ngp && row < 14)
+            {
+                if (row == sel && fld < 0) c = K_ENTER; else { sel = row; fld = -1; }
+            }
+            else if (g && tui_hit(33, 9, 45, 10))
+            {
+                row = (tui_my - 9) / 2;
+                if (row == fld) c = K_ENTER; else fld = row;
+            }
+            if (!c) continue;
+        }
+        if (fld < 0)
+        {
+            if (c == K_ESC) break;
+            if (c == K_UP && sel > 0) sel--;
+            else if (c == K_DOWN && sel < g_ngp && sel < MAXGP - 1) sel++;
+            else if ((c == 0x153 || c == 'd' || c == 'D') && g)
+            {
+                char q[80]; snprintf(q, sizeof q, "Remove %s from the list? (Its files stay.)", g->name);
+                if (tui_yesno(q)) { memmove(&g_gp[sel], &g_gp[sel + 1], (size_t)(g_ngp - sel - 1) * sizeof(GAMEP)); g_ngp--; dirty = 1; }
+            }
+            else if (c == K_ENTER || c == K_RIGHT)
+            {
+                if (g) { fld = 0; continue; }
+                if (g_ngp >= MAXGP) { tui_message("Games", "The list is full (24 games)."); continue; }
+                {
+                    GAMEP n; char* bs;
+                    memset(&n, 0, sizeof n);
+                    if (!pick_program(n.exe, sizeof n.exe)) continue;
+                    bs = strrchr(n.exe, '\\');
+                    snprintf(n.name, sizeof n.name, "%s", bs ? bs + 1 : n.exe);
+                    if (strchr(n.name, '.')) *strchr(n.name, '.') = 0;
+                    tui_input("Name", "What should the menu call it?", n.name, sizeof n.name, 0);
+                    g_gp[g_ngp++] = n; dirty = 1; fld = 0;
+                }
+            }
+        }
+        else
+        {
+            if (c == K_ESC || c == K_LEFT) fld = -1;
+            else if (c == K_UP && fld > 0) fld--;
+            else if (c == K_DOWN && fld < 4) fld++;
+            else if (c == K_ENTER && g)
+            {
+                if (fld == 0) dirty |= tui_input("Name", "What the menu calls it:", g->name, sizeof g->name, 0);
+                else if (fld == 1) dirty |= pick_program(g->exe, sizeof g->exe);
+                else if (fld == 2) dirty |= tui_input("Arguments", "Added after the program (empty = none):", g->args, sizeof g->args, 0);
+                else if (fld == 3) dirty |= tui_input("SBEMU options for this game", "e.g. /VSCSET:mk1-v1.21 /K:22050  (empty = your saved settings)", g->opts, sizeof g->opts, 1);
+                else dirty |= pick_file(g->cd, sizeof g->cd, 1);
+                for (i = 0; g->name[i]; i++) if (g->name[i] == '|') g->name[i] = ' ';
+                for (i = 0; g->args[i]; i++) if (g->args[i] == '|') g->args[i] = ' ';
+                for (i = 0; g->opts[i]; i++) if (g->opts[i] == '|') g->opts[i] = ' ';
+            }
+        }
+    }
+    if (dirty && !gp_save()) tui_message("Games", "Could not write GAMES.CFG (disk full or write-protected?).");
+}
+static void anim(unsigned long t)
+{
+    g_phase = (int)(t % 6);
+    draw_header();
+    draw_status();          /* the header band includes the Status box: draw it again on top */
+}
+
+static void help(void)
+{
+    static const char* t[] = {
+        "\x1B \x1A or Tab        choose a menu on the left",
+        "\x18 \x19              choose an item     1-9   jump to item 1-9",
+        "Enter            run it              A-Z   next item with that letter",
+        "F2 (on a game)   play it with your saved settings, not the tested best",
+        "F3               next style: Groovy, Classic, Sunset, Ocean, Neon, Candy,",
+        "                 Midnight            F6   animation on / off",
+        "F7               letters: Terminus, Terminus bold or the VGA font",
+        "F4               display mode: 80x25 ... 80x60, VESA modes",
+        "F5               MIDI player (MIDPLAY) from anywhere in the menu",
+        "F8               3D menu (F8 there comes back here; F1 there: its keys)",
+        "Esc              back to DOS (type MENU to come back)",
+        "Mouse            click a menu or item (again: run it), a key below,",
+        "                 wheel = up/down, right click = back",
+        "Nothing runs by itself: the menu writes your choice to MENUGO.BAT,",
+        "exits, and MENU.BAT runs it from plain DOS, then shows the menu again.",
+        "Grey items need SBEMU loaded (or not loaded, for Start).",
+        "A \x04 after a game: GAMETEST found the SBEMU settings that give it the",
+        "best music timing; Play uses them and then goes back to your own.",
+        NULL };
+    int i;
+    uint16_t save[TUI_H][TUI_W];
+    void (*a)(unsigned long) = tui_anim;
+    memcpy(save, tui_scr, sizeof save);
+    tui_anim = 0;
+    tui_zoom(4, 2, 74, 22, 0x1F);
+    tui_window(4, 2, 74, 22, 0x1F, "Help");
+    for (i = 0; t[i]; ++i) tui_put(7, 4 + i, 0x1F, t[i]);
+    tui_put(57, 22, 0x1E, "any key: back");
+    tui_key();
+    tui_anim = a;
+    memcpy(tui_scr, save, sizeof save);
+}
+
+/* ---------------------------------------------------------------- files */
+static int line_colour(const char* s)
+{
+    const char* c = strstr(s, "clock ");
+    if (strstr(s, "LOCKED") || strstr(s, "rror") || strstr(s, "FAIL") || strstr(s, "not found")) return 0x0C;
+    if (c)
+    {
+        double v;
+        if (sscanf(c + 6, " %lf%%", &v) == 1) { int k = clk_class(v); return k == 0 ? 0x0A : k == 1 ? 0x0E : 0x0C; }
+    }
+    if (!strncmp(s, "==", 2) || !strncmp(s, "####", 4)) return 0x0B;
+    if (strstr(s, "RESULT") || strstr(s, "REASON") || strstr(s, "Reason")) return 0x0F;
+    return 0x07;
+}
+static void view(const char* name)
+{
+    char p[300];
+    if (strchr(name, '\\')) snprintf(p, sizeof p, "%s", name); else home_path(p, name);
+    tui_view_file(p, line_colour);
+}
+
+static void save_sel(const ITEM* it)
+{
+    char p[300], tmp[310]; FILE* f;
+    home_path(p, "MENU.CFG");
+    if ((f = sw_open(p, tmp, "w")) != NULL) { fprintf(f, "SEL=%s\n", it->label); sw_close(f, tmp, p); }
+}
+static int load_sel(void)
+{
+    char p[300], line[80]; FILE* f; int i, sel = 0;
+    home_path(p, "MENU.CFG");
+    if ((f = fopen(p, "r")) == NULL) return 0;
+    if (fgets(line, sizeof line, f) && !strncmp(line, "SEL=", 4))
+    {
+        line[strcspn(line, "\r\n")] = 0;
+        for (i = 0; i < g_n; ++i) if (!strcmp(g_it[i].label, line + 4)) { sel = i; break; }
+    }
+    fclose(f);
+    return sel;
+}
+
+/* MENUGO.BAT: what MENU.BAT runs after the menu exits */
+static int write_go(const ITEM* it, int saved_only)
+{
+    ui_log("run: %.30s%s", it->label, saved_only ? " (F2)" : "");
+    char p[300], tmp[310], opts[260] = ""; FILE* f; const char* s;
+    const GAMEP* g = it->kind == IT_GAME && it->gp >= 0 && it->gp < g_ngp ? &g_gp[it->gp] : NULL;
+    int profile;
+    const char* cmd = (it->kind == IT_GAME && saved_only) ? it->cmd2 : it->cmd;
+    if (it->kind == IT_GAME && it->best[0] && !saved_only) snprintf(opts, sizeof opts, "%s", it->best);
+    if (g && g->opts[0]) snprintf(opts + strlen(opts), sizeof opts - strlen(opts), "%s%s", opts[0] ? " " : "", g->opts);
+    profile = opts[0] && g_running;
+    home_path(p, "MENUGO.BAT");
+    f = sw_open(p, tmp, "wb"); if (!f) return 0;
+    fprintf(f, "@ECHO OFF\r\nSET MENUBACK=1\r\n");
+    if (it->view[0]) fprintf(f, "SET MENUVIEW=%s\r\n", it->view);
+    if (g && g->cd[0])       /* the game's CD image on drive M: first (same steps as CD images > Enter) */
+        fprintf(f, "IF NOT \"%%CDVM%%\"==\"1\" CALL C:\\CDSET\\CDON.BAT\r\n"
+                   "ECHO Mounting %s on drive M: ...\r\n"
+                   /* the disc that is in first: uCDD has one drive, a second -mount fails ("No uCDD drive is
+                    * free") and the game then read the OLD disc - "no CD", read or init errors (beta.90) */
+                   "C:\\CDSET\\UCDD.EXE -unmount > NUL\r\n"
+                   "C:\\CDSET\\UCDD.EXE -mount %s%s > NUL\r\n"
+                   "IF ERRORLEVEL 1 GOTO NOCD\r\n"
+                   "ECHO %s> C:\\CDSET\\MOUNTED.FLG\r\n"
+                   "GOTO CDOK\r\n"
+                   ":NOCD\r\n"
+                   "ECHO The CD image %s could not be mounted (see MENU > CD-ROM > CD images).\r\n"
+                   "ECHO The game is not started: it would not find its disc.\r\n"
+                   "PAUSE\r\n"
+                   "GOTO GOEND\r\n"
+                   ":CDOK\r\n", g->cd, strchr(g->cd, ':') ? "" : "C:\\CDIMAGES\\", g->cd, g->cd, g->cd);
+    if (profile) /* the resident SBEMU takes these over (the same way GAMETEST sets its test options) */
+        fprintf(f, "ECHO Using this game's SBEMU settings: %s\r\n"
+                   "%s\\SBEMU.EXE /VMPU /VSCROM:ROMS %s %s > NUL\r\n", opts, g_home, g_optfile, opts);
+    for (s = cmd; *s; )
+    {
+        const char* e = strchr(s, '|'); int len = e ? (int)(e - s) : (int)strlen(s);
+        fprintf(f, "%.*s\r\n", len, s);
+        s += len; if (*s == '|') ++s;
+    }
+    if (g && g->cd[0]) fprintf(f, ":GOEND\r\n");
+    fprintf(f, "%c:\r\nCD %s\r\n", toupper((unsigned char)g_home[0]), g_home + 2);
+    if (profile) /* back to the saved settings (defaults first, so the saved ones win) */
+        fprintf(f, "%s\\SBEMU.EXE /VMPU /VSCROM:ROMS /VSCAHEAD:50 /VTIMER:1 /VSCFX:1 /VSCAUTO:1 %s > NUL\r\n", g_home, g_optfile);
+    else if (g_running && strstr(cmd, "SETTINGS.BAT"))
+        /* settings changed while SBEMU is loaded: the resident copy takes the saved ones over at once
+         * (port, IRQ, DMA, MPU-401 port, synth ...), so there is no need to restart the PC */
+        fprintf(f, "IF EXIST %s\\SBOPTS.TXT ECHO Applying the saved settings to the running SBEMU ...\r\n"
+                   "IF EXIST %s\\SBOPTS.TXT %s\\SBEMU.EXE /VMPU /VSCROM:ROMS @%s\\SBOPTS.TXT > %s\\SBAPPLY.TXT\r\n",
+                g_home, g_home, g_home, g_home, g_home);
+    if (it->pause) fprintf(f, "ECHO.\r\nPAUSE\r\n");
+    return sw_close(f, tmp, p);
+}
+
+/* ---------------------------------------------------------------- navigation */
+static int first_in(int cat) { int k[80]; return cat_items(cat, k) ? k[0] : -1; }
+static int next_cat(int cat, int d)
+{
+    int i;
+    for (i = 0; i < NCAT; i++) { cat = (cat + d + NCAT) % NCAT; if (first_in(cat) >= 0) return cat; }
+    return cat;
+}
+static int move_in(int cat, int sel, int d)
+{
+    int k[80], n = cat_items(cat, k), i;
+    for (i = 0; i < n; i++) if (k[i] == sel) return k[(i + d + n) % n];
+    return n ? k[0] : sel;
+}
+static int jump_letter(int sel, int c)
+{
+    int k, i;
+    c = toupper(c);
+    for (k = 1; k <= g_n; ++k)
+    {
+        const char* l;
+        i = (sel + k) % g_n;
+        l = g_it[i].label;
+        if (!strncmp(l, "Play ", 5) && c != 'P') l += 5;             /* "Play Doom": D jumps there too */
+        if (toupper((unsigned char)l[0]) == c) return i;
+    }
+    return sel;
+}
+
+#include "menu3d.h"
+
+/* ---- crash catcher: a CPU exception (or abort) restores the text screen and writes CRASH.TXT next to SC55MENU.EXE:
+ * the signal, the CPU registers, the screen (text / 3D mode, style, look, colours), the item and the last 50 actions.
+ * As MIDPLAY's (beta.100). */
+#include <signal.h>
+#ifdef __DJGPP__
+#include <setjmp.h>
+#include <sys/exceptn.h>
+#endif
+static volatile int g_crashing;
+static const char* sig_name(int sig)
+{
+    switch (sig)
+    {
+    case SIGSEGV: return "SIGSEGV (page fault, general protection or stack fault)";
+    case SIGFPE: return "SIGFPE (divide error or FPU exception)";
+    case SIGILL: return "SIGILL (invalid opcode)";
+    case SIGABRT: return "SIGABRT (abort)";
+#ifdef SIGNOFP
+    case SIGNOFP: return "SIGNOFP (no FPU)";
+#endif
+    default: return "?";
+    }
+}
+static void crash_write(FILE* f, int sig)
+{
+    unsigned i, n;
+    fprintf(f, "SC55MENU %s crashed: signal %d = %s\n", MENU_VER, sig, sig_name(sig));
+#ifdef __DJGPP__
+    if (sig != SIGABRT && __djgpp_exception_state_ptr)
+    {
+        const struct __jmp_buf* j = &(*__djgpp_exception_state_ptr)[0];
+        static const char* const exc[] = { "divide error", "debug", "NMI", "breakpoint", "overflow", "bound", "invalid opcode",
+            "no FPU", "double fault", "FPU overrun", "invalid TSS", "segment not present", "stack fault", "general protection",
+            "page fault", "?", "FPU error", "alignment" };
+        unsigned e = (unsigned)j->__signum;
+        fprintf(f, "CPU exception %02Xh (%s)\n", e, e < sizeof exc / sizeof exc[0] ? exc[e] : "hardware interrupt / other");
+        fprintf(f, "EIP=%08lX EFLAGS=%08lX CS=%04X DS=%04X ES=%04X FS=%04X GS=%04X SS=%04X\n",
+                (unsigned long)j->__eip, (unsigned long)j->__eflags, j->__cs, j->__ds, j->__es, j->__fs, j->__gs, j->__ss);
+        fprintf(f, "EAX=%08lX EBX=%08lX ECX=%08lX EDX=%08lX\nESI=%08lX EDI=%08lX EBP=%08lX ESP=%08lX\n",
+                (unsigned long)j->__eax, (unsigned long)j->__ebx, (unsigned long)j->__ecx, (unsigned long)j->__edx,
+                (unsigned long)j->__esi, (unsigned long)j->__edi, (unsigned long)j->__ebp, (unsigned long)j->__esp);
+        fprintf(f, "(EIP: rebuild this SC55MENU.EXE without -s and look it up with nm / addr2line)\n");
+    }
+#endif
+    fprintf(f, "Screen: %s, text style %d, display %dx%d%s\n", g_in3d ? "3D menu" : "text menu", tui_theme, tui_cols, tui_rows, g_win ? ", Windows DOS box" : "");
+    fprintf(f, "3D mode: %dx%d %d bit (VESA mode %Xh, %s), drawn %dx%d%s, refresh %d Hz set / %.1f seen, VBE %d\n",
+            M3W, M3H, m3_bpp, m3_mode, m3_lfb ? "linear" : "banked", m3_rw, m3_rh, m3_half ? " (half)" : "", m3_refresh, m3_refresh_seen, m3_vbever);
+    fprintf(f, "3D chosen: %dx%d %d bit (0 = auto), last good %dx%d %d bit, buffers %d pixels, overlay %d\n",
+            m3_want_w, m3_want_h, m3_want_b, m3_ok_w, m3_ok_h, m3_ok_b, m3_have, m3_over);
+    fprintf(f, "Style %d (%s), look %d (%s), colours %d (%s), quality %d, frame %.0f ms%s\n", m3_style, m3_stylename[m3_style % M3_STYLES],
+            m3_look, m3_lookname[m3_look % 3], m3_ctheme, m3_theme_names[m3_ctheme % 11], m3_quality, m3_frame_ms, m3_lod ? ", voxel LOD" : "");
+    fprintf(f, "Menu %d, item %d of %d: %s\n", g_cat, g_sel, g_n, g_sel >= 0 && g_sel < g_n ? g_it[g_sel].label : "-");
+#ifdef __DJGPP__
+    { __dpmi_free_mem_info fm; if (__dpmi_get_free_memory_information(&fm) == 0)
+        fprintf(f, "DPMI memory: largest free block %lu KB, free pages %lu KB\n", fm.largest_available_free_block_in_bytes >> 10, fm.total_number_of_free_pages * 4UL); }
+#endif
+    fprintf(f, "\nLast %d actions (seconds since start, oldest first):\n", UL_N);
+    n = g_ulog_n < UL_N ? g_ulog_n : UL_N;
+    for (i = g_ulog_n - n; i != g_ulog_n; i++) fprintf(f, "  %s\n", g_ulog[i % UL_N]);
+}
+static void crash_handler(int sig)
+{
+    char path[300]; FILE* f; __dpmi_regs r;
+    if (g_crashing) _exit(3);
+    g_crashing = 1;
+    m3_hook = NULL; tui_anim = NULL;
+    memset(&r, 0, sizeof r); r.x.ax = 0x0003; __dpmi_int(0x10, &r);          /* text mode 80x25 (also the default font) */
+    snprintf(path, sizeof path, "%s\\CRASH.TXT", g_home[0] ? g_home : ".");
+    f = fopen(path, "w");
+    if (f) { crash_write(f, sig); fclose(f); }
+    crash_write(stdout, sig);
+    printf("\nThe menu crashed. %s %s - please send it. Type MENU to start it again.\n", f ? "Written to" : "Could not write", path);
+    fflush(stdout);
+    _exit(3);
+}
+static void crash_install(void)
+{
+    signal(SIGSEGV, crash_handler); signal(SIGFPE, crash_handler); signal(SIGILL, crash_handler); signal(SIGABRT, crash_handler);
+#ifdef SIGNOFP
+    signal(SIGNOFP, crash_handler);
+#endif
+}
+
+int main(int argc, char** argv)
+{
+    int c, firstrun, m3_start_r = 1;
+    char* s; const char* v;
+    int status_only = 0;
+    if (argc > 1 && !strcasecmp(argv[argc - 1], "/STATUS")) { status_only = 1; argc--; }   /* SC55MENU [home] /STATUS: the SBEMU line, no menu */
+    if (argc > 1) snprintf(g_home, sizeof g_home, "%s", argv[1]);
+    else
+    {
+        snprintf(g_home, sizeof g_home, "%s", argv[0]);
+        for (s = g_home; *s; ++s) if (*s == '/') *s = '\\';
+        s = strrchr(g_home, '\\'); if (s) *s = 0; else getcwd(g_home, sizeof g_home);
+    }
+    for (s = g_home; *s; ++s) { if (*s == '/') *s = '\\'; *s = (char)toupper((unsigned char)*s); }
+    if (strlen(g_home) > 3 && g_home[strlen(g_home) - 1] == '\\') g_home[strlen(g_home) - 1] = 0;
+    if (!status_only) { char p[300]; home_path(p, "MENUGO.BAT"); remove(p); }   /* BUGREP may run from MENUGO.BAT */
+
+    putenv("LFN=n");                       /* 8.3 names: the menu writes them into batch files for plain DOS */
+    crash_install();
+    {   /* a Windows DOS box: the 3D menu starts in VGA 320x200 there (a window can show it), the clock is measured longer */
+        __dpmi_regs r; memset(&r, 0, sizeof r); r.x.ax = 0x1600; __dpmi_int(0x2F, &r);
+        g_win = r.h.al != 0 && r.h.al != 0x80;
+        m3_win = g_win; if (g_win) m3_time_ticks = 18;
+    }
+    ui_log("start %s%s", MENU_VER, g_win ? " (Windows)" : "");
+    read_sbopts();
+    { const char* pv = opt_val("/P", "330"); long v = strtol(pv, NULL, 16); if (v >= 0x200 && v <= 0x3FF) MPU = (int)v; }
+    g_running = sbemu_present();
+    if (status_only)
+    {   /* for BUGREP and the test rigs: what the menu's status panel shows, and why */
+        printf("MENU SBEMU: %s%s (AMIS %s, MPU-401 %s%X)%s%s\n", sbemu_word(), g_win ? " [Windows DOS box]" : "",
+            g_sbc.amis > 0 ? "found" : g_sbc.amis < 0 ? "failed" : "none", g_sbc.mpu ? "at " : "no answer, tried ", g_sbc.mpu ? g_sbc.mpu : MPU,
+            g_sbc.info[0] ? " " : "", g_sbc.info);
+        return g_sbc.state == SBC_LOADED ? 0 : g_sbc.state == SBC_UNKNOWN ? 2 : 1;
+    }
+    if (!g_running) read_lasterr();
+    read_gametest_summary();
+    build_menu();
+    g_sel = load_sel();
+    g_cat = g_it[g_sel].cat;
+    tui_theme_load(g_home);
+    /* the first-run offer of the automatic setup is a text-menu question: on that start, no 3D */
+    firstrun = !g_running && !home_exists("SBOPTS.TXT") && !home_exists("TUNED.FLG") && !(_farpeekb(_dos_ds, 0x417) & 3);
+    if (!firstrun && m3_cfg_load() && !(_farpeekb(_dos_ds, 0x417) & 3) && !(v = getenv("MENUVIEW"), v && *v))
+    {
+        int r = m3_main();
+        if (r == 0) return 0;
+        if (r == 2) { m3_on = 0; m3_cfg_save(); }
+        m3_start_r = r;
+    }
+    tui_theme_load(g_home);
+    tui_init();
+    tui_anim = anim;
+    /* first run: offer the automatic setup once (TUNED.FLG remembers it was offered) */
+    if (firstrun && !tui_safe)
+    {
+        int k;
+        draw(g_cat, g_sel);
+        if (tui_yesno("Welcome! Measure this PC now and choose the best SC-55 settings for it automatically?"
+                      " (A minute or more. Later: Settings > Automatic setup.)"))
+        {
+            for (k = 0; k < g_n; k++) if (!strcmp(g_it[k].label, "Automatic setup")) break;
+            if (k < g_n && write_go(&g_it[k], 0)) { tui_done(); return 0; }
+        }
+        else { char p[300]; FILE* f; home_path(p, "TUNED.FLG"); if ((f = fopen(p, "w")) != NULL) { fputs("declined\n", f); fclose(f); } }
+    }
+    if (tui_safe)
+    {
+        draw(g_cat, g_sel);
+        if (tui_yesno("Safe mode (Shift held): your saved style, display mode and font are not used now. "
+                      "Reset them to the plain 80x25 screen for good?"))
+        { char p[300]; home_path(p, "THEME.CFG"); remove(p); tui_theme_save(g_home); }
+    }
+    if (m3_start_r == 2) tui_message("3D menu", "No graphics mode could be set for the 3D menu (not even VGA 320x200), or there is not enough memory for it.");
+    if (g_goerr) { g_goerr = 0; tui_message("Error", "Cannot write MENUGO.BAT in the SC55 folder (disk full or write-protected?)."); }
+    v = getenv("MENUVIEW");
+    if (v && *v) view(v);
+
+    for (;;)
+    {
+        static int shown_cat = -1;
+        if (g_cat != shown_cat && shown_cat >= 0 && TUI_FANCY && tui_animate)
+        {   /* a new menu: its items appear one after another */
+            int k[80], n = cat_items(g_cat, k);
+            for (g_reveal = 0; g_reveal < n; g_reveal++) { draw(g_cat, g_sel); tui_flush(); }
+        }
+        g_reveal = 99; shown_cat = g_cat;
+        draw(g_cat, g_sel);
+        c = tui_key();
+        if (c == K_MOUSE)
+        {   /* click a menu to open it, an item to choose it, the chosen item again to run it */
+            int k[80], n, i;
+            for (i = 0; i < NCAT; i++)
+                if (tui_hit(3, 9 + i, 15, 1) && cat_items(i, k)) { g_cat = i; g_sel = first_in(i); }
+            n = cat_items(g_cat, k);
+            if (tui_hit(22, 9, 56, 6) && g_itop + tui_my - 9 < n)
+            {
+                int s2 = k[g_itop + tui_my - 9];
+                if (s2 == g_sel) c = K_ENTER; else g_sel = s2;
+            }
+            if (tui_hit(78, 8, 1, 1)) g_sel = move_in(g_cat, g_sel, -1);
+            if (tui_hit(78, 15, 1, 1)) g_sel = move_in(g_cat, g_sel, 1);
+            if (tui_my == 25) c = keybar_key(g_keybar, 2, tui_mx);           /* a key in the key bar */
+            if (!c || c == K_MOUSE) continue;
+        }
+        if (c == K_RCLICK) continue;                                          /* right click: nothing to go back to here */
+        ui_log("key %03X cat %d sel %d", c, g_cat, g_sel);
+#ifdef CRASHKEY
+        if (c == '!') { *(volatile int*)0 = 1; __asm__ volatile("ud2"); }   /* test build only: a fault for the crash catcher (0xFFFFFFF0 did not fault) */
+#endif
+        if (c == K_ESC) break;
+        if (c == K_UP) g_sel = move_in(g_cat, g_sel, -1);
+        else if (c == K_DOWN) g_sel = move_in(g_cat, g_sel, 1);
+        else if (c == K_LEFT || c == K_STAB || c == K_PGUP) { g_cat = next_cat(g_cat, -1); g_sel = first_in(g_cat); }
+        else if (c == K_RIGHT || c == K_TAB || c == K_PGDN) { g_cat = next_cat(g_cat, 1); g_sel = first_in(g_cat); }
+        else if (c == K_HOME) g_sel = first_in(g_cat);
+        else if (c == K_END) { int k[80], n = cat_items(g_cat, k); if (n) g_sel = k[n - 1]; }
+        else if (c == K_F1) help();
+        else if (c == 0x142 || (c == K_ENTER && g_it[g_sel].kind == IT_M3D))     /* F8: the 3D menu */
+        {
+            int r;
+            save_sel(&g_it[g_sel]); m3_on = 1; m3_cfg_save(); tui_done();
+            ui_log("3D on");
+            r = m3_main();
+            if (r == 0) return 0;
+            if (r == 2) { m3_on = 0; m3_cfg_save(); }
+            tui_init();
+            if (r == 2) tui_message("3D menu", "No graphics mode could be set for the 3D menu (not even VGA 320x200), or there is not enough memory for it.");
+            if (g_goerr) { g_goerr = 0; tui_message("Error", "Cannot write MENUGO.BAT in the SC55 folder (disk full or write-protected?)."); }
+            continue;
+        }
+        else if (c == 0x13E) tui_pick_mode(g_home);                           /* F4 */
+        else if (c == 0x140) { tui_animate = !tui_animate; tui_theme_save(g_home); }   /* F6 */
+        else if (c == 0x141) { tui_font = (tui_font + 1) % FONT_COUNT; tui_font_apply(); tui_theme_save(g_home); } /* F7 */
+        else if (c == 0x13F)                                                  /* F5: MIDI player */
+        {
+            int k;
+            for (k = 0; k < g_n; k++) if (!strncmp(g_it[k].cmd, "MIDPLAY", 7)) break;
+            if (k < g_n && usable(&g_it[k])) { save_sel(&g_it[g_sel]); if (write_go(&g_it[k], 0)) { tui_done(); return 0; } }
+            else tui_message("MIDI player", "Start the SC-55 (or SoundFont) first: Sound > Start SC-55 / SoundFont.");
+        }
+        else if (c == K_F3)
+        {
+            tui_theme = (tui_theme + 1) % THEME_COUNT;
+            tui_theme_save(g_home);
+            tui_apply_theme();
+            tui_invalidate();
+        }
+        else if (c >= '1' && c <= '9') { int k[80], n = cat_items(g_cat, k); if (c - '1' < n) g_sel = k[c - '1']; }
+        else if (c < 256 && isalpha(c)) { g_sel = jump_letter(g_sel, c); g_cat = g_it[g_sel].cat; }
+        else if (c == K_ENTER || c == K_F2)
+        {
+            ITEM* it = &g_it[g_sel];
+            if (c == K_F2 && it->kind != IT_GAME) continue;
+            if (!usable(it)) continue;
+            save_sel(it);
+            if (it->kind == IT_VIEW) { view(it->cmd); continue; }
+            if (it->kind == IT_EDIT)
+            {
+                char keep[40]; int k;
+                game_editor();
+                snprintf(keep, sizeof keep, "%s", it->label);
+                build_menu();
+                for (k = 0; k < g_n; k++) if (g_it[k].cat == C_GAMES) { g_sel = k; break; }
+                for (k = 0; k < g_n; k++) if (!strcmp(g_it[k].label, keep)) g_sel = k;
+                g_cat = g_it[g_sel].cat; tui_invalidate();
+                continue;
+            }
+            if (write_go(it, c == K_F2)) { tui_done(); return 0; }
+            tui_message("Error", "Cannot write MENUGO.BAT in the SC55 folder (disk full or write-protected?).");
+        }
+    }
+    save_sel(&g_it[g_sel]);
+    tui_done();
+    return 0;
+}

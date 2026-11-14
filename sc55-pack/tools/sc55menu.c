@@ -502,21 +502,28 @@ static void draw_header(void)
 
 static void draw_status(void)
 {
-    const char* sf = opt_val("/VSF", "");
+    char sf[80], mt[80];   /* copies: opt_val's ring holds only 4 values */
+    snprintf(sf, sizeof sf, "%s", opt_val("/VSF", "")); snprintf(mt, sizeof mt, "%s", opt_val("/VMT32", ""));
     int a = (BG_DESK << 4);
     /* narrower than the other screens' panels: the NUKED SB-EMU logo needs the room */
     tui_panel(59, 1, 21, 5, 0, 0x0E, "SBEMU");
     if (g_running)
     {
         tui_put(61, 2, 0x0A, "\xFE Loaded");
-        if (!g_sbc.mpu) tui_put(70, 2, 0x0E, "MPU ?");   /* found by AMIS only: its MPU-401 does not answer here */
+        /* found by AMIS only: its MPU-401 does not answer here (not shown for a deliberate AWE32-only setup, /AWEMPU:0) */
+        if (!g_sbc.mpu && !(strcmp(opt_val("/AWE", "0"), "0") && !strcmp(opt_val("/AWEMPU", "1"), "0"))) tui_put(70, 2, 0x0E, "MPU ?");
         sbemu_load();
         if (g_load >= 0)
             tui_printf(70, 2, g_load < 500 ? 0x0A : g_load < 800 ? 0x0E : 0x0C, "CPU %3d%%", (g_load + 5) / 10 > 999 ? 999 : (g_load + 5) / 10);
     }
     else tui_put(61, 2, g_sbc.state == SBC_UNKNOWN ? 0x0E : 0x0C, g_sbc.state == SBC_UNKNOWN ? "\xFE Unknown" : "\xFE Not loaded");
-    const char* mt = opt_val("/VMT32", "");
-    if (strcmp(opt_val("/AWE", "0"), "0")) tui_printf(61, 3, 0x07, "AWE32 at %.3s", opt_val("/AWE", "620"));
+    if (strcmp(opt_val("/AWE", "0"), "0"))
+    {   /* AWE32, and what its MPU-401 plays (beta.121-awe.2: the SC-55 etc. stay on unless /AWEMPU:0) */
+        const char* w = !strcmp(opt_val("/AWEMPU", "1"), "0") ? NULL : !strcmp(opt_val("/MUSB", "0"), "1") ? "USB MIDI"
+                      : (mt[0] && strcmp(mt, "0") && strcasecmp(mt, "OFF")) ? (!strcasecmp(mt, "CM32L") ? "CM-32L" : "MT-32")
+                      : sf[0] ? "SF" : "SC-55";
+        if (w) tui_printf(61, 3, 0x07, "AWE32 + %s", w); else tui_printf(61, 3, 0x07, "AWE32 (no MPU)");
+    }
     else if (!strcmp(opt_val("/MUSB", "0"), "1")) tui_printf(61, 3, 0x07, "USB MIDI device");
     else if (mt[0] && strcmp(mt, "0") && strcasecmp(mt, "OFF")) tui_printf(61, 3, 0x07, "%s (Munt)", !strcasecmp(mt, "CM32L") ? "CM-32L" : "MT-32");
     else if (sf[0]) { const char* b = strrchr(sf, '\\'); tui_printf(61, 3, 0x07, "SF %.14s", b ? b + 1 : sf); }

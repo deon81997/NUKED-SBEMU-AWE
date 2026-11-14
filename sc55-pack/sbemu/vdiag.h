@@ -17,6 +17,7 @@ void DIAG_IsrEnd(int frames);
 void DIAG_VirqBegin(void);                 /* game's Sound Blaster handler, run inside our interrupt */
 void DIAG_VirqEnd(void);
 void DIAG_Render(uint64_t cycles, int frames, int freq, int synth); /* synth: 0 SC-55, 1 SoundFont, 2 MT-32 */
+void DIAG_RenderAwe(uint64_t cycles, int frames, int freq);                    /* AWE32 EMU8000, counted apart (layout 6) */
 void DIAG_Trap(uint32_t port);             /* every trapped port access */
 void DIAG_Midi(int dropped);               /* every MIDI byte the game sends */
 void DIAG_Fifo(int fill_frames, uint32_t underrun_frames_total); /* render-ahead FIFO state after each interrupt */

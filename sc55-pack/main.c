@@ -869,9 +869,10 @@ struct MAIN_OPT
     "/JOYBIOS", "BIOS joystick calls (INT 15h AH=84h) answered from the USB pad too (1=on, 0=off; needs /JOY:1)", 1, MAIN_SETCMD_BASE10,
     "/PADKEYS", "Pad buttons -> keyboard keys with a layout per game, from PADMAP.TXT / PADUSER.TXT in SBEMU's folder (1=on, 0=off: only /JOYKEY; needs /JOY:1)", 1, MAIN_SETCMD_BASE10,
     "/PADLOG", "Show which pad layout the loaded SBEMU picked for the last programs started (SBEMU /PADLOG)", 0, MAIN_SETCMD_BASE10,
-    "/AWE", "AWE32/AWE64 EMU8000 wavetable at this port (620, 640, 660 or 680; 0=off). Turns the SC-55 off and the SB type to 16, adds E620 to BLASTER", 0, 0,
+    "/AWE", "AWE32/AWE64 EMU8000 wavetable at this port (620, 640, 660 or 680; 0=off). SB type 16, adds E620 to BLASTER; the MPU-401 synth stays (/AWEMPU)", 0, 0,
     "/AWERAM", "AWE sample RAM in KB (0-28672; AWE32 = 512, AWE64 Gold = 4096)", 512, MAIN_SETCMD_BASE10,
     "/AWEROM", "AWE ROM: a 1 MB EMU8000 ROM dump, or a folder searched by content (default: ROMS, then AWE)", (uintptr_t)"", MAIN_SETCMD_STR,
+    "/AWEMPU", "With /AWE the MPU-401 keeps its synth (SC-55, SoundFont, MT-32, USB MIDI), like an AWE32 with a Sound Canvas on its MIDI port. 0 = AWE only, MPU silent", 1, MAIN_SETCMD_BASE10,
     NULL, NULL, 0,
 };
 enum EOption
@@ -951,6 +952,7 @@ enum EOption
     OPT_AWE,
     OPT_AWERAM,
     OPT_AWEROM,
+    OPT_AWEMPU,
     OPT_COUNT,
 };
 
@@ -1811,7 +1813,7 @@ int main(int argc, char* argv[])
 #endif
 
     if(MAIN_Options[OPT_AWE].value)
-    {   //AWE32: the EMU8000 sits on an SB16; it and the SC-55 are exclusive (SETTINGS picks one)
+    {   //AWE32: the EMU8000 sits on an SB16. The MPU-401 keeps its synth (SC-55/SF/MT-32/USB) unless /AWEMPU:0
         int b = MAIN_Options[OPT_AWE].value;
         if(b != 0x620 && b != 0x640 && b != 0x660 && b != 0x680)
         {
@@ -1829,8 +1831,11 @@ int main(int argc, char* argv[])
             MAIN_Options[OPT_TYPE].value = 6;
         }
 #if SBEMU_VMPU
-        MAIN_Options[OPT_VMPU_VOICES].value = 0;
-        MAIN_Options[OPT_VMPU_VOICES].setcmd |= MAIN_SETCMD_SET;   //no SC-55 / SoundFont / MT-32 auto-load either
+        if(!MAIN_Options[OPT_AWEMPU].value)  //awe.1 behaviour: AWE only, the MPU-401 has no synth behind it
+        {
+            MAIN_Options[OPT_VMPU_VOICES].value = 0;
+            MAIN_Options[OPT_VMPU_VOICES].setcmd |= MAIN_SETCMD_SET;   //no SC-55 / SoundFont / MT-32 auto-load either
+        }
 #endif
     }
 #if SBEMU_VMPU
@@ -2186,7 +2191,8 @@ int main(int argc, char* argv[])
         }
         printf("AWE32 EMU8000 emulation at address %x, %d KB RAM, ROM: %s: ", MAIN_Options[OPT_AWE].value, (int)MAIN_Options[OPT_AWERAM].value,
             romok ? romname : "not found (put AWE32.RAW / AWEROM.BIN into ROMS; games that load their own samples still play)");
-        MAIN_Print_Enabled_Newline(true);
+        MAIN_Print_Enabled_Newline(true);        if(!MAIN_Options[OPT_AWEMPU].value)
+            MAIN_CPrintf(LIGHTGRAY, "  MPU-401 %x: no synth with the AWE32 (/AWEMPU:0)\n", MAIN_Options[OPT_MPUADDR].value);
     }
 
     MAIN_Step("Sound Blaster init");
@@ -2547,6 +2553,12 @@ int main(int argc, char* argv[])
     }
     else if(MAIN_Options[OPT_MUSB].value)
         MAIN_CPrintf(YELLOW, "USB MIDI (/MUSB) needs SBEMU's USB (/JOY:1): off.\n");
+
+    if(MAIN_Options[OPT_AWE].value && enablePM)
+    {   //HDPMI has 16 trap slots; /AWE uses 3 of them (see MAIN_DMAPAGE_Install)
+        int failed = 0, n = HDPMIPT_TrapCount(&failed);
+        MAIN_CPrintf(failed ? RED : LIGHTGRAY, "HDPMI port traps: %d of 16 used%s\n", n, failed ? ", some did not fit (try /JOY:0 or /USBMS:0)" : "");
+    }
 
     MAIN_LogCommit();
     /* Close the log before going resident. Until beta.28 the resident SBEMU kept SBLOG.TXT open as its
@@ -3107,7 +3119,7 @@ static void MAIN_Interrupt()
         CLIS();   //a trapped register write must not land inside a rendered block
         VAWE_MixInto(MAIN_PCM, samples, aui.freq_card, midivol * vol / 256 * MAIN_Options[OPT_VMIDIVOL].value / 100);
         STIL();
-        DIAG_Render(DIAG_Tsc() - t0, samples, aui.freq_card, 3); //synth 3 = AWE32 (SBDIAG)
+        DIAG_RenderAwe(DIAG_Tsc() - t0, samples, aui.freq_card); //own counters: the MPU synth may render in the same interrupt
     }
 
     if(CDLINK_IsActive())
@@ -3313,11 +3325,15 @@ static void MAIN_TSR_Interrupt()
         case 0x04: //status for MENU/SBDIAG (beta.117+): one text line into EBX, at most ECX bytes; works when no port trap reaches the caller
         {
             char t[160];
-            int n = snprintf(t, sizeof t, "VER=%s MODE=%s%s%s MPU=%X TRAP=%s%s%s SB=%X",
+            extern int VMPU_Kind(void);
+            /* SYNTH= what plays the MPU-401's MIDI; AWE= the EMU8000 port (beta.121-awe.2; MIDPLAY warns on SYNTH=NONE) */
+            const char* syn = VMPU_ENABLED ? (VMPU_Kind() == 2 ? "MT32" : VMPU_Kind() == 1 ? "SF" : "SC55")
+                            : MAIN_MUSB ? "USB" : mpu401_aui.mpu401 ? "HW" : "NONE";
+            int n = snprintf(t, sizeof t, "VER=%s MODE=%s%s%s MPU=%X TRAP=%s%s%s SB=%X SYNTH=%s AWE=%X",
                 MAIN_SBEMU_VER, MAIN_Options[OPT_RM].value ? "RM" : "", MAIN_Options[OPT_RM].value && MAIN_Options[OPT_PM].value ? "+" : "",
                 MAIN_Options[OPT_PM].value ? "PM" : "", (unsigned)MAIN_Options[OPT_MPUADDR].value,
                 MPURMInstalled ? "RM" : "", MPURMInstalled && MPUPMInstalled ? "+" : "", MPUPMInstalled ? "PM" : (MPURMInstalled ? "" : "none"),
-                (unsigned)MAIN_Options[OPT_ADDR].value);
+                (unsigned)MAIN_Options[OPT_ADDR].value, syn, (unsigned)(VAWE_Enabled() ? VAWE_Base() : 0));
             if(n > (int)sizeof t - 1) n = sizeof t - 1;
             if(MAIN_TSRREG.d.ecx < (uint32_t)n + 1) n = MAIN_TSRREG.d.ecx ? (int)MAIN_TSRREG.d.ecx - 1 : 0;
             t[n] = 0;
@@ -3400,11 +3416,12 @@ static void MAIN_TSR_Interrupt()
             {
                 update_serial_debug_output();
             }
-            if(OPT_CHANGED(OPT_AWE) || OPT_CHANGED(OPT_AWERAM) || OPT_CHANGED(OPT_AWEROM))
+            if(OPT_CHANGED(OPT_AWE) || OPT_CHANGED(OPT_AWERAM) || OPT_CHANGED(OPT_AWEROM) || OPT_CHANGED(OPT_AWEMPU))
             {   /* the EMU8000's memory and port traps are set up when SBEMU loads: keep what is running */
                 MAIN_Options[OPT_AWE].value = old_opt[OPT_AWE].value;
                 MAIN_Options[OPT_AWERAM].value = old_opt[OPT_AWERAM].value;
                 MAIN_Options[OPT_AWEROM].value = old_opt[OPT_AWEROM].value;
+                MAIN_Options[OPT_AWEMPU].value = old_opt[OPT_AWEMPU].value;
                 printf("AWE32 settings change when SBEMU is loaded next time (reboot).\n");
             }
             if(OPT_CHANGED(OPT_MPUCOMPORT))

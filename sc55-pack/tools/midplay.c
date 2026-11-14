@@ -45,6 +45,7 @@ static __attribute__((unused)) void sleep_ms(int ms) { g_now_us += (uint64_t)ms 
 #include <dir.h>
 #include "tui.h"
 #include "mpuport.h"
+#include "sbemuchk.h"
 
 static int base = 0x330;
 static int g_mpuport, p_arg;                /* Options: MPU-401 port chosen (0 = auto: saved /P, BLASTER P=, then a search) */
@@ -2714,7 +2715,21 @@ int main(int argc, char** argv)
     if (!g_dry && !g_usb)
     {
         printf("MPU-401 at port %Xh: ", base);
-        if (!mpu_detect()) { puts("no answer.\nIs SBEMU loaded (SC55.BAT) with its MPU-401 on? Run SC55.BAT first, in the same DOS session."); return 1; }
+        int awe_only = 0;
+        {   /* SBEMU as an AWE32 without an MPU-401 synth (/AWEMPU:0): its MPU-401 answers but plays nothing.
+             * AMIS says so (SYNTH=NONE, beta.121-awe.2); BLASTER E620 (E640/E660/E680) when it does not answer */
+            const char* bl = getenv("BLASTER"); const char* e = bl; char inf[160], syn[12] = "";
+            while (e && (e = strchr(e, 'E')) != NULL && !((e == bl || e[-1] == ' ') && e[1] == '6' && e[3] == '0')) ++e;
+            if (e && sbc_amis(inf, sizeof inf) > 0) sbc_field(inf, "SYNTH=", syn, sizeof syn);
+            awe_only = e && (!syn[0] || !strcmp(syn, "NONE")) ? 1 + (syn[0] != 0) : 0;   /* 2 = SBEMU confirmed it */
+        }
+        if (awe_only == 2 || !mpu_detect())
+        {
+            if (awe_only) puts("no answer.\nAWE32 mode without MPU-401: turn on SC-55 for 330h in SETTINGS\n"
+                        "(MIDI synth: AWE32 / AWE64, \"MPU-401 also plays\": SC-55), then run SC55.BAT again.");
+            else puts("no answer.\nIs SBEMU loaded (SC55.BAT) with its MPU-401 on? Run SC55.BAT first, in the same DOS session.");
+            return 1;
+        }
         puts("found.");
         mpu_uart();
     }

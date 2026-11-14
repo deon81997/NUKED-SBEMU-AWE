@@ -97,6 +97,8 @@
 
 <picture><img src="docs/90s/vox-sec-tv.gif" width="140" align="right" alt=""></picture>
 
+<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.121-awe.1.** **The AWE32 line catches up!!** Everything from beta.120 (no more freeze with SATA in "Enhanced" mode) and beta.121 (`WCSET`: faster 3D pictures on Pentium Pro/II and newer) is now in the AWE32 / AWE64 build too. AWE music sounds the same as before (Duke Nukem 3D tested with HIMEM only and with JEMM, USB pad on) and SBEMU is just as fast.
+
 <picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.121.** **Faster 3D pictures!!** New `WCSET` turns on write-combining (an MTRR) for the VESA frame buffer on Pentium Pro/II/III/M and newer CPUs: MENU and MIDPLAY switch it on while they run and undo it at exit. MENU Settings > Fast video picks AUTO, ON (kept for games) or OFF; Tests > Video speed measures the frame buffer with it off and on. Works with HIMEM only and JEMM; refused under EMM386/QEMM and Windows. SBEMU itself is unchanged.
 
 <picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.120.** **No more freeze with SATA in Enhanced mode!!** An ASUS P5PE-VM froze with SC55 while its BIOS had SATA on "Enhanced"; "Compatible" was fine. In Enhanced mode the disk controller shares a PCI interrupt with the sound card, and the Audigy/Live driver claimed every interrupt on it, so the disk's was lost. It now takes only its own. SC55 also shows a yellow warning when a native-mode disk controller shares the sound card IRQ, and SBDETAIL.TXT lists every disk controller and its IRQ.
@@ -105,10 +107,10 @@
 
 <picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.119.** **No more freeze with an Audigy!!** beta.115-118 froze an ASUS P5PE-VM with a Sound Blaster Audigy (Win98 -> MS-DOS mode). The new sound card interrupt watchdog from beta.115 asked every card driver to clear a stuck interrupt from outside the interrupt, but it had only been proven on the Ensoniq ES1371; the Audigy/Live, AC'97, CMI and HDA drivers do more than that. It now runs only on the ES1371; `SC55 /CARDWD:0` turns it off, `/CARDWD:1` forces it on, and SBDETAIL.TXT says whether it is active. New `P5TEST 1-4` in C:\SC55 tries the suspect changes one by one and saves the logs if the PC still freezes.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.118.** **MENU knows when SBEMU is loaded!!** MENU said "Not loaded" when SBEMU was running but its MPU-401 did not answer MENU (seen on an ASUS P5PE-VM; also with Protected mode off). MENU now also asks the loaded SBEMU directly, so it shows Loaded (with "MPU ?" if the MPU-401 is silent), or "Unknown" instead of a wrong "Not loaded". `SC55MENU /STATUS` prints the version and mode SBEMU runs in; BUGREP.TXT has it.
-
 <details>
 <summary><b>&gt;&gt; Older news &lt;&lt;</b></summary>
+
+<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.118.** **MENU knows when SBEMU is loaded!!** MENU said "Not loaded" when SBEMU was running but its MPU-401 did not answer MENU (seen on an ASUS P5PE-VM; also with Protected mode off). MENU now also asks the loaded SBEMU directly, so it shows Loaded (with "MPU ?" if the MPU-401 is silent), or "Unknown" instead of a wrong "Not loaded". `SC55MENU /STATUS` prints the version and mode SBEMU runs in; BUGREP.TXT has it.
 
 <picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.117.** **Disc swaps show at once!!** After Ctrl+Alt+PgDn switched the disc of a multi-disc set (.MDM), drive M: kept showing the old disc for up to 7 seconds if you had just used it: the CD letter program (SHSUCDX) only asked whether the disc had changed after 7 seconds of quiet. Now it asks after a tenth of a second, so DIR or a game's "insert disc 2" prompt sees the new disc right away. Plus in the 3D menu (Panels, 640x480) a long grey item no longer runs under its "start the SC-55 first" box. Same speed as before (SBEMU did not change).
 

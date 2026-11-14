@@ -1,3 +1,28 @@
+## beta.121-awe.1 (2026-11-14, AWE session, repo deon81997/spare-01): MUXED beta.120 + beta.121 merged into the AWE line
+- main = awe.2 + NUKED-SBEMU-MUXED df2766f..v1.0.0-beta.121-usb (2f7b3b3), applied as a 3-way patch (`git diff --binary
+  df2766f TAG -- . ':!release' | git apply -3`; no shared history with MUXED). Branch awe-beta121, merged to main.
+  Conflicts: makefile VERSION only (-> 1.0.0-beta.121-awe.1-usb-sc55), README.md news (both kept, 5 shown), HANDOFF.md
+  (both kept). main.c (disk IRQ scan), README.TXT (SATA + WCSET), sc55menu.c (WCSET items), rezip.py merged cleanly.
+  beta.120/121 add no port traps (sc_sbliv.c ISR bits, start-up disk scan, WCSET in tools/), so the 16-slot HDPMI budget
+  is as in awe.2; rechecked: /AWE + /JOY:1 + USB pad on the P2B-LS loads ("found: pad 1") and plays Duke.
+- Tests: testrig/sata 5/5 PASS (warning on the shared-IRQ cases 7, 8); testrig/wcset on 86Box Voodoo3 pm + rm PASS (WC
+  MTRR set/cleared); testrig/menustat 5/5 PASS. AWE: new testrig/awe/duke.sh (86Box P2B-LS PII-400, MS-DOS 7.1, UHCI
+  + emulated 360 pad, Duke 3D AWE music, SBDIAG): HIMEM only and JEMMEX+QPIEMU both play; awe.2 vs awe.1 SBEMU output
+  (cmp.py 25-75 s): level 0.0 dB, bands within 0.1 dB, envelope corr 0.93 (game timing). SBDIAG in Duke: awe.2 324
+  int/s avg 0.10 ms 3% CPU, awe.1 the same (JEMM 0.12 ms 4%), 0% ticks lost, AWE 2% of real time.
+- Speed (testrig/midi/perf.sh, PII-450): /JOY:1 /VMPU:1 awe.2 = awe.1 = 344 int/s avg 0.02 ms 1%; /AWE idle 0.04 ms 1%
+  both. SC55LOG/SC55WAV: code identical to awe.2 (cmp: only the 9 version-string bytes differ).
+- Not testable here: beta.120's EMU10K ISR change (no Audigy in emulators; same as MUXED). Hardware to check: as awe.2.
+- Release: NUKED-SB-EMU-1.0.0-beta.121-awe.1-usb.zip (rezip.py from awe.2, file list = MUXED beta.121), tag
+  v1.0.0-beta.121-awe.1-usb by the release workflow. Rename to NUKED-SBEMU-AWE still pending (needs the browser).
+- Next: 1) user hardware: AWE music on D810 / P5PE-VM (HIMEM only, JEMM), SATA Enhanced on the P5PE-VM; 2) the next
+  MUXED beta: same recipe (fetch the tag into remote "muxed", diff from v1.0.0-beta.121-usb); 3) awe.2's open items
+  (4-pole filter, reverb/chorus).
+- Test downloads: DJGPP v3.4 gcc12.2 (/tmp/dl/djgpp); 86Box 0935207 + 86box-xpad.diff (/tmp/dl/86box, SDL, automation);
+  rufus (FreeDOS kernel, /tmp/dl/rufus -> testrig/rufus).
+- Resume: `git remote add muxed https://github.com/deon81997/nuked-sbemu-muxed`; build: export
+  PATH=/tmp/dl/djgpp/djgpp/bin:$PATH; cd sc55-pack; make -j16.
+
 ## beta.119-awe.2 (2026-11-14, AWE session, repo deon81997/spare-01): AWE32/AWE64 EMU8000 in SBEMU, SETTINGS picks AWE or SC-55
 - Repo: spare-01 is the AWE line (meant to be NUKED-SBEMU-AWE; that repo was not reachable from Claude's GitHub app, so the
   user said use spare-01). main = NUKED-SBEMU-MUXED beta.119 (df2766f) imported + branch synth-emu8000 merged (the EMU8000

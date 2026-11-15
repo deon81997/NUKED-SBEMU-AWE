@@ -1,3 +1,43 @@
+## beta.126-awe.1 (2026-11-14, AWE session, repo deon81997/spare-01): MUXED beta.122-126 merged into the AWE line
+- main = awe.2 + NUKED-SBEMU-MUXED v1.0.0-beta.121-usb..v1.0.0-beta.126-usb (6f5ec98) as a 3-way patch (same recipe as
+  awe.1; branch awe-beta126). Brings USB MIDI byte-exact + MPU front end (122), live MIDI output switch /MOUT + MENU
+  "MIDI to" + Ctrl+Alt+F11 (123), /VWC (124), random-keys fix + SBDIAG KEYS/SOAK (125), Audigy S/PDIF (126).
+- Conflicts: makefile VERSION (-> 1.0.0-beta.126-awe.1-usb-sc55); sbdiag.c synth line (g_synth now "USB MIDI device
+  [+ AWE32]"); sbset.c warning() (USB live line also when AWE + "MPU-401 also plays" = USB MIDI) and a real bug in
+  MUXED's new build_line /MUSB:0 (used F_SYNTH: AWE + USB MIDI wrote /MUSB:1 /MUSB:0) -> mpu_synth(); sc55menu.c
+  status (MPU ? rule for /AWEMPU:0 kept + USB marker; AWE line "AWE32 + USB MIDI" follows the live output by AMIS 05h).
+  main.c, sc_sbliv.c, vkbc/usbpad, vesawc, README.TXT merged cleanly. No new port traps in 122-126.
+- /MOUT with the AWE32 (decision): the switch moves only the MPU-401 at 330h (synth <-> USB 1/2); the EMU8000 keeps its
+  own ports (620h..) and plays on. AMIS 04h SYNTH= now = the live output (USB while USB has the music). /AWEMPU:0: no
+  emulated synth; with SBEMU's USB on the MPU-401's MIDI goes to a USB MIDI device (MUXED rule "no synth -> USB"),
+  start line says so. README.TXT section 6c documents it.
+- Tests (all on the release zip / output EXEs, AWE on where it matters):
+  testrig/awe: duke.sh HIMEM 327 int/s 0.10 ms 3%, JEMM 323 int/s 0.12 ms 4%, 0.0% ticks lost, AWE 2% (= awe.2 326 int/s
+  0.10 ms 3%); cmp.py awe.2 vs new 25-75 s: 0.0 dB, bands within 0.1 dB, env corr 0.94. /AWE + /JOY:1 + /MUSB:1 +
+  /SPDIF:1 + pad (LOG=1): "found: pad 1", "HDPMI port traps: 14 of 16 used" (= awe.2). mpu.sh (JEMM) AWELOAD + MT-32 +
+  /MOUT:USB then /MOUT:SYNTH: AWE32 -25 dBFS throughout, SBDIAG "MT-32 + AWE32"; without AWELOAD: MIDPLAY silent on USB,
+  MT-32 audible after /MOUT:SYNTH. testrig/midi (uhci, SBX=/AWE:620): gamecap miles gssysex mi2 intel rm duke PASS
+  (duke: 16 events in this rig, same without AWE); switch.sh rerun mout hotkey PASS. keysoak: HIMEM 5 min + JEMM 2 min
+  with /AWE:620 = 0 keys PASS. testrig/sata 5/5 PASS (warning on 7, 8). vesawc (86Box Voodoo3) pm rm emm as MUXED
+  (WC set/undone, EMM386 refused). menustat 5/5 PASS (SYNTH=USB: no ROMs in the zip). MENU matrix quick set (fd j32,
+  SBX=/AWE:620): uhci+ehcic before, xhci+ohci after: 35/35 OK each.
+- Speed (midi/perf.sh, 86Box P2B-LS PII-450; awe.2 release EXE vs new): /JOY:1 /VMPU:1 no ROMs 344 int/s 0.02 ms 1%
+  both; /AWE idle 0.04 ms 1% both; SC-55 + AWELOAD playing (JEMM+QPIEMU) 1.96 ms 67%, SC-55 302/303%, AWE 7% both.
+  SC55LOG 0.47x real time, 22591 frames/s both (6 version bytes differ).
+- Rig fixes (MUXED has the same gaps, not pushed there): sata/SATA.BAT failed since beta.123 (no ROMs -> USB MIDI has
+  the music, MPUTEST exit 3; DIR keeps ERRORLEVEL) - accepts 3; midi/switch.sh hotkey needed SWS.TXT nothing made
+  (mkswitch.py now does); midi/mkrmbin.py (RM.BIN for gamecap rm); keysoak SBOPTS, switch.sh SBX, perf.sh EXTRA,
+  duke.sh LOG=1 (SBEMULOG costs ~1.8% Duke ticks: off by default).
+- Release: NUKED-SB-EMU-1.0.0-beta.126-awe.1-usb.zip (rezip.py from awe.2; file list = MUXED beta.126), tag
+  v1.0.0-beta.126-awe.1-usb.
+- Hardware to retest (P5PE-VM + Audigy): AWE32 + SC-55 with S/PDIF (/SPDIF:1) - Duke AWE music on the digital out;
+  AWE + USB MIDI (Uno -> SC-55): SETTINGS "MPU-401 also plays" USB MIDI, MENU "AWE32 + USB MIDI", Ctrl+Alt+F11 in Duke
+  (GM on 330) moves only the GM music; KEYSOAK with /AWE.
+- Next: 1) the next MUXED beta: diff from v1.0.0-beta.126-usb; 2) awe.2 open items (4-pole filter, reverb/chorus).
+- Test downloads: DJGPP v3.4 gcc12.2 (/tmp/dl/djgpp); 86Box 0935207 + xpad diff (/tmp/dl/86box/src, symlinked as
+  /home/claude/86box/86box; roms repo /tmp/dl/86box/roms); rufus (testrig/rufus); apt: zstd qemu mtools socat nasm
+  timgm6mb-soundfont arj exfatprogs exfat-fuse ntfs-3g genisoimage fdisk libzstd-dev; store-dos71, store-personal.
+
 ## beta.121-awe.2 (2026-11-14, AWE session, repo deon81997/spare-01): AWE32 + MPU-401 synth together (/AWEMPU)
 - User report (P5PE-VM + Audigy, awe.1): with AWE picked, MIDPLAY silent and MENU "MPU ?" - /AWE zeroed OPT_VMPU_VOICES
   (AWE and SC-55 exclusive). Now /AWEMPU:1 (default) keeps the MPU-401's synth (SC-55, SoundFont, MT-32, USB MIDI)

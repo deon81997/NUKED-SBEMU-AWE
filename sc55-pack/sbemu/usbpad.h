@@ -82,6 +82,7 @@ int  USBPAD_Init(uint64_t cps, int wait_ms, int flags, const char** msg);
  * NULL / "" = the USBSKIP environment variable (the tools). Set before USBPAD_Init; the string must stay. */
 void USBPAD_SetSkip(const char* list);
 void USBPAD_SetHid(USBPAD_KbdFn kb, USBPAD_MouseFn ms);
+uint32_t USBPAD_InErrors(void);            /* beta.125: interrupt IN reports lost so far (their keys / buttons were let go) */
 void USBPAD_SetLeds(int leds);     /* keyboard LEDs: bit 0 num, 1 caps, 2 scroll (sent on the next full poll) */
 void USBPAD_Poll(void);
 void USBPAD_PollLight(void);       /* only collects reports: safe inside a game's port read */
@@ -108,5 +109,23 @@ int  USBPAD_MidiPending(void);             /* packets queued, not sent yet */
 typedef void (*USBPAD_MidiInFn)(const uint8_t* msg, int len);   /* MIDI IN: 1-3 bytes (one piece of a message), from Poll */
 void USBPAD_SetMidiIn(USBPAD_MidiInFn fn);
 void USBPAD_MidiStats(uint32_t* sent, uint32_t* dropped, uint32_t* errors, uint32_t* in);   /* packets; NULL = not wanted */
-int  USBPAD_MidiDescriptors(const uint8_t** p);   /* raw device + config descriptors of the last USB MIDI / M-Audio device seen; bytes (0 = none) */
+int  USBPAD_MidiDescriptors(const uint8_t** p);
+/* beta.121 */
+int  USBPAD_MidiBusy(void);                /* MPU-401 status bit 6 for /MUSB: 1 = queue nearly full, the game should wait (bounded) */
+int  USBPAD_MidiRoom(void);                /* packets that still fit in the queue */
+void USBPAD_SetMidiTap(void (*fn)(uint32_t pk));   /* every event packet as it is put into an OUT transfer (capture) */
+typedef struct
+{
+    int state;                             /* 0 none seen, 1 in use, 2 unplugged, 3 dropped after errors */
+    uint16_t vid, pid;
+    char name[40], where[48], last[80];    /* product name, "UHCI 1 port 2", last problem ("12s: ...", "" = none) */
+    uint32_t sent, dropped, errors, in, queued, busy, busytmo, paced;
+    int target;                            /* beta.123: the slot new MIDI goes to (0..) */
+} USBPAD_MidiInfoT;
+void USBPAD_MidiInfo(USBPAD_MidiInfoT* m);   /* the target slot's device + all counters */
+/* beta.123: several USB MIDI devices ("slots", kept across unplug / plug-in) */
+int  USBPAD_MidiSlots(void);               /* how many slots */
+int  USBPAD_MidiSlot(int slot, USBPAD_MidiInfoT* m);   /* that slot's device (state..last); 0 = never seen */
+void USBPAD_MidiTarget(int slot);          /* new MIDI goes there (what is queued still goes where it was meant to) */
+int  USBPAD_MidiGetTarget(void);   /* raw device + config descriptors of the last USB MIDI / M-Audio device seen; bytes (0 = none) */
 #endif

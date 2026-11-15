@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #endif
 #include "safewr.h"
+#include "sbemuchk.h"
 #ifndef HOSTTEST
 #include "theme.h"
 #endif
@@ -282,6 +283,11 @@ static void build_line(char* out)
         else if (i == F_MPU && (mpu_synth() == 2 || mpu_synth() == 3))      /* MT-32 / CM-32L (Munt) */
         {
             sprintf(t, "%s/VMT32:%s", out[0] ? " " : "", mpu_synth() == 2 ? "MT32" : "CM32L");
+            strcat(out, t);
+        }
+        if (i == F_MPU && mpu_synth() != 4)              /* beta.123: said out loud, so SC55 run again switches a loaded */
+        {                                                 /* SBEMU back from USB MIDI to the emulated synth */
+            sprintf(t, "%s/MUSB:0", out[0] ? " " : "");
             strcat(out, t);
         }
         if (i == F_SF)
@@ -859,8 +865,14 @@ static void draw_row(int i, int sel)
 static const char* warning(void)
 {
     if (awe_on() && mpu_synth() == 5) return "AWE32 only: MIDI sent to the MPU-401 port plays nothing (MIDPLAY, General MIDI games).";
+    if (mpu_synth() == 4)
+    {   /* beta.121: what the running SBEMU sees now (AMIS 05h), else how to get there (AWE32 + USB MIDI too) */
+        static char w[200]; static int asked; static SBMUSB m; static int ok;
+        if (!asked) { asked = 1; ok = sbemu_musb(&m); }
+        if (ok && m.on) return musb_line(&m, w, sizeof w);
+        return "USB MIDI: plug the cable in (any USB port); with /JOY:0 there is no USB in DOS.";
+    }
     if (awe_on()) return "AWE32 + MPU-401 synth: AWE32 games use 620h, General MIDI games port 330 (SC-55 etc.). AWE32.RAW in ROMS.";
-    if (F[F_SYNTH].cur == 4) return "USB MIDI: plug the cable in (any USB port); with /JOY:0 there is no USB in DOS.";
     if (F[F_SYNTH].cur == 5) return "AWE32: put AWE32.RAW (1 MB EMU8000 ROM) into ROMS; BLASTER gets E620, the SB type is 16.";
     if (F[F_SYNTH].cur == 2 || F[F_SYNTH].cur == 3) return "MT-32 games: choose \"Roland MT-32 / LAPC-I\" in the game's setup, not General MIDI.";
     if (!using_sf() && F[F_RATE].cur >= 2) return "Heavy: the SC-55 at 44.1/48 kHz is too much for most laptops. Use 22050 Hz.";

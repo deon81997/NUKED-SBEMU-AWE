@@ -25,7 +25,9 @@ void TRACE_Irq(int irq);                       /* virtual SB IRQ raised */
 void TRACE_IrqAck(void);                       /* the program acknowledged it (read 2xE / 2xF) */
 void TRACE_DmaCheck(int dma, uint32_t addr, int32_t count);   /* digital sound running: is the DMA channel set up? */
 void TRACE_Flush(void);                        /* MPU command A9h: write SBTRACE.TXT now (BUGREP) */
-void TRACE_Idle(void);                         /* INT 28h: writes SBTRACE.TXT when at the prompt and something is new */
+void TRACE_Idle(void);
+void TRACE_Dirty(void);                        /* beta.125: something for SBTRACE.TXT outside the banks (injected keys) */
+void TRACE_SetKeyLog(int (*fn)(char* t, int size, int full));   /* vkbc.c VKBC_KeyLog: the "Injected keys" part */                         /* INT 28h: writes SBTRACE.TXT when at the prompt and something is new */
 #ifdef __cplusplus
 }
 #endif

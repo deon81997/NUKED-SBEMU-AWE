@@ -32,11 +32,15 @@ static char g_path[128];
 static uint32_t g_indos_lin, g_sda_lin, g_dosbuf_lin;
 static uint16_t g_dosbuf_seg;
 static uint32_t g_last_under, g_under_init;
+static int (*g_keylog)(char* t, int size, int full);
+void TRACE_SetKeyLog(int (*fn)(char* t, int size, int full)) { g_keylog = fn; }
+
 
 static inline uint32_t irq_off(void) { uint32_t f; __asm__ volatile("pushfl; popl %0; cli" : "=r"(f) :: "memory"); return f; }
 static inline void irq_on(uint32_t f) { if (f & 0x200) __asm__ volatile("sti" ::: "memory"); }
 static uint32_t ticks(void) { return DPMI_LoadD(0x46C); }
 static TrBank* bank(void) { return &g_bank[g_cur]; }
+void TRACE_Dirty(void) { if (g_on) bank()->dirty = 1; }
 
 /* ---- events */
 static void ev_add(int kind, uint32_t n, const char* txt)
@@ -263,6 +267,18 @@ static void flush(const char* where)
         out("  %s %s  %s", hms(e->t0, a), kn[e->kind & 7], e->txt);
         if (e->n > 1) out(" x%lu (until %s)", (unsigned long)e->n, hms(e->t1, b2));
         out("\r\n");
+    }
+    if (g_keylog)
+    {   /* beta.125: every key SBEMU typed since the last write, with its source */
+        static char kt[64 * 48 + 300];
+        char* q;
+        int n = g_keylog(kt, sizeof kt, 2);
+        if (n > 0 && strchr(kt, '|'))
+        {
+            out("Injected keys (SBEMU typed them; totals since start, then each byte):\r\n  ");
+            for (q = kt; *q; q++) { if (*q == '|') out("\r\n  "); else out("%c", *q); }
+            out("\r\n");
+        }
     }
     for (i = 0; i < b->nprog; i++) fmt_prog(&b->prog[i]);
     out("\r\n");

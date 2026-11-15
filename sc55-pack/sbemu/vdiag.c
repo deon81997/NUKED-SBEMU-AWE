@@ -502,6 +502,70 @@ static void ovl_glyph(int x, int y, uint8_t ch)
     if (ch < 32 || ch >= 127) ch = ' ', f = lcd_font[' ' - 16];
     for (r = 0; r < 7; r++) for (k = 0; k < 5; k++) ovl_px(x + k, y + r, (f[r] >> (4 - k)) & 1 ? O_Fg : O_Bg);
 }
+/* ---- beta.123: Ctrl+Alt+F11 (MIDI output switch) - SBEMU's callback, then a 2-second note in the top left corner
+ * (text modes and mode 13h; the cells / pixels under it are put back) and 1-3 short PC-speaker beeps (any mode). */
+static void (*T_Hotkey)(void);
+static char T_Msg[40]; static volatile int T_State, T_Beeps; static int T_Len, T_Kind;
+static uint64_t T_Until, T_BeepAt; static uint16_t T_Save[40]; static uint8_t T_Pix[40 * 6 * 9];
+void DIAG_SetHotkey(void (*fn)(void)) { T_Hotkey = fn; }
+void DIAG_Toast(const char* msg, int beeps)
+{
+    int n = 0;
+    while (msg[n] && n < 38) { T_Msg[n] = msg[n]; n++; }
+    T_Msg[n] = 0; T_Len = n + 2;
+    T_Beeps = beeps > 3 ? 6 : beeps * 2; T_BeepAt = 0;
+    T_State = 1;
+}
+static void toast_put(int restore)
+{
+    int c, r;
+    if (T_Kind == 1)
+    {
+        uint32_t base = (DPMI_LoadB(0x449) == 7 ? 0xB0000 : 0xB8000) + DPMI_LoadW(0x44E);
+        for (c = 0; c < T_Len; c++)
+        {
+            uint32_t a = base + (uint32_t)c * 2;
+            if (restore) DPMI_StoreW(a, T_Save[c]);
+            else { if (T_State == 1) T_Save[c] = DPMI_LoadW(a); DPMI_StoreW(a, (uint16_t)(0x1F00 | (uint8_t)(c && c <= T_Len - 2 ? T_Msg[c - 1] : ' '))); }
+        }
+    }
+    else if (T_Kind == 2)
+        for (r = 0; r < 9; r++) for (c = 0; c < T_Len * 6 && c < 320; c++)
+        {
+            uint32_t a = 0xA0000 + (uint32_t)r * 320 + c; uint8_t* sv = &T_Pix[r * 240 + c];
+            if (c >= 240) break;
+            if (restore) DPMI_StoreB(a, *sv); else if (T_State == 1) *sv = DPMI_LoadB(a);
+        }
+    if (T_Kind == 2 && !restore)
+    {
+        for (r = 0; r < 9; r++) for (c = 0; c < T_Len * 6 && c < 240; c++) ovl_px(c, r, O_Bg);
+        for (c = 0; c < T_Len - 2 && c < 38; c++) ovl_glyph(6 + c * 6, 1, (uint8_t)T_Msg[c]);
+    }
+}
+static void toast_tick(void)
+{
+    uint64_t t = DIAG_Tsc(), cps = D_CpsI ? D_CpsI : 1000000000ULL;
+    if (T_Beeps && t >= T_BeepAt)
+    {   /* PC speaker: 60 ms on / 90 ms off, 1000 Hz (PIT channel 2) */
+        uint8_t p = UntrappedIO_IN(0x61);
+        if (T_Beeps & 1) UntrappedIO_OUT(0x61, p & ~3);
+        else { UntrappedIO_OUT(0x43, 0xB6); UntrappedIO_OUT(0x42, 0xA9); UntrappedIO_OUT(0x42, 0x04); UntrappedIO_OUT(0x61, p | 3); }
+        T_BeepAt = t + cps * ((T_Beeps & 1) ? 90 : 60) / 1000;
+        T_Beeps--;
+    }
+    if (!T_State) return;
+    if (T_State == 1)
+    {
+        if (T_Kind && T_State == 1 && T_Until) toast_put(1);          /* a new note over an old one: put the old cells back */
+        T_Kind = ovl_kind();
+        if (T_Kind == 2) ovl_colours();
+        T_Until = t + cps * 2;
+        toast_put(0); T_State = 2;
+        return;
+    }
+    if (t >= T_Until) { toast_put(1); T_State = 0; T_Until = 0; return; }
+    toast_put(0);
+}
 static void ovl_13h(void)
 {
     const unsigned char *d = O_P + 6, *cg = O_P + 86;
@@ -534,6 +598,9 @@ static void ovl_13h_mt32(void)
     for (c = 0; c < 20; c++) ovl_glyph(x0 + 3 + c * 6, y0 + 2, O_P[6 + c]);
 }
 
+/* Ctrl and Alt held: seen on port 60h, or (beta.123) in the BIOS shift flags - a quick Ctrl+Alt+key can put all three
+ * scan codes on the port between two of our looks, but the BIOS's INT 9 (DOS, most games) has kept count */
+static int ovl_ctrlalt(void) { uint8_t f = DPMI_LoadB(0x417); return (O_Ctrl || (f & 4)) && (O_Alt || (f & 8)); }
 static void ovl_tick(void)
 {
     uint8_t st = UntrappedIO_IN(0x64), b;
@@ -546,13 +613,15 @@ static void ovl_tick(void)
             O_Last = b;
             if (b == 0x1D) O_Ctrl = 1; else if (b == 0x9D) O_Ctrl = 0;
             else if (b == 0x38) O_Alt = 1; else if (b == 0xB8) O_Alt = 0;
-            else if (b == 0x58 && O_Ctrl && O_Alt)
+            else if (b == 0x57 && ovl_ctrlalt()) { if (T_Hotkey) T_Hotkey(); }      /* Ctrl+Alt+F11: MIDI output */
+            else if (b == 0x58 && ovl_ctrlalt())
             {
                 if (O_On && O_Kind == 1 && ovl_kind() == 1) ovl_text_save(1);   /* hide: put the text back */
                 O_On = !O_On; O_Kind = 0;
             }
         }
     }
+    toast_tick();
     if (!O_On) return;
     t = DIAG_Tsc();
     if (D_CpsI && t < O_Next) return;

@@ -19,6 +19,7 @@
 //#define MPXPLAY_USE_DEBUGF 1
 #define SBL_DEBUG_OUTPUT stdout
 
+#include <stdio.h>
 #include "au_cards.h"
 
 #ifdef AU_CARDS_LINK_SBLIVE
@@ -43,6 +44,17 @@
 #define A_PTR_ADDRESS_MASK 0x0fff0000
 
 static void snd_emu10kx_fx_init(struct emu10k1_card *card);
+
+#ifdef SBEMU
+/* beta.126: S/PDIF out on every Audigy (EMU10K2). SBEMU /SPDIF:0|1|ONLY sets SBLIVE_SpdifMode before the card starts;
+ * SBLIVE_SpdifSet() switches a running card (AMIS 08h, SBDIAG SPDIF). */
+int SBLIVE_SpdifMode = 1;                 /* 0 = analog only, 1 = analog + S/PDIF, 2 = S/PDIF only */
+int SBLIVE_SpdifInv = 0;                  /* /SPDIFINV:1: the shared jack's analog/digital bit the other way round */
+static struct emu10k1_card *SBLIVE_Card;  /* the running Audigy (NULL: none / SB Live / other) */
+static void snd_emu_spdif_jack(struct emu10k1_card *card);
+static void snd_emu10kx_set_control_gpr(struct emu10k1_card *card, unsigned int addr, unsigned int val);
+static void snd_emu_spdif_rate(struct emu10k1_card *card, unsigned long freq);
+#endif
 
 static void emu10k1_writeptr(struct emu10k1_card *card, uint32_t reg, uint32_t channel, uint32_t data)
 {
@@ -329,6 +341,9 @@ static void snd_emu10k1_hw_init(struct emu10k1_card *card)
 #endif
   outl(card->iobase + A_IOCFG, tmp);
  }
+#ifdef SBEMU
+ if(card->chips&EMU_CHIPS_10K2){ SBLIVE_Card = card; snd_emu_spdif_jack(card); snd_emu_spdif_rate(card, 48000); }
+#endif
 }
 
 static void snd_emu10k1_hw_close(struct emu10k1_card *card)
@@ -386,6 +401,76 @@ static void snd_emu_set_spdif_freq(struct emu10k1_card *card,unsigned long freq)
  }
  emu10k1_writeptr(card, A_SPDIF_SAMPLERATE, 0, tmp);
 }
+
+#ifdef SBEMU
+static const char *SBLIVE_ModeName[3] = { "analog only", "analog + S/PDIF", "S/PDIF only" };
+static unsigned long SBLIVE_SpdifHz;
+
+/* ALSA invert_shared_spdif: the Audigy 2 family (CA0151) has the analog/digital bit the other way round,
+ * except the Audigy 4 PRO [SB0380] */
+static int snd_emu_jack_inverted(struct emu10k1_card *card)
+{
+ return ((card->chips&EMU_CHIPS_0151) && card->serial != 0x20071102) ^ (SBLIVE_SpdifInv ? 1 : 0);
+}
+
+/* S/PDIF output rate (the chips that have a rate register: Audigy 2 / ZS / 4 / 2 Value) + channel status */
+static void snd_emu_spdif_rate(struct emu10k1_card *card, unsigned long freq)
+{
+ uint32_t cs = freq==44100 ? SPCS_SAMPLERATE_44 : freq==96000 ? 0x0a000000 : freq==32000 ? SPCS_SAMPLERATE_32 : SPCS_SAMPLERATE_48;
+ int i;
+ if(card->chips&(EMU_CHIPS_0151|EMU_CHIPS_0108)) snd_emu_set_spdif_freq(card, freq);
+ for(i = 0; i < 3; i++)
+  emu10k1_writeptr(card, SPCS0 + i, 0, (emu10k1_readptr(card, SPCS0 + i, 0) & ~SPCS_SAMPLERATEMASK) | cs);
+ SBLIVE_SpdifHz = freq==44100 || freq==96000 || freq==32000 ? freq : 48000;
+}
+
+/* the jack: Audigy 1 / 2 / 2 ZS / 4 PRO share the rear Digital Out / Center-Sub jack (Creative: "Digital Output
+ * Only"), A_IOCFG GPOUT0 (+ HCFG GPOUT0, as ALSA); Audigy 2 Value / Audigy 4 (CA0108) have their own S/PDIF out,
+ * switched with P16V register 7Ah. /SPDIF:0 = jack analog, 1 / ONLY = jack digital. */
+static void snd_emu_spdif_jack(struct emu10k1_card *card)
+{
+ const int dig = SBLIVE_SpdifMode != 0;
+ if(card->chips&EMU_CHIPS_0108){
+  outl(card->iobase + 0x20, 0x7a0000);
+  outl(card->iobase + 0x24, dig ? 0xFF000000 : 0);
+ }else{
+  const int sw = dig ^ snd_emu_jack_inverted(card);
+  uint32_t io = inl(card->iobase + A_IOCFG), hc = inl(card->iobase + HCFG);
+  io = sw ? (io | A_IOCFG_GPOUT0) : (io & ~A_IOCFG_GPOUT0);
+  hc = sw ? (hc | HCFG_GPOUT0) : (hc & ~HCFG_GPOUT0);
+  outl(card->iobase + A_IOCFG, io);
+  outl(card->iobase + HCFG, hc);
+ }
+}
+
+/* mode 0..2 = set (running card: jack + DSP routing, master volume kept), -1 = only report. Text: one line. */
+int SBLIVE_SpdifSet(int mode, char *t, int n)
+{
+ struct emu10k1_card *card = SBLIVE_Card;
+ if(!card){
+  if(mode >= 0 && mode <= 2) SBLIVE_SpdifMode = mode;
+  return snprintf(t, n, "SPDIF=%d MODE=%s CARD=none (/SPDIF works on Sound Blaster Audigy 1/2/2 ZS/2 Value/4 only)",
+                  SBLIVE_SpdifMode, SBLIVE_ModeName[SBLIVE_SpdifMode % 3]);
+ }
+ if(mode >= 0 && mode <= 2 && mode != SBLIVE_SpdifMode){
+  uint32_t f, g8, g9;
+  __asm__ __volatile__("pushfl; popl %0; cli" : "=r"(f) :: "memory");
+  g8 = emu10k1_readptr(card, A_FXGPREGBASE + 8, 0); g9 = emu10k1_readptr(card, A_FXGPREGBASE + 9, 0);
+  SBLIVE_SpdifMode = mode;
+  snd_emu10kx_fx_init(card);                                    /* new routing */
+  snd_emu10kx_set_control_gpr(card, 8, g8); snd_emu10kx_set_control_gpr(card, 9, g9);
+  snd_emu_spdif_jack(card);
+  if(f & 0x200) __asm__ __volatile__("sti" ::: "memory");
+ }
+ return snprintf(t, n, "SPDIF=%d MODE=%s CARD=%s SSID=%08X REV=%d JACK=%s%s RATE=%lu IOCFG=%04X HCFG=%08X SPCS0=%08X",
+   SBLIVE_SpdifMode, SBLIVE_ModeName[SBLIVE_SpdifMode % 3],
+   card->card_capabilities->longname ? card->card_capabilities->longname : "Audigy", (unsigned)card->serial, card->chiprev,
+   (card->chips&EMU_CHIPS_0108) ? (SBLIVE_SpdifMode ? "own-spdif-on" : "own-spdif-off") : (SBLIVE_SpdifMode ? "digital" : "analog"),
+   (card->chips&EMU_CHIPS_0108) ? "" : snd_emu_jack_inverted(card) ? "(inv)" : "",
+   SBLIVE_SpdifHz, (unsigned)(inl(card->iobase + A_IOCFG) & 0xFFFF), (unsigned)inl(card->iobase + HCFG),
+   (unsigned)emu10k1_readptr(card, SPCS0, 0));
+}
+#endif
 
 static unsigned int snd_emu_ac97_read(struct emu10k1_card *card, unsigned int reg)
 {
@@ -472,14 +557,22 @@ static void snd_emu10kx_fx_init(struct emu10k1_card *card)
   }else
 #endif
   {
+#ifdef SBEMU
+   const int an = SBLIVE_SpdifMode != 2, dg = SBLIVE_SpdifMode != 0;   /* /SPDIF: analog DACs / digital (S/PDIF) outputs fed */
+#else
+   const int an = 1, dg = 1;
+#endif
+   if(an){
    // Front Output + Master Volume
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_AFRONT_L), 0xc0, A_GPR(8), A_FXBUS(FXBUS_PCM_LEFT));
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_AFRONT_R), 0xc0, A_GPR(9), A_FXBUS(FXBUS_PCM_RIGHT));
-
-   // Digital Front + Master Volume
+   }
+   if(dg){
+   // Digital Front + Master Volume (= the S/PDIF out on every Audigy: coax on the shared jack / Digital Out)
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_FRONT_L),  0xc0, A_GPR(8), A_FXBUS(FXBUS_PCM_LEFT));
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_FRONT_R),  0xc0, A_GPR(9), A_FXBUS(FXBUS_PCM_RIGHT));
-
+   }
+   if(an){
    // Audigy Drive, Headphone out + Master Volume
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_HEADPHONE_L),0xc0,A_GPR(8),A_FXBUS(FXBUS_PCM_LEFT));
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_HEADPHONE_R),0xc0,A_GPR(9),A_FXBUS(FXBUS_PCM_RIGHT));
@@ -487,10 +580,12 @@ static void snd_emu10kx_fx_init(struct emu10k1_card *card)
    // Rear output + Master Volume
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_AREAR_L),  0xc0, A_GPR(8), A_FXBUS(FXBUS_PCM_LEFT));
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_AREAR_R),  0xc0, A_GPR(9), A_FXBUS(FXBUS_PCM_RIGHT));
-
+   }
+   if(dg){
    // Digital Rear + Master Volume
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_REAR_L),   0xc0, A_GPR(8), A_FXBUS(FXBUS_PCM_LEFT));
    A_OP(iMAC0, A_EXTOUT(A_EXTOUT_REAR_R),   0xc0, A_GPR(9), A_FXBUS(FXBUS_PCM_RIGHT));
+   }
   }
 
   for( ; pc<1024; pc++)
@@ -845,6 +940,14 @@ static void snd_emu10kx_setrate(struct emu10k1_card *card,struct mpxplay_audioou
 
  dmabufsize=MDma_init_pcmoutbuf(aui,card->pcmout_bufsize,EMUPAGESIZE,0);
 
+#ifdef SBEMU
+ /* beta.126: the EMU10K2 DSP mixes at a fixed 48 kHz (the voice engine resamples 11/22/44.1 kHz to it), so the S/PDIF
+  * stream is 48 kHz on every model, with channel status saying 48 kHz. Before, 44.1 kHz set the Audigy 2's S/PDIF
+  * converter to 44.1 kHz while channel status said 48 (some receivers mute / click), and wrote register 76h on the
+  * Audigy 1, which does not have it. */
+ if(card->chips&EMU_CHIPS_10K2) snd_emu_spdif_rate(card,48000);
+ else
+#endif
  if(aui->freq_card==44100)
   snd_emu_set_spdif_freq(card,44100);
  else
@@ -993,6 +1096,9 @@ static void snd_p16v_pcm_prepare_playback(struct emu10k1_card *card,unsigned int
  uint32_t i;
 
  snd_emu_set_spdif_freq(card,freq);
+#ifdef SBEMU
+ snd_emu_spdif_rate(card,freq);
+#endif
 
  for(i=0; i<AUDIGY2_P16V_PERIODS; i++) {
   table_base[i*2]=(uint32_t)pds_cardmem_physicalptr(card->dm,(char *)card->pcmout_buffer+(i*period_size_bytes));
@@ -1328,6 +1434,9 @@ err_adetect:
 
 static void SBLIVE_close(struct mpxplay_audioout_info_s *aui)
 {
+#ifdef SBEMU
+ SBLIVE_Card = NULL;
+#endif
  struct emu10k1_card *card=aui->card_private_data;
  if(card){
   if(card->iobase)

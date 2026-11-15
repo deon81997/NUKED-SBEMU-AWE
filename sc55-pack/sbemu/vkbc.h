@@ -18,4 +18,8 @@ void VKBC_SetBios(uint32_t lin);            /* USB mouse through the BIOS mouse 
 int  VKBC_MouseSeen(void);
 uint32_t VKBC_Unstuck(void);                /* keyboard bytes put in again after 50 ms unread (lost IRQ 1) */                  /* a program has enabled the emulated PS/2 mouse */
 
+void VKBC_ReleaseAll(void);                 /* beta.125: break codes for every key SBEMU holds down */
+void VKBC_KeyStats(uint32_t* bytes, uint32_t* makes, uint32_t* misroute, uint32_t* mouse_packets);
+void VKBC_KeyClear(void);
+int  VKBC_KeyLog(char* t, int size, int full);  /* "KEYS=.. BYTES=..|source: n keys|hh:mm:ss.t source byte" */
 #endif

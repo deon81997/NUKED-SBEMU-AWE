@@ -1,0 +1,7 @@
+[Default]
+LStickX=Left Right
+LStickY=Up Down
+RStickX=A D
+RStickY=W S
+LT=Space
+RT=LCtrl

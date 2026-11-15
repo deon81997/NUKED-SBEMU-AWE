@@ -126,6 +126,123 @@
   HIMEM only and with JEMM; SETTINGS: pick AWE32, save, reboot, MENU shows "AWE32 at 620"; SBDIAG while it plays.
 - Test downloads: DJGPP v3.4 gcc12.2; 86Box 0935207 + roms; HX (Baron) + crazii/HX (trap API reading); Jemm (QPIEMU
   reading); JWasm + HimemX (built HIMEMX.EXE for the rig); rufus res/freedos.
+## beta.126 (2026-11-15, DOS session): Audigy S/PDIF out (/SPDIF, jack switch, SBDIAG SPDIF/TONE)
+- User: S/PDIF on every Audigy (1 / 2 / 2 ZS / 2 Value / 4), /SPDIF:0|1|ONLY (default 1 = analog + S/PDIF), shown in SBDIAG; S/PDIF
+  shares the rear 3.5 mm Digital Out / Center-Sub jack (tip = coax via TRS-to-RCA): /SPDIF:1 must switch that jack to digital.
+- Done: sc_sbliv.c SBLIVE_SpdifMode/Inv, snd_emu_spdif_jack (A_IOCFG GPOUT0 0x44 + HCFG GPOUT0 as ALSA; invert = CA0151 except SB0380;
+  CA0108 Value/A4: P16V reg 7Ah), DSP routing per mode, S/PDIF 48 kHz + SPCS0-2 rate bits, live switch SBLIVE_SpdifSet. main.c /SPDIF
+  (bad values refused), /SPDIFINV, AMIS 08h, re-run switch. SBDIAG SPDIF [0|1|ONLY], SBDIAG TONE [s]. README.TXT (section 7 + 15 "AUDIGY
+  DIGITAL OUT": jack TIP = WHITE/left RCA -> COAXIAL in), HWTEST beta.126 P5PE-VM item, README news (5 shown; beta.121/120 -> Older).
+- Merged onto beta.125 (keys): one sbemuchk.h sbemu_text(); AMIS 08h S/PDIF + 09h keys both in main.c; SBDIAG help/dispatch both.
+- Tests: testrig/spdif/run.sh ZIP (QEMU, CARD=none path: start, re-run /SPDIF:ONLY, SBDIAG SPDIF 0, bad value refused) PASS;
+  testrig/menustat 5/5 PASS. No Audigy in QEMU/86Box. Speed: init/option/AMIS code + EMU DSP microcode only; non-Audigy runtime
+  path unchanged (not re-measured). Zip = beta.125 zip + rezip.py.
+- Risk: CA0151 (Audigy 2/ZS): switching the jack clears A_IOCFG 0x44 incl. 0x40 (init's "unmute analog"), as ALSA does; HWTEST asks
+  whether front speakers stay on with /SPDIF:1. If not: keep 0x40, toggle only 0x04 on CA0151.
+- Next 3 steps: 1) P5PE-VM HWTEST beta.126 results (SPDIF1.TXT, plug, /SPDIFINV); 2) MENU Sound item for S/PDIF mode + SETTINGS save;
+  3) 86Box speed check if an EMU10K2 model ever appears.
+
+## beta.125 (2026-11-14, DOS session): no random key presses in games (pads, USB keyboard, mouse -> KBC)
+- User: audit every place the pack injects keys / mouse bytes; generous dead zone + hysteresis, release-all on USB error, never
+  inject while a real keyboard byte is pending, log every injected key's source (SBTRACE), 30-min idle soak = zero keys.
+  (Audigy S/PDIF from the same prompt was split off: wip/spdif-audigy-2026-11-14, own HANDOFF section.)
+- Causes found: padmap.c stick -> key at 13000 (40%) with no hysteresis and no "seen centred" check (drift / off-centre sliders /
+  noise typed and repeated keys); triggers > 128 single threshold; no debounce; usbpad.c pipe_poll on a TD error kept the
+  keyboard's keys held (VKBC repeat forever if no next report); vkbc kpush dropped single bytes when full (lost break = stuck
+  key, lost E0 = wrong key); 50 ms "unstuck" re-read could take a reply a program asked for; mouse D3h byte seen as keyboard
+  data (AUXB clear) would be a keystroke; our bytes could land between a real key's E0 and its code.
+- Fix: padmap.c threshold 16000 at /JOYDZ 10 (+328/pct), off below 3/4, armed after |v| < thr/2, two polls past threshold;
+  vjoy.c key_filter (buttons: 2 equal polls; triggers on > 160 off < 96) for key decisions only (game port raw); usbpad.c IN
+  error -> KbFn(k, none) + prev cleared, pad buttons/axes 0, mouse buttons up, TRACE_Event, USBPAD_InErrors; vkbc.c kpushn
+  (whole key or nothing, 16 places kept for breaks), source-tagged ring (KS_*: USB keyboard #id, USB repeat, pad layout, pad
+  repeat, /JOYKEY, unread byte again) + totals, misrouted D3h byte read back (3 x -> no mouse via KBC), RealHold 30 ms after
+  a real E0/E1 read through the trap, unstuck only 200 ms after a program's last KBC write, VKBC_ReleaseAll on SBEMU re-run.
+  trace.c "Injected keys" part (TRACE_SetKeyLog / TRACE_Dirty). main.c AMIS 09h (ECX bit0 clear, bit1 byte log; EDX size).
+  sbemuchk.h sbemu_text(); SBDIAG KEYS [CLEAR], SBDIAG SOAK [min] (KEYSOAK.TXT, also counts BIOS keys; works with old SBEMU).
+  README.TXT, HWTEST.TXT (+ rezip.py now swaps HWTEST.TXT: zips since beta.121 had the beta.120 checklist), README news.
+- Tests (testrig/keysoak/run.sh MIN [EXE_DIR], JEMM=1): QEMU dos71 HIMEM + HDPMI32I, OHCI usb-kbd + usb-mouse + fakepad idle.txt
+  (noise, drift 43%, trigger chatter at 128, Start blip, 1-report spike) + PADUSER.TXT sticks/triggers on keys:
+  beta.123 3 min = 394 keys at the BIOS (FAIL); this build 3 min = 0 (PASS), typed control key logged "USB keyboard #0 1E/9E";
+  JEMM=1 2 min PASS; 30 min PASS (0 keys, 0 BIOS keys). menustat 5/5 PASS on the zip.
+  Rig rule: never two run.sh rigs at once (shared /tmp/testrig-run-latest: the control key went to the other VM).
+- Not done: 86Box PII-450 speed run skipped: per sound IRQ only key_filter (2 pads, ~40 instructions) + padmap compares; logging
+  only when a key is typed; 86Box has no USB pass-through. Real hardware.
+- Hardware ask: HWTEST beta.124 item (SBDIAG SOAK 30, a pad game 10 min + SBDIAG KEYS, unplug a keyboard with a key held).
+- Next 3 steps: 1) user's KEYSOAK.TXT / KEYS1.TXT from P5PE-VM + D810; 2) if a source still types: its KS_ tag in KEYS1.TXT says
+  which path; 3) S/PDIF branch rebase + release (separate chat).
+## beta.124 (2026-11-14, DOS session): SBEMU /VWC:1 - write-combining for the VESA frame buffer while SBEMU is loaded
+- Built on branch feature/vesa-wc (merged; a parallel session works on EMU10K hardware offload - none of its files
+  touched). New files only: sc55-pack/vesawc.c/.h; main.c hooks: /VWC option (table + enum) and one VESAWC_Init call
+  before the resident check (no cleanup hook needed: atexit undoes WC when SBEMU quits without going resident; a
+  resident SBEMU never runs this code). SBDIAG: `SBDIAG WC` (exit 0 on, 1 off, 2 unavailable) + a report line.
+- Reuses tools/wcset.h (DPMI 0301h real-mode stub: real mode under HDPMI raw, V86 under JEMM) + the 3dfx OVL's
+  "MTRRs:" dump (deon81997/3dfx-dos-emulator- vcore vesa.c ran at ring 0 under DOS/4GW - SBEMU is ring 3, CPL 3
+  confirmed, so its direct RDMSR path cannot be used; its MMX present does not apply: games draw, not SBEMU).
+- LFB: VBE 4F03 current mode, else first LFB mode (4F01 PhysBasePtr) + VBE total memory; PCI class 03 BAR lookup is
+  read-only then (BAR sized only in the PCI fallback when VBE gives nothing). Range < 1 MB refused (A0000-BFFFF and
+  fixed MTRRs never touched). Re-run: SBEMU /VWC:1 sets, /VWC:0 clears SBEMU's MTRR (same range as WCSET ON).
+- Ring 0 per memory manager (testrig/vesawc/run.sh ZIP pm rm emm): no EMM (SC55) real mode -> WC set; JEMMEX
+  (SC55JEM) V86 -> WC set; EMM386 NOEMS -> refused before any MSR access (only SMSW runs), message, SBEMU loads;
+  QEMM: not available here, same branch as EMM386 (V86 and not JEMM; QEMM named via INT 2Fh D200h / QEMM386$);
+  Windows DOS box refused (wc_probe). 86Box P3B-F PII-450 + Voodoo3 + ES1371 (testrig/vesawc/86box): pm/rm/emm PASS
+  (MTRR 1 = WC DE000000 16 MB, cleared by /VWC:0, set again by re-run, failed start /PADLOG -> restored); QEMU
+  pm/rm/emm PASS (SeaBIOS UC MTRR 80000000-FFFFFFFF -> "unavailable", correct). menustat 5/5 on the zip.
+- Speed (testrig/vesawc/perf.sh ZIP, 86Box PII-450, SoundFont TimGM6mb, MIDPLAY 40 s busy song): beta.123 / new off /
+  new /VWC:1 = 344 int/s, avg 1.77 ms, longest 4.85/4.83/4.64 ms, 61% CPU, render 236/236/235%. SC55LOG.EXE md5
+  47e60dc3.. identical. 86Box does not model WC speed: the gain can only be seen on real PCs.
+- Zip = beta.123 zip + rezip.py (all EXEs beta.124, README.TXT, HWTEST.TXT; rezip.py now swaps HWTEST.TXT too).
+- Hardware ask (HWTEST beta.124 item): D810 + P5PE-VM, SBDIAG WC line, VESA games timed with and without /VWC:1,
+  VGA/Mode X games look unchanged, once with SC55JEM.
+- Open: if the D810 BIOS covers the LFB with a UC MTRR, WC is "unavailable" -> PAT idea (as in WCSET's open item).
+- Next 3 steps: 1) D810/P5PE-VM results; 2) if "unavailable" on real boards: PAT (PIII+) through the same stub;
+  3) SETTINGS item for /VWC (now command line / SBOPTS only).
+- Test downloads: DJGPP v3.4 (/tmp/dl/djgpp), TimGM6mb (apt-get download, /tmp/dl/timgm6mb).
+
+## beta.123 (2026-11-14, DOS session): switch MIDI output (emulated synth <-> USB MIDI devices) without a restart
+- User: "start SC55 with emulation, pick USB MIDI in MENU/SETTINGS, run SC55 again - shouldn't it just change?" (it did
+  not: a re-run only copied options; /MUSB also skipped loading the synth). Asked: synth <-> USB and between USB
+  devices; MENU item, command line and in-game hotkey.
+- Done: main.c MAIN_MPU_Route (trap -> capture, pending hotkey switch, then VMPU_MPU or the /MUSB front end), MIDI
+  state tracker TK_* (last GM/GS/XG/MT-32 reset + SysEx <= 2 KB, per channel CCs incl. bank, program, RPN 0 range,
+  pitch bend, running status / half message), MAIN_SwitchOut (silence old: CC64/123/120 x16, replay to new), AMIS 07h
+  (ECX 0 synth, 1.. slot, 0x80 USB, 0xFE next), /MOUT:SYNTH|USB|USB1|USB2|NEXT (start or re-run), re-run with
+  /MUSB:0|1 switches (SBSET now writes /MUSB:0 too), synth always loaded with /MUSB (idle: no render while USB), USB MIDI
+  flag always on with /JOY:1, MAIN_SynthOK (ROMs/SF found) else USB only. usbpad.c: MAX_PIPE 8 (M_HC 0x5000), 2 USB
+  MIDI slots (kept per vid:pid across replug), packets tagged with the slot in the cable nibble (stripped on send),
+  midi_skipdead, USBPAD_MidiSlot/Target. vdiag.c: Ctrl+Alt+F11 (BIOS shift flags too), DIAG_Toast 2 s note top left
+  (text/13h) + 1-3 beeps (PIT ch2). AMIS 05h: OUT= SYN= |U1..|SYNTH=. MENU Sound "MIDI to: ..." items (SBEMU /MOUT:..),
+  /STATUS "MENU MIDI output:", SBDIAG USB lists slots; MPUTEST/GAMETEST/SBDIAG use out>0. README.TXT, HWTEST, news.
+- Tests: testrig/midi/README.md beta.123 (switch.sh rerun/mout/hotkey PASS, regression PASS, menustat 5/5).
+- Not done: real hardware; 86Box speed (SC-55 path unchanged while synth has the music; with USB the synth is idle).
+- Hardware ask: HWTEST beta.123 item (MENU MIDI to, Ctrl+Alt+F11 in Duke, SETTINGS + SC55 again) + beta.121/122 item.
+- Next 3 steps: 1) user's Uno + SC-55 results; 2) MENU: keep the choice for next start from the MENU items (now only
+  SETTINGS saves); 3) MIDI IN routing per slot (only the target's IN is meaningful today).
+
+## beta.122 (2026-11-14, DOS session): USB MIDI (M-Audio Uno -> real SC-55) wrong notes, MENU "?" for USB MIDI, tests blind to /MUSB
+- Causes (main.c MAIN_MPU_330/331 = the /MUSB path, VMPU off): only FFh/3Fh ACKed; intelligent-mode command parameter
+  bytes went out as MIDI (notes); status port never "busy", so game bursts (GS reset + set-up SysEx + all channels)
+  overflowed the 1024-packet queue -> lost program changes / note-offs / SysEx pieces; F0 inside an open SysEx lost up
+  to 2 bytes; SBDIAG side channel (DIAG_*) absent with /MUSB (GAMETEST/SBDIAG blind); MENU knew /MUSB only from SBOPTS.
+- Fix: main.c MU_* front end (ACK all, version/revision answers, D0-D7 / DF / E0-EF params, sequencer data ignored,
+  DIAG first, AC/AD still answered), status bit 6 = USBPAD_MidiBusy (queue < 96 free; waits while the queue moves, 1 s
+  without progress lets the game on; trap pump = light mout_poll, not on xHCI, no OHCI ED rewrite). usbpad.c: pacing
+  3125 B/s, 128-byte burst, pieces >= 48 bytes; timeout checked after the transfer was looked at (late poll was a
+  false NAK -> xHCI drop); product name (iProduct), port, state, last error -> AMIS 05h; /MIDICAP:1 capture pages
+  "SBMIDCAP" (AMIS 06h, ECX=-1 clears). sbemuchk.h sbemu_musb()/musb_line(). MENU status panel + /STATUS + 3D title,
+  Tests "USB MIDI test (MPUTEST /USB)", SETTINGS synth line, MPUTEST /USB (exit 3 = lost), GAMETEST /USB + screen +
+  GAMETEST.TXT, SBDIAG USB / MIDICAP [file], BUGREP "USB MIDI" block, README.TXT, HWTEST.TXT.
+- Tested (testrig/midi/README.md): gamecap.sh uhci miles gssysex mi2 intel rm duke heretic descent PASS; xhci gssysex
+  miles duke PASS; ehcicc gssysex miles heretic PASS; ohci gssysex PASS; menumidi.sh xhci PASS; beta.120 SBEMU on the 4
+  scripts FAIL. unomatrix quick PASS except sbemu-dos71-ohci QEMU-LIMIT: with rig.py now timer-period=2000 (real IRQ
+  rate) beta.121 binaries also hit QEMU's usb_cancel_packet assertion there (2/2) - QEMU bug. menustat 5/5 on the zip.
+- Not done: Monkey Island 2 / a real Miles game / a GS game (none free: scripts stand in); 86Box PII-450 speed run
+  skipped: default SC-55 path untouched (VMPU handler, no MIDI pipe), /MUSB can't run in 86Box (no USB pass-through).
+- Hardware ask (Uno + SC-55): HWTEST.TXT beta.121/122 item; send USBn.TXT (SBDIAG USB) + CAPn.BIN (SBDIAG MIDICAP) per
+  game; `python3 testrig/midi/midicap.py CAP1.BIN` checks what SBEMU sent vs the game's writes.
+- Next 3 steps: 1) user's Uno results; 2) if the real Uno still garbles: CAPn.BIN U pages vs game writes, try smaller
+  MPACE_BURST; 3) intelligent-mode sequencer (SoftMPU-style) only if a game needs it (IGN= count in SBDIAG USB).
+- Test downloads: DJGPP v3.4 (/tmp/dl/djgpp), rufus sparse (/tmp/dl/rufus), arj (apt), testgames/ unpacked to /tmp/g.
+
 ## beta.121 (2026-11-14, DOS session): WCSET write-combining shipped (Fast video)
 - Done: WCSET.EXE in the zip (rezip.py NEW list adds new EXEs), MENU Settings "Fast video (WCSET)" = WCSET /ASK,
   Tests "Video speed (WCSET)" = WCSET /BENCH (view WCBENCH.TXT); README.TXT "FAST VIDEO" under 3D MENU; README news

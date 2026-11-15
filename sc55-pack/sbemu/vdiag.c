@@ -40,6 +40,8 @@ static uint64_t D_BiosExp0, D_BiosGot0, D_BiosExp, D_BiosGot; static int D_BiosI
 static int32_t D_FifoMin = -1; static uint32_t D_UnderBase, D_UnderNow; static int D_UnderInit;
 
 static uint8_t  D_Buf[256];
+static uint32_t D_AweCount, D_AweMaxUs, D_AweFrames;   /* AWE32 EMU8000 render (DIAG_RenderAwe) */
+static uint64_t D_AweTotal;
 static int      D_BufLen, D_BufPos;
 
 uint64_t DIAG_Tsc(void)
@@ -71,6 +73,7 @@ static void reset(void)
     D_PitMax = D_PitWinMax = D_PitSamples = 0; D_PitDiv = 0; D_PitFastest = 0; D_ExpectMilli = 0; D_LastBegin = 0;
     D_VirqTotal = 0; D_VirqCount = D_VirqMaxUs = 0;
     D_RenderTotal = 0; D_RenderCount = D_RenderMaxUs = D_Frames = 0;
+    D_AweTotal = 0; D_AweCount = D_AweMaxUs = D_AweFrames = 0;
     memset(D_Traps, 0, sizeof(D_Traps)); D_MidiBytes = D_MidiDropped = 0;
     D_FifoMin = -1; D_UnderInit = 0; D_Replayed = 0; D_BiosInit = 0; D_BiosExp = D_BiosGot = 0;
     D_ArmTsc = DIAG_Tsc();
@@ -251,6 +254,16 @@ void DIAG_VirqEnd(void)
     ++D_VirqCount; D_VirqTotal += d; if (u > D_VirqMaxUs) D_VirqMaxUs = u;
 }
 
+void DIAG_RenderAwe(uint64_t cycles, int frames, int freq)   /* AWE32 EMU8000: own counters, the MPU synth renders beside it */
+{
+    uint32_t u;
+    if (!DIAG_Armed) return;
+    D_Freq = (uint32_t)freq;   /* same output rate as the MPU synth */
+    u = us(cycles);
+    ++D_AweCount; D_AweTotal += cycles; if (u > D_AweMaxUs) D_AweMaxUs = u;
+    D_AweFrames += (uint32_t)frames;
+}
+
 void DIAG_Render(uint64_t cycles, int frames, int freq, int synth)
 {
     uint32_t u;
@@ -300,7 +313,7 @@ static void snapshot(void)
     uint64_t now = DIAG_Tsc();
     close_stretch(); D_StretchStart = 0;
     put(n++, 0x47444253UL);                     /* "SBDG" */
-    put(n++, 5);                                /* layout version */
+    put(n++, 6);                                /* layout version (6: AWE32 fields at the end) */
     put(n++, (uint32_t)(D_CpsI / 1000));        /* kHz */
     put(n++, us(now - D_ArmTsc) / 1000);        /* ms since armed */
     put(n++, D_IsrCount);
@@ -336,6 +349,10 @@ static void snapshot(void)
     put(n++, D_Replayed);
     put(n++, (uint32_t)(D_BiosExp / 1000));     /* DOS clock ticks that should have passed while the game ran */
     put(n++, (uint32_t)(D_BiosGot / 1000));     /* DOS clock ticks that did pass */
+    put(n++, D_AweCount);
+    put(n++, us(D_AweTotal) / 1000);            /* ms */
+    put(n++, D_AweMaxUs);
+    put(n++, D_AweFrames);
     D_BufLen = 4 * n; D_BufPos = 0;
 }
 

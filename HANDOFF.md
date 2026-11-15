@@ -1,3 +1,55 @@
+## beta.121-awe.2 (2026-11-14, AWE session, repo deon81997/spare-01): AWE32 + MPU-401 synth together (/AWEMPU)
+- User report (P5PE-VM + Audigy, awe.1): with AWE picked, MIDPLAY silent and MENU "MPU ?" - /AWE zeroed OPT_VMPU_VOICES
+  (AWE and SC-55 exclusive). Now /AWEMPU:1 (default) keeps the MPU-401's synth (SC-55, SoundFont, MT-32, USB MIDI)
+  beside the EMU8000, like an AWE32 with a Sound Canvas on its MIDI port; /AWEMPU:0 = the awe.1 AWE-only setup.
+  Branch awe-mpu, merged to main.
+- main.c: OPT_AWEMPU; the exclusivity block zeroes VMPU only with /AWEMPU:0; resident re-run ignores /AWEMPU changes like
+  the other /AWE options. Mix order unchanged and fine: SB/OPL, VMPU_GenSamples (SC-55 renders with IF on), then
+  VAWE_MixInto (CLIS); the memset guard already checks vmpu_active. Volumes: both = SB16 mixer MIDI x master
+  (VMPU_SetMixVolume / VAWE gain) x /VMIDIVOL, as on a card where wavetable + MIDI share the MIDI fader.
+  SBDIAG A6-A8h: with VMPU on, VMPU_MPU answers them (as before awe.x); MAIN_MPU_330/331 only with VMPU off.
+- vdiag: DIAG_RenderAwe(cycles, frames, freq) - own counters (layout 6 appends AWEN/AWEMS/AWEMAX/AWEFR), so the MPU
+  synth's render time/frames are not overwritten; sbdiag.c prints "Synth: SC-55 + AWE32" and one "needs x%" line per
+  synth, ISR "synth" share = both. Old SBDIAG + new SBEMU: 16 report bytes left unread (harmless, reset by A6).
+- AMIS function 04h line: + "SYNTH=SC55|SF|MT32|USB|HW|NONE AWE=620" (what plays the MPU's MIDI). MIDPLAY: BLASTER E6x0
+  and SYNTH=NONE (or the MPU does not answer with E6x0) -> "AWE32 mode without MPU-401: turn on SC-55 for 330h in
+  SETTINGS" instead of playing into a silent MPU (the null MPU acks commands, so mpu_detect alone says "found").
+- SETTINGS (sbset.c): new main row F_AWEMPU "MPU-401 also plays" (SC-55 / SoundFont / MT-32 / CM-32L / USB MIDI / off),
+  enabled only with MIDI synth = AWE32; mpu_synth()/set_mpu_synth() route SC/SF sub-menus and SF checks to it. Window
+  WY 2->1, WH 22->23 (MIDI group 5 rows; footer rows unchanged). Writes /AWE:620 [+ /AWEMPU:0] + the normal synth
+  options; parse is order-independent (g_awempu0). New `SBSET dir /LINE` prints the line it would save (tests).
+- MENU draw_status: "AWE32 + SC-55|SF|MT-32|CM-32L|USB MIDI", "AWE32 (no MPU)" with /AWEMPU:0, no "MPU ?" for that
+  deliberate setup; sf/mt copied out of opt_val's 4-slot ring (more calls in one function overwrote them).
+- HDPMI trap slots (hdpmipt.c counts them; SBEMU prints "HDPMI port traps: N of 16 used" with /AWE): VMPU adds none.
+  P2B-LS rig, /AWE + MPU synth + /JOY:1 + pad: HIMEM only 14/16 (USB mouse goes through the BIOS without RM traps);
+  JEMMEX+QPIEMU + /USBMS:2 (PS/2 traps 60h/64h) 16/16 - fits, zero headroom. Next new trap needs a merge (candidate:
+  60h-64h as one trap with 61h = PC speaker inside, 62/63h passed through).
+- Tests (86Box P2B-LS PII-400 unless noted; testrig/awe/mpu.sh, duke.sh with OPTS/CFG/ROMDIR, aweload.asm):
+  /AWEMPU:0 MIDPLAY -> the new message; MENU (screenshots) "AWE32 + SC-55" / "AWE32 (no MPU)" / "AWE32 + MT-32";
+  AWELOAD (16 looping ROM voices, real mode -> JEMM) + MIDPLAY on MT-32: both audible (-26 dBFS), SBDIAG "MT-32 +
+  AWE32"; non-AWE MT-32 MIDPLAY unchanged (-50 dBFS, "Synth: MT-32"); Duke 3D AWE32 music awe.2 vs awe.1: level
+  0.0 dB, bands within 0.1 dB, env corr 0.89 (game timing), same 3% CPU / AWE 2%; Duke with MusicDevice 4 (GM, 330)
+  on MT-32 + SB FX with /AWE on: plays (MT-32 57%). SETTINGS /LINE round trip (QEMU, 8 lines incl. AWE + MT-32/CM-32L/
+  SF/USB/off, either option order): identical after a second pass. testrig/menustat on the zip: 5/5 PASS (non-AWE
+  MENU unchanged; AMIS line now ends "SYNTH=SC55 AWE=0").
+- SC-55 audio cannot be checked in emulators: 86Box tops out at PII-450 / Celeron 533 (SC-55 needs 302-352%: SBDIAG
+  dropouts, silence), QEMU AC97 (-audiodev wav, timer-period=2000) gave 39 IRQ/s and no SC-55 render even without AWE.
+  MPU-path audio was tested with Munt (MT-32); the SC-55 path is the same VMPU code (SBDIAG shows it rendering).
+- Speed (testrig/midi/perf.sh, 86Box P2B-LS PII-450, MIDPLAY busy song 40 s; awe.1 release EXE vs awe.2):
+  /JOY:1 /VMPU:1 (no ROMs): 344 int/s, 0.02 ms, 1% both. AWE idle: awe.1 /AWE 0.04 ms 1%; awe.2 /AWE /VMPU:1 0.04 ms
+  1%. SC-55 playing (ROMs, /VMPU:1): 1.74 ms avg, 3.21 max, 60% CPU, SC-55 302% of real time - identical. awe.2 only:
+  /AWE + SC-55 1.77 ms 61% (AWE idle 1%); both playing (AWELOAD 16 voices + SC-55) 1.96 ms 67% (AWE 7%). SC55LOG
+  (testrig/awe/sc55log.sh): 0.47x real time, 22591 frames/s, old = new (binaries differ only in the version string).
+  New perf.sh hook POSTCMD (after SBDIAG START). MPUTEST as POSTCMD hung the run (no report): use MIDPLAY.
+- Real hardware (P5PE-VM + Audigy): see the 4-step list in the chat / below.
+  1. SETTINGS: MIDI synth AWE32, "MPU-401 also plays" SC-55, save, reboot, SC55: MENU top right "AWE32 + SC-55".
+  2. MIDPLAY any .MID: plays on the SC-55. 3. Duke 3D (AWE32 music): unchanged. 4. A GM game on 330 (e.g. Duke with
+  General MIDI, or Doom GM): SC-55 music + SB effects. Optional: /AWEMPU:0 -> MENU "AWE32 (no MPU)", MIDPLAY message.
+- Build note: a VERSION bump does not rebuild main.o (no makefile dependency): touch main.c, or SBEMU's banner keeps
+  the old version (seen in this session's first test runs).
+- Test downloads: DJGPP v3.4 gcc12.2 (/home/claude/djgpp); 86Box 0935207 + xpad diff (/home/claude/86box); store-dos71,
+  store-personal (ROMs incl. AWEROM.BIN, now in the store); zstd via apt.
+
 ## beta.121-awe.1 (2026-11-14, AWE session, repo deon81997/spare-01): MUXED beta.120 + beta.121 merged into the AWE line
 - main = awe.2 + NUKED-SBEMU-MUXED df2766f..v1.0.0-beta.121-usb (2f7b3b3), applied as a 3-way patch (`git diff --binary
   df2766f TAG -- . ':!release' | git apply -3`; no shared history with MUXED). Branch awe-beta121, merged to main.

@@ -3,6 +3,7 @@
 # (store-dos71), HDPMI32I + SBEMU /AWE:620 /AWERAM:1024 /JOY:1 (HIMEM only, or JEMMEX NOEMS + JLOAD QPIEMU), SBDIAG START,
 # Duke 3D 1.3D with AWE32 music (DUKE3D.CFG) for SECS (default 60), quit, SBDIAG -> /tmp/duke-NAME/{SB,DIAG}.TXT, aud/*.wav.
 # Needs: store-dos71, /home/claude/rel (unzipped release), Duke unpacked in /tmp/duke/D, 86Box per ../86box/README.md.
+# ENV: OPTS="SBEMU options" (default the AWE line above), CFG=other DUKE3D.CFG, ROMDIR=folder copied into C:\SC55\ROMS.
 # Run from sc55-pack (beta.121-awe.1). Compare two runs: python3 testrig/awe/cmp.py A.wav 5 55 B.wav 5 55
 set -e
 H=$(cd $(dirname $0); pwd); TR=$(dirname $H); R=/home/claude/rel/NUKEDSB/FILES
@@ -11,10 +12,11 @@ cp --sparse=always /home/claude/vms/dos71/msdos71.img $V/hd.img
 cp $R/HDPMI/HDPMI32I.EXE $R/JEMM/JEMMEX.EXE $R/JEMM/JLOAD.EXE $R/JEMM/QPIEMU.DLL $V/c/SC55/
 cp $EXE $V/c/SC55/SBEMU.EXE; cp ${SBDIAG:-$TR/../output/sbdiag.exe} $V/c/SC55/SBDIAG.EXE
 cp /home/claude/86box/roms/sound/creative/awe32.raw $V/c/SC55/ROMS/AWE32.RAW
-cp /tmp/duke/D/* $V/c/DUKE/; cp $H/DUKE3D.CFG $V/c/DUKE/
+cp /tmp/duke/D/* $V/c/DUKE/; cp ${CFG:-$H/DUKE3D.CFG} $V/c/DUKE/DUKE3D.CFG
+[ -n "${ROMDIR:-}" ] && for f in $ROMDIR/*; do case $(basename $f) in ROMHASH.CAC) ;; *) cp $f $V/c/SC55/ROMS/ ;; esac; done
 if [ $MODE = jemm ]; then C='DEVICE=C:\SC55\JEMMEX.EXE NOEMS'; Q='C:\SC55\JLOAD C:\SC55\QPIEMU.DLL'; else C='DEVICE=C:\DOS\HIMEM.SYS'; Q=REM; fi
 printf '%s\r\nDOS=HIGH\r\nFILES=40\r\n' "$C" > $V/c/CONFIG.SYS
-printf "@ECHO OFF\r\nPATH C:\\\\DOS\r\n$Q\r\nC:\\\\SC55\\\\HDPMI32I -r\r\nCD \\\\SC55\r\nSBEMU /A220 /I5 /D1 /H5 /T6 /AWE:620 /AWERAM:1024 /JOY:1 > C:\\\\SB.TXT\r\nSBDIAG START > NUL\r\nCD \\\\DUKE\r\nDUKE3D\r\nC:\\\\SC55\\\\SBDIAG > C:\\\\DIAG.TXT\r\nECHO DONE > C:\\\\DONE.TXT\r\n" > $V/c/AUTOEXEC.BAT
+printf "@ECHO OFF\r\nPATH C:\\\\DOS\r\n$Q\r\nC:\\\\SC55\\\\HDPMI32I -r\r\nCD \\\\SC55\r\nSBEMU ${OPTS:-/A220 /I5 /D1 /H5 /T6 /AWE:620 /AWERAM:1024 /JOY:1} > C:\\\\SB.TXT\r\nSBDIAG START > NUL\r\nCD \\\\DUKE\r\nDUKE3D\r\nC:\\\\SC55\\\\SBDIAG > C:\\\\DIAG.TXT\r\nECHO DONE > C:\\\\DONE.TXT\r\n" > $V/c/AUTOEXEC.BAT
 mcopy -o -s -i $V/hd.img@@32256 $V/c/* ::/
 sed -e 's#^hdd_01_fn = .*#hdd_01_fn = hd.img#' -e 's/^hdd_01_parameters = .*/hdd_01_parameters = 63, 16, 2080, 0, ide/' $TR/86box/p2bls-uhci.cfg > $V/86box.cfg
 echo 'lx=0 ly=0 rx=0 ry=0 lt=0 rt=0 buttons=0' > $V/xpad1.st; echo "export XPAD=1 XPAD_STATE=$V/xpad1.st" > $V/env

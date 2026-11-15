@@ -48,7 +48,8 @@ static unsigned long long tsc(void)
 enum { F_MAGIC, F_VER, F_KHZ, F_MS, F_ISRN, F_ISRMS, F_ISRMAX, F_H1, F_H2, F_H5, F_H10, F_STRMAX, F_STRN,
        F_PITDIV, F_PITMAX, F_PITN, F_LOSTM, F_RENN, F_RENMS, F_RENMAX, F_FRAMES, F_FREQ, F_SYNTH,
        F_VIRQN, F_VIRQMS, F_VIRQMAX, F_TMPU, F_TSB, F_TOPL, F_TPIT, F_TPIC, F_TOTH, F_MIDI, F_MIDIDROP,
-       F_GOV, F_FX, F_VOICES, F_FRMAX, F_PITFAST, F_EXPM, F_FIFOMIN, F_UNDER, F_REPLAY, F_BEXP, F_BGOT, F_COUNT };
+       F_GOV, F_FX, F_VOICES, F_FRMAX, F_PITFAST, F_EXPM, F_FIFOMIN, F_UNDER, F_REPLAY, F_BEXP, F_BGOT,
+       F_AWEN, F_AWEMS, F_AWEMAX, F_AWEFR, F_COUNT };   /* layout 6: AWE32 render, counted apart */
 
 static int read_report(unsigned long* d)
 {
@@ -100,6 +101,9 @@ static int say(const char* argv0, const char* title, const char* msg, int rc)
 }
 
 /* the report screen: the numbers that matter as bars, the reasons, V for the whole text */
+static char g_synth[40];
+static double g_awe_ms, g_awe_load, g_awe_max; static int g_mpu_ren;   /* "SC-55", "AWE32", "SC-55 + AWE32", ... (set from the report) */
+static const char* synth_name(unsigned long s) { return s == 3 ? "AWE32" : s == 2 ? "MT-32" : s ? "SoundFont" : "SC-55"; }
 typedef struct { double secs, mhz, hz, lostpct, clock, isr_share, isr_avg, isr_max, run_max, period, load, silence; int synth, reasons; } SUM;
 static const char* section(const char* name, char* buf, int size)
 {
@@ -144,7 +148,7 @@ static void show(const char* argv0, const SUM* m)
     {
         tu_head("SBDIAG", "why game music plays too slow", NULL);
         tui_panel(2, 3, 77, 4, 1, 0x1E, "Measurement");
-        snprintf(t, sizeof t, "%.0f s on a %.0f MHz CPU, synth %s", m->secs, m->mhz, m->synth == 3 ? "AWE32" : m->synth == 2 ? "MT-32" : m->synth ? "SoundFont" : "SC-55");
+        snprintf(t, sizeof t, "%.0f s on a %.0f MHz CPU, synth %s", m->secs, m->mhz, g_synth);
         tui_put(4, 4, 0x1F, t);
         snprintf(t, sizeof t, m->reasons == 1 ? "1 reason found" : "%d reasons found", m->reasons);
         tu_state(4, 5, m->reasons ? -1 : 1, m->reasons ? t : "no problem found");
@@ -248,6 +252,15 @@ report:
     isr_ms = d[F_ISRMS]; ren_ms = d[F_RENMS]; virq_ms = d[F_VIRQMS];
     audio_ms = d[F_FREQ] ? d[F_FRAMES] * 1000.0 / d[F_FREQ] : 0;
     load = audio_ms > 0 ? 100.0 * ren_ms / audio_ms : 0;
+    {   /* layout 6: the AWE32 renders beside the MPU-401's synth (SC-55 + AWE32), counted apart */
+        int awe = d[F_VER] >= 6 && d[F_AWEN], mpu = d[F_RENN] != 0 || d[F_SYNTH] == 3;
+        double awe_audio = d[F_FREQ] && awe ? d[F_AWEFR] * 1000.0 / d[F_FREQ] : 0;
+        if (!awe) snprintf(g_synth, sizeof g_synth, "%s", synth_name(d[F_SYNTH]));
+        else if (d[F_RENN]) snprintf(g_synth, sizeof g_synth, "%s + AWE32", synth_name(d[F_SYNTH]));
+        else snprintf(g_synth, sizeof g_synth, "AWE32");
+        g_awe_ms = awe ? d[F_AWEMS] : 0; g_awe_load = awe_audio > 0 ? 100.0 * g_awe_ms / awe_audio : 0;
+        g_awe_max = awe ? d[F_AWEMAX] / 1000.0 : 0; g_mpu_ren = mpu;
+    }
     isr_share = 100.0 * isr_ms / d[F_MS];
     /* the game's fastest timer rate seen while measuring (after quitting, DOS is back at 18.2 Hz) */
     if (d[F_VER] >= 2 && d[F_PITFAST]) d[F_PITDIV] = d[F_PITFAST];
@@ -266,8 +279,8 @@ report:
     traps = (double)d[F_TMPU] + d[F_TSB] + d[F_TOPL] + d[F_TPIT] + d[F_TPIC] + d[F_TOTH];
     trap_pct = 100.0 * traps * trapcost / 1e6 / secs;
 
-    out("Measured %.0f s on a %.0f MHz CPU. Synth: %s", secs, cps / 1e6, d[F_SYNTH] == 3 ? "AWE32" : d[F_SYNTH] == 2 ? "MT-32" : d[F_SYNTH] ? "SoundFont" : "SC-55");
-    if (!d[F_SYNTH]) out(" (reverb/chorus %s, voices %s, speed-control level %lu)",
+    out("Measured %.0f s on a %.0f MHz CPU. Synth: %s", secs, cps / 1e6, g_synth);
+    if (!d[F_SYNTH] && d[F_RENN]) out(" (reverb/chorus %s, voices %s, speed-control level %lu)",
                          d[F_FX] ? "on" : "off", d[F_VOICES] ? "limited" : "all", d[F_GOV]);
     out("\n\n");
 
@@ -282,8 +295,8 @@ report:
     out("  longer than 1 ms: %lu, 2 ms: %lu, 5 ms: %lu, 10 ms: %lu\n", d[F_H1], d[F_H2], d[F_H5], d[F_H10]);
     out("  longest run of interrupts back to back: %.2f ms\n", d[F_STRMAX] / 1000.0);
     out("  uses %.0f%% of the CPU. Inside it: synth %.0f%%, the game's own sound handler %.0f%%, rest %.0f%%\n",
-        isr_share, isr_ms > 0 ? 100.0 * ren_ms / isr_ms : 0, isr_ms > 0 ? 100.0 * virq_ms / isr_ms : 0,
-        (isr_ms > 0 && isr_ms > ren_ms + virq_ms) ? 100.0 * (isr_ms - ren_ms - virq_ms) / isr_ms : 0);
+        isr_share, isr_ms > 0 ? 100.0 * (ren_ms + g_awe_ms) / isr_ms : 0, isr_ms > 0 ? 100.0 * virq_ms / isr_ms : 0,
+        (isr_ms > 0 && isr_ms > ren_ms + g_awe_ms + virq_ms) ? 100.0 * (isr_ms - ren_ms - g_awe_ms - virq_ms) / isr_ms : 0);
     if (d[F_PITDIV] && d[F_PITDIV] < 65000)
     {
         if (replayed > 0)
@@ -295,8 +308,11 @@ report:
             "     (%lu of %lu ticks; this is the real measurement - 100%% means the game got every tick)\n",
             100.0 * d[F_BGOT] / d[F_BEXP], d[F_BGOT], d[F_BEXP]);
     out("\nSYNTH\n");
-    out("  %s needs %.0f%% of real time to render (100%% = all of the CPU); longest block %.2f ms\n",
-        d[F_SYNTH] == 3 ? "AWE32" : d[F_SYNTH] == 2 ? "MT-32" : d[F_SYNTH] ? "SoundFont" : "SC-55", load, d[F_RENMAX] / 1000.0);
+    if (g_mpu_ren)
+        out("  %s needs %.0f%% of real time to render (100%% = all of the CPU); longest block %.2f ms\n",
+            synth_name(d[F_SYNTH]), load, d[F_RENMAX] / 1000.0);
+    if (g_awe_ms > 0 || (d[F_VER] >= 6 && d[F_AWEN]))
+        out("  AWE32 needs %.0f%% of real time to render; longest block %.2f ms\n", g_awe_load, g_awe_max);
     out("  output %lu Hz, largest block %lu frames (%.1f ms of sound)\n", d[F_FREQ], d[F_FRMAX],
         d[F_FREQ] ? d[F_FRMAX] * 1000.0 / d[F_FREQ] : 0);
     if (d[F_VER] >= 3 && d[F_FIFOMIN] != 0xFFFFFFFFUL)
@@ -379,7 +395,7 @@ report:
         m.secs = secs; m.mhz = cps / 1e6; m.synth = (int)d[F_SYNTH]; m.reasons = reasons;
         m.hz = d[F_PITDIV] && d[F_PITDIV] < 65000 ? hz : 0; m.lostpct = lostpct; m.period = period_ms;
         m.clock = d[F_VER] >= 5 && d[F_BEXP] > 20 ? 100.0 * d[F_BGOT] / d[F_BEXP] : 0;
-        m.isr_share = isr_share; m.run_max = d[F_STRMAX] / 1000.0; m.load = load;
+        m.isr_share = isr_share; m.run_max = d[F_STRMAX] / 1000.0; m.load = load > g_awe_load ? load : g_awe_load;
         m.silence = d[F_VER] >= 3 && d[F_FREQ] ? (double)d[F_UNDER] / d[F_FREQ] : 0;
         show(argv[0], &m);
     }

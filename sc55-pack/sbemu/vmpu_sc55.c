@@ -227,6 +227,7 @@ static int Lcd_Pos = LCD_PKT;
 static volatile int Ld_EmaPm;                  /* render load, permille, always measured */
 int VMPU_LoadPermille(void) { return Ld_EmaPm; }
 static int VMPU_SynthKind(void) { return VMPU_UseMT32 ? 2 : VMPU_UseSF ? 1 : 0; }
+int VMPU_Kind(void) { return VMPU_SynthKind(); }   /* 0 SC-55, 1 SoundFont, 2 MT-32 (AMIS status line) */
 void VMPU_PanelSnapshot(unsigned char* out)   /* fills LCD_PKT bytes */
 {
     int on = 0, k = VMPU_SynthKind();

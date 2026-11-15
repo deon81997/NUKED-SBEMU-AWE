@@ -365,7 +365,8 @@ CONTENTS
                        SoundFont, MT-32 or CM-32L - see section 6b -,
                        "USB MIDI device": a real synth on a USB MIDI
                        cable, /MUSB, section 10b, or "AWE32 / AWE64
-                       wavetable", /AWE:620, section 6c), and the two sub-menus
+                       wavetable", /AWE:620, section 6c; then "MPU-401
+                       also plays" picks the 330h synth), and the two sub-menus
                        below
      Output            Sample rate 22050/32000/44100/48000 Hz, and the
                        "Timing & advanced" sub-menu
@@ -529,15 +530,21 @@ CONTENTS
      are the usual names (AWE-DUMP makes one on a real card). Without it the
      ROM instruments are silent; games that load their own samples (SBK
      banks) still play.
-  2. SETTINGS > MIDI synth > "AWE32 / AWE64 wavetable (EMU8000)", and save.
+  2. SETTINGS > MIDI synth > "AWE32 / AWE64 wavetable (EMU8000)". The line
+     under it, "MPU-401 also plays", picks what plays the General MIDI that
+     games and MIDPLAY send to port 330: SC-55 (the default), SoundFont,
+     MT-32, CM-32L, USB MIDI device, or off (AWE32 only). Save.
      Or only for one game: Games > Add / edit games > SBEMU options /AWE:620.
   3. In the game's setup choose "AWE32" (Sound Blaster 16 for the effects),
      EMU port 620. BLASTER gets E620 and the Sound Blaster type becomes 16.
 
-  The AWE32 and the SC-55 / SoundFont / MT-32 are exclusive: with /AWE the
-  emulated MPU-401 has no synth behind it (a hardware MPU-401 still works).
-  The music volume follows the game's Sound Blaster 16 mixer (MIDI and
-  master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
+  The AWE32 and the MPU-401's synth play together, like a real AWE32 with a
+  Sound Canvas on its MIDI port: AWE32 games use the EMU8000 at 620h, General
+  MIDI games, MIDPLAY and MENU's tests use the SC-55 (or what "MPU-401 also
+  plays" says) at 330h. /AWEMPU:0 gives the old AWE-only setup (beta.121-
+  awe.1): the MPU-401 then plays nothing, MENU shows "AWE32 (no MPU)" and
+  MIDPLAY says so instead of playing silently. Both follow the game's Sound
+  Blaster 16 mixer (MIDI and master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
   (sample RAM in KB: AWE32 512, AWE64 Gold 4096, up to 28672), /AWEROM:file
   or folder. CPU: about 2-3% of a Pentium II 400 while Duke 3D's music plays;
   needs a Pentium Pro / Pentium II or newer (like the SC-55). Differences to
@@ -672,11 +679,13 @@ CONTENTS
      /PADLOG               with SBEMU loaded: show the layout it picked for
                            the last programs started, then quit
      /AWE:620              AWE32 / AWE64 EMU8000 wavetable at 620 (640,
-                           660, 680; 0 = off): SB16, BLASTER E620, no SC-55
-                           (section 6c)
+                           660, 680; 0 = off): SB16, BLASTER E620; the
+                           MPU-401 keeps its synth (/AWEMPU, section 6c)
      /AWERAM:kb            its sample RAM, 0-28672 KB (default 512)
      /AWEROM:path          1 MB EMU8000 ROM dump, or a folder searched by
                            content (default ROMS, then AWE)
+     /AWEMPU:1             with /AWE the MPU-401 keeps its synth (SC-55,
+                           SoundFont, MT-32, USB MIDI); 0 = AWE32 only
 
   Selection and diagnostics
      /SCL                  list installed sound cards

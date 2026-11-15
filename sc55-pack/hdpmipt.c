@@ -199,6 +199,9 @@ BOOL HDPMIPT_Detect()
     return result && (entry.edi || entry.es);
 }
 
+static int HDPMIPT_Traps, HDPMIPT_TrapsFailed;   /* installed / refused traps (HDPMI has 16 slots, ?IOTP_COUNT) */
+int HDPMIPT_TrapCount(int* failed) { if(failed) *failed = HDPMIPT_TrapsFailed; return HDPMIPT_Traps; }
+
 BOOL HDPMIPT_Install_IOPortTrap(uint16_t start, uint16_t end, QEMM_IODT* inputp iodt, uint16_t count, QEMM_IOPT* outputp iopt)
 {
     assert(iopt);
@@ -218,6 +221,7 @@ BOOL HDPMIPT_Install_IOPortTrap(uint16_t start, uint16_t end, QEMM_IODT* inputp 
     if(!handle)
     {
         _LOG("Failed to install HDPMI io port trap.\n");
+        ++HDPMIPT_TrapsFailed;
         return FALSE;
     }
     
@@ -241,6 +245,7 @@ BOOL HDPMIPT_Install_IOPortTrap(uint16_t start, uint16_t end, QEMM_IODT* inputp 
     HDPMIPT_IODT_Link = newlink;
     iopt->memory = (uintptr_t)newlink;
     iopt->handle = handle;
+    ++HDPMIPT_Traps;
     return TRUE;
 }
 
@@ -254,6 +259,7 @@ BOOL HDPMIPT_Uninstall_IOPortTrap(QEMM_IOPT* inputp iopt)
         HDPMIPT_IODT_Link = link->prev;
     STIL();
     BOOL result = HDPMI_Internal_UninstallTrap(&HDPMIPT_Entry, iopt->handle);
+    if(HDPMIPT_Traps > 0) --HDPMIPT_Traps;
     if(!result)
         _LOG("Failed to uninstall HDPMI io port trap.\n");
     free(link->iodt);

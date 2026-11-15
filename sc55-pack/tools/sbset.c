@@ -43,7 +43,7 @@ typedef struct { const char* label; const char* opt; const char* vals[MAXVAL]; i
 enum {
     /* main screen */
     F_PORT, F_IRQ, F_DMA, F_HDMA, F_TYPE,                 /* Sound Blaster */
-    F_MPU, F_SYNTH, F_SCMENU, F_SFMENU,                    /* MIDI */
+    F_MPU, F_SYNTH, F_AWEMPU, F_SCMENU, F_SFMENU,          /* MIDI (F_AWEMPU: only with the AWE32) */
     F_RATE, F_VOLMENU, F_ADVMENU, F_JOYMENU,               /* Output */
     NMAIN,
     /* SC-55 sub-menu */
@@ -82,6 +82,7 @@ static Field F[NF] = {
     { "Type",            "/T",       { "1", "2", "3", "4", "5", "6" }, 6, 4, 4, "1/2/3 = Sound Blaster, 4/5 = Pro, 6 = SB16.", {0}, 0 },
     { "MPU-401 port",    "/P",       { "330", "300", "310", "320", "332", "334" }, 6, 0, 0, "Where games find General MIDI. 330 is the usual one.", {0}, "MIDI" },
     { "MIDI synth",      0,          { "sc55", "sf", "mt32", "cm32l", "usb", "awe" }, 6, 0, 0, "SC-55 / MT-32 / CM-32L / AWE32 need their ROMs in ROMS; a SoundFont is lightest; USB: a real synth on a USB MIDI cable.", {0}, 0 },
+    { "MPU-401 also plays", 0,       { "sc55", "sf", "mt32", "cm32l", "usb", "off" }, 6, 0, 0, "With the AWE32: what plays the General MIDI that games send to the MPU-401 (like a Sound Canvas on an AWE32). Off = AWE only (/AWEMPU:0).", {0}, 0 },
     { "SC-55 options",   0,          { "" }, 1, 0, 0, "ROM set, volume, reverb/chorus, note limit, speed control. Enter opens.", {0}, 0 },
     { "SoundFont options", 0,        { "" }, 1, 0, 0, "SoundFont file, voices, reverb, chorus. Enter opens.", {0}, 0 },
     { "Sample rate",     "/K",       { "22050", "32000", "44100", "48000" }, 4, 0, 0, "Output rate. Higher = clearer but heavier: 22050 Hz with the SC-55.", {0}, "Output" },
@@ -201,6 +202,9 @@ static void set_labels(void)
     F[F_SYNTH].labels[2] = "MT-32 emulation (ROMs)"; F[F_SYNTH].labels[3] = "CM-32L emulation (ROMs)";
     F[F_SYNTH].labels[4] = "USB MIDI device (M-Audio Uno ...)";
     F[F_SYNTH].labels[5] = "AWE32 / AWE64 wavetable (EMU8000)";
+    F[F_AWEMPU].labels[0] = "SC-55 emulation (ROMs)"; F[F_AWEMPU].labels[1] = "SoundFont (.sf2 file)";
+    F[F_AWEMPU].labels[2] = "MT-32 emulation (ROMs)"; F[F_AWEMPU].labels[3] = "CM-32L emulation (ROMs)";
+    F[F_AWEMPU].labels[4] = "USB MIDI device"; F[F_AWEMPU].labels[5] = "off (AWE32 only)";
     F[F_SF].labels[0] = 0;
     { static const char* g[8] = { "100% (default)", "50%", "75%", "125%", "150%", "200%", "300%", "400%" }; for (i = 0; i < 8; i++) F[F_SCGAIN].labels[i] = g[i]; }
     onoff(F_SCFX, "On (accurate)", "Off (faster, dry sound)");
@@ -247,8 +251,12 @@ static void set_labels(void)
     { static const char* m[5] = { "None - hardware MPU only (default)", "COM1", "COM2", "COM3", "COM4" }; for (i = 0; i < 5; i++) F[F_MCOM].labels[i] = m[i]; }
 }
 
-static int using_sf(void) { return F[F_SYNTH].cur == 1; }
-static int using_sc55(void) { return F[F_SYNTH].cur == 0; }
+/* what the MPU-401 plays: the MIDI synth, or with the AWE32 the "MPU-401 also plays" choice (5 = nothing) */
+static int awe_on(void) { return F[F_SYNTH].cur == 5; }
+static int mpu_synth(void) { return awe_on() ? F[F_AWEMPU].cur : F[F_SYNTH].cur; }
+static void set_mpu_synth(int k) { if (awe_on()) F[F_AWEMPU].cur = k; else F[F_SYNTH].cur = k; }
+static int using_sf(void) { return mpu_synth() == 1; }
+static int using_sc55(void) { return mpu_synth() == 0; }
 static int is_sc_field(int i) { return i >= F_ROMSET && i <= F_SCAUTO; }
 static int is_sf_field(int i) { return i >= F_SF && i <= F_SEND; }
 
@@ -261,19 +269,19 @@ static void build_line(char* out)
         if (!F[i].opt) continue;
         if (is_sf_field(i) && !using_sf()) continue;      /* SoundFont settings only with the SoundFont */
         if (is_sc_field(i) && !using_sc55() && !(i == F_SCGAIN && !using_sf())) continue; /* SC-55 settings only with the SC-55 (its gain also sets the MT-32's) */
-        if (i == F_MPU && F[F_SYNTH].cur == 4)           /* USB MIDI device: SBEMU's USB host sends the MPU-401's MIDI */
+        if (i == F_MPU && awe_on())                      /* AWE32: EMU8000 at 620h, SB16; the MPU-401 keeps its synth */
+        {
+            sprintf(t, "%s/AWE:620%s", out[0] ? " " : "", mpu_synth() == 5 ? " /AWEMPU:0" : "");
+            strcat(out, t);
+        }
+        if (i == F_MPU && mpu_synth() == 4)              /* USB MIDI device: SBEMU's USB host sends the MPU-401's MIDI */
         {
             sprintf(t, "%s/MUSB:1", out[0] ? " " : "");
             strcat(out, t);
         }
-        else if (i == F_MPU && F[F_SYNTH].cur == 5)      /* AWE32: EMU8000 at 620h, SB16; the SC-55 stays off (exclusive) */
+        else if (i == F_MPU && (mpu_synth() == 2 || mpu_synth() == 3))      /* MT-32 / CM-32L (Munt) */
         {
-            sprintf(t, "%s/AWE:620", out[0] ? " " : "");
-            strcat(out, t);
-        }
-        else if (i == F_MPU && (F[F_SYNTH].cur == 2 || F[F_SYNTH].cur == 3))      /* MT-32 / CM-32L (Munt) */
-        {
-            sprintf(t, "%s/VMT32:%s", out[0] ? " " : "", F[F_SYNTH].cur == 2 ? "MT32" : "CM32L");
+            sprintf(t, "%s/VMT32:%s", out[0] ? " " : "", mpu_synth() == 2 ? "MT32" : "CM32L");
             strcat(out, t);
         }
         if (i == F_SF)
@@ -292,6 +300,7 @@ static void build_line(char* out)
     }
 }
 
+static int g_awempu0;   /* /AWEMPU:0 seen (the order of /AWE, /AWEMPU, /VMT32, /VSF, /MUSB on the line does not matter) */
 static void parse_tokens(char* s)
 {
     char* tok = strtok(s, " \r\n");
@@ -300,16 +309,20 @@ static void parse_tokens(char* s)
         int i, j;
         if (!strncasecmp(tok, "/VMT32:", 7))
         {
-            if (!strcasecmp(tok + 7, "CM32L")) F[F_SYNTH].cur = 3;
-            else if (strcasecmp(tok + 7, "0") && strcasecmp(tok + 7, "OFF")) F[F_SYNTH].cur = 2;
+            if (!strcasecmp(tok + 7, "CM32L")) { if (!g_awempu0) set_mpu_synth(3); }
+            else if (strcasecmp(tok + 7, "0") && strcasecmp(tok + 7, "OFF")) { if (!g_awempu0) set_mpu_synth(2); }
         }
-        if (!strcasecmp(tok, "/MUSB:1")) F[F_SYNTH].cur = 4;
-        if (!strncasecmp(tok, "/AWE:", 5) && strcmp(tok + 5, "0")) F[F_SYNTH].cur = 5;
+        if (!strcasecmp(tok, "/MUSB:1") && !g_awempu0) set_mpu_synth(4);
+        if (!strncasecmp(tok, "/AWE:", 5) && strcmp(tok + 5, "0") && !awe_on())
+        {   /* what was read so far was the MPU-401's synth */
+            F[F_AWEMPU].cur = g_awempu0 ? 5 : F[F_SYNTH].cur; F[F_SYNTH].cur = 5;
+        }
+        if (!strcasecmp(tok, "/AWEMPU:0")) { g_awempu0 = 1; F[F_AWEMPU].cur = 5; }
         if (!strncasecmp(tok, "/VSF:", 5))
         {
             strncpy(g_sf, tok + 5, sizeof g_sf - 1);
             g_sf[sizeof g_sf - 1] = 0;
-            F[F_SYNTH].cur = 1;
+            if (!g_awempu0) set_mpu_synth(1);
         }
         for (i = 0; i < NF; i++)
         {
@@ -770,9 +783,9 @@ static int browse_sf(char* out, int outsz, const char* start)
 /* -------------------------------------------------------------- main screen */
 
 #define WX 5
-#define WY 2
+#define WY 1   /* 1 since the "MPU-401 also plays" row (beta.121-awe.2) */
 #define WW 70
-#define WH 22
+#define WH 23
 #define LBLX (WX + 3)
 #define VALX (WX + 22)
 #define VALW 38
@@ -781,12 +794,12 @@ static int g_dirty = 0;
 
 static int row_of(int i)
 {
-    /* group headers take a line each: Sound Blaster (5 fields), MIDI (4), Output (4) */
+    /* group headers take a line each: Sound Blaster (5 fields), MIDI (5), Output (4) */
     int r = WY + 1;   /* (no blank line under the title since the Joystick row was added) */
     if (i <= F_TYPE) return r + 1 + i;
     r += 1 + 5;
     if (i <= F_SFMENU) return r + 1 + (i - F_MPU);
-    r += 1 + 4;
+    r += 1 + 5;
     return r + 1 + (i - F_RATE);
 }
 
@@ -794,6 +807,7 @@ static int is_menu(int i) { return i == F_SCMENU || i == F_SFMENU || i == F_VOLM
 
 static int enabled(int i)
 {
+    if (i == F_AWEMPU) return awe_on();
     if (i == F_SCMENU) return using_sc55();
     if (i == F_SFMENU) return using_sf();
     return 1;
@@ -844,6 +858,8 @@ static void draw_row(int i, int sel)
 /* a combination that is too heavy for a Pentium M class CPU, or "" */
 static const char* warning(void)
 {
+    if (awe_on() && mpu_synth() == 5) return "AWE32 only: MIDI sent to the MPU-401 port plays nothing (MIDPLAY, General MIDI games).";
+    if (awe_on()) return "AWE32 + MPU-401 synth: AWE32 games use 620h, General MIDI games port 330 (SC-55 etc.). AWE32.RAW in ROMS.";
     if (F[F_SYNTH].cur == 4) return "USB MIDI: plug the cable in (any USB port); with /JOY:0 there is no USB in DOS.";
     if (F[F_SYNTH].cur == 5) return "AWE32: put AWE32.RAW (1 MB EMU8000 ROM) into ROMS; BLASTER gets E620, the SB type is 16.";
     if (F[F_SYNTH].cur == 2 || F[F_SYNTH].cur == 3) return "MT-32 games: choose \"Roland MT-32 / LAPC-I\" in the game's setup, not General MIDI.";
@@ -965,7 +981,7 @@ static void sub_menu(const char* title, const MI* m)
             if (f == F_SF)
             {
                 char out[200];
-                if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); F[F_SYNTH].cur = 1; g_dirty = 1; }
+                if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); set_mpu_synth(1); g_dirty = 1; }
             }
             else
             {
@@ -987,9 +1003,9 @@ static void open_menu(int i)
     if (i == F_SCMENU) sub_menu("SC-55 options", M_SC);
     else if (i == F_SFMENU)
     {
-        if (!using_sf()) { F[F_SYNTH].cur = 1; g_dirty = 1; }   /* opening it means using the SoundFont */
+        if (!using_sf()) { set_mpu_synth(1); g_dirty = 1; }    /* opening it means using the SoundFont */
         sub_menu("SoundFont options", M_SF);
-        if (!g_sf[0]) F[F_SYNTH].cur = 0;                      /* no file chosen: back to the SC-55 */
+        if (!g_sf[0]) set_mpu_synth(0);                        /* no file chosen: back to the SC-55 */
     }
     else if (i == F_VOLMENU) sub_menu("Volume", M_VOL);
     else if (i == F_JOYMENU) sub_menu("Joystick", M_JOY);
@@ -998,7 +1014,7 @@ static void open_menu(int i)
 
 static void change(int sel, int dir)
 {
-    if (is_menu(sel)) return;
+    if (is_menu(sel) || !enabled(sel)) return;
     F[sel].cur = (F[sel].cur + F[sel].n + dir) % F[sel].n;
     g_dirty = 1;
 }
@@ -1021,7 +1037,7 @@ static void check_sf(int dir)
     {
         char out[200];
         if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); g_dirty = 1; }
-        if (!g_sf[0]) F[F_SYNTH].cur = dir > 0 ? 2 : 0;   /* no file: on to the MT-32, or back to the SC-55 */
+        if (!g_sf[0]) set_mpu_synth(dir > 0 ? 2 : 0);    /* no file: on to the MT-32, or back to the SC-55 */
     }
 }
 
@@ -1262,7 +1278,7 @@ static int s3_text_end(void) { return f3_enter(); }
 static void s3_tab(int t)
 {
     /* the synth becomes the SoundFont only when a file is chosen (just looking at the page changes nothing) */
-    if (s3_v.tab == 2 && t != 2 && !g_sf[0] && using_sf()) F[F_SYNTH].cur = 0;
+    if (s3_v.tab == 2 && t != 2 && !g_sf[0] && using_sf()) set_mpu_synth(0);
     s3_v.tab = t; s3_v.sel = -1;
 }
 
@@ -1297,7 +1313,7 @@ static int s3_run(int tab, int direct)
             if (f < 0 || f == F_SF) break;
             if (is_menu(f)) { if (d > 0) s3_tab(s3_tab_of(f)); break; }
             F[f].cur = (F[f].cur + F[f].n + d) % F[f].n; g_dirty = 1;
-            if (f == F_SYNTH && using_sf() && !g_sf[0])
+            if ((f == F_SYNTH || f == F_AWEMPU) && using_sf() && !g_sf[0])
             {
                 s3_text_begin(); check_sf(d);
                 if (!s3_text_end()) return 1;
@@ -1311,7 +1327,7 @@ static int s3_run(int tab, int direct)
             {
                 char out[200];
                 s3_text_begin();
-                if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); F[F_SYNTH].cur = 1; g_dirty = 1; }
+                if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); set_mpu_synth(1); g_dirty = 1; }
                 if (!s3_text_end()) return 1;
                 break;
             }
@@ -1322,7 +1338,7 @@ static int s3_run(int tab, int direct)
                 if (r >= 0 && r != F[f].cur)
                 {
                     F[f].cur = r; g_dirty = 1;
-                    if (f == F_SYNTH && using_sf() && !g_sf[0]) { s3_text_begin(); check_sf(0); if (!s3_text_end()) return 1; }
+                    if ((f == F_SYNTH || f == F_AWEMPU) && using_sf() && !g_sf[0]) { s3_text_begin(); check_sf(0); if (!s3_text_end()) return 1; }
                 }
             }
             break;
@@ -1374,7 +1390,7 @@ static int s3_run(int tab, int direct)
 
 int main(int argc, char** argv)
 {
-    int sel = 0, done = 0, i, page = -1, want_tune = 0; char msg[120] = "";
+    int sel = 0, done = 0, i, page = -1, want_tune = 0, want_line = 0; char msg[120] = "";
     putenv("LFN=n"); /* short 8.3 names only: the options file must not contain spaces */
     for (i = 1; i < argc; i++)
     {
@@ -1388,10 +1404,12 @@ int main(int argc, char** argv)
             else if (!strcasecmp(p, "JOY")) page = F_JOYMENU;
         }
         else if (!strcasecmp(argv[i], "/TUNE")) want_tune = 1;
+        else if (!strcasecmp(argv[i], "/LINE")) want_line = 1;   /* print the options it would save, then quit */
         else if (argv[i][0] != '/') { strncpy(g_dir, argv[i], sizeof g_dir - 1); g_dir[sizeof g_dir - 1] = 0; }
     }
     set_labels(); detect_roms(); load();
-    if (using_sf() && !g_sf[0]) F[F_SYNTH].cur = 0;
+    if (using_sf() && !g_sf[0]) set_mpu_synth(0);
+    if (want_line) { char line[1024]; build_line(line); printf("%s\n", line); return 0; }
     tui_theme_load(g_dir);
     if (!want_tune && f3_wanted(g_dir))
     {   /* the 3D menu is on: this screen in 3D too */
@@ -1435,9 +1453,9 @@ int main(int argc, char** argv)
         case K_Down: sel = (sel + 1) % NMAIN; break;
         case K_Home: sel = 0; break;
         case K_End: sel = NMAIN - 1; break;
-        case K_Left: change(sel, -1); if (sel == F_SYNTH) check_sf(-1); break;
-        case K_Right: change(sel, +1); if (sel == F_SYNTH) check_sf(1); break;
-        case K_Return: case ' ': activate(sel); if (sel == F_SYNTH) check_sf(0); break;
+        case K_Left: change(sel, -1); if (sel == F_SYNTH || sel == F_AWEMPU) check_sf(-1); break;
+        case K_Right: change(sel, +1); if (sel == F_SYNTH || sel == F_AWEMPU) check_sf(1); break;
+        case K_Return: case ' ': activate(sel); if (sel == F_SYNTH || sel == F_AWEMPU) check_sf(0); break;
         case 't': case 'T':
         {
             int r = tune();

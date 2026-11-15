@@ -22,6 +22,8 @@ void DIAG_Trap(uint32_t port);             /* every trapped port access */
 void DIAG_Midi(int dropped);               /* every MIDI byte the game sends */
 void DIAG_Fifo(int fill_frames, uint32_t underrun_frames_total); /* render-ahead FIFO state after each interrupt */
 void DIAG_SetSynthInfo(int gov_level, int fx_on, int voices);
+void DIAG_SetHotkey(void (*fn)(void));       /* beta.123: Ctrl+Alt+F11 calls fn (from the sound interrupt) */
+void DIAG_Toast(const char* msg, int beeps); /* a 2 s note top left (text / 13h) + 1-3 beeps */
 uint64_t DIAG_Tsc(void);
 uint64_t DIAG_CyclesPerSec(void);
 void DIAG_TimerReplayed(uint32_t n);

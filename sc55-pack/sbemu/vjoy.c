@@ -350,6 +350,28 @@ uint32_t VJOY_InfoHandler(uint32_t port, uint32_t val, uint32_t out)
     return InfoN < 10 ? Info[InfoN++] : 0xFF;
 }
 
+/* beta.125: what pad -> KEY decisions see (the game port keeps the raw state): a button counts once two polls in a row
+ * agree (a one-report blip from a bad report or a worn contact is no key press); a trigger is "pressed" past 160 and
+ * let go below 96 (no chatter around one threshold) */
+static USBPAD_State KF[2];
+static uint16_t KRaw[2];
+static uint8_t  KTrig[2];
+static const USBPAD_State* key_filter(int k, const USBPAD_State* p)
+{
+    USBPAD_State* f = &KF[k];
+    uint16_t stable = f->buttons;
+    if (!p->connected) { memset(f, 0, sizeof *f); KRaw[k] = 0; KTrig[k] = 0; return f; }
+    if (p->buttons == KRaw[k]) stable = p->buttons;
+    KRaw[k] = p->buttons;
+    if (p->lt > 160) KTrig[k] |= 1; else if (p->lt < 96) KTrig[k] &= (uint8_t)~1;
+    if (p->rt > 160) KTrig[k] |= 2; else if (p->rt < 96) KTrig[k] &= (uint8_t)~2;
+    *f = *p;
+    f->buttons = stable;
+    f->lt = (KTrig[k] & 1) ? 255 : 0;
+    f->rt = (KTrig[k] & 2) ? 255 : 0;
+    return f;
+}
+
 /* sound interrupt: full USB poll, pad buttons -> keys, then the keyboard controller (vkbc.c) */
 void VJOY_Tick(void)
 {
@@ -358,7 +380,7 @@ void VJOY_Tick(void)
     int i;
     if (!Inited) return;
     poll(1);
-    p1 = USBPAD_GetPad(0); p2 = USBPAD_GetPad(1);
+    p1 = key_filter(0, USBPAD_GetPad(0)); p2 = key_filter(1, USBPAD_GetPad(1));
     if (PadOn != PadPrev)
     {
         if (!PadOn) { PADMAP_Release(VKBC_PadBytes); memset(&PadOut, 0, sizeof PadOut); }

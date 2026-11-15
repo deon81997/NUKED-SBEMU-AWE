@@ -520,18 +520,20 @@ static void decode(int lay, RLay* R)
 }
 
 static volatile int S_pend;
-static int      S_thr = 13000;          /* stick -> keys: past this (PADMAP_SetDeadZone) */
+static int      S_thr = 16000;          /* stick -> keys: past this, let go below 3/4 of it (PADMAP_SetDeadZone) */
 static int      S_cur = -1;
 static RLay     S_r;
 static uint16_t S_taken; static uint8_t S_axtaken, S_used;
 static uint8_t  S_down[NKEYS];
+static uint8_t  S_ax[2][4];             /* per pad and stick axis: 1 = neg on, 2 = pos on, 4 = seen at rest (armed), 8 / 16 = neg / pos past once */
 
 void PADMAP_Select(int lay) { S_pend = lay < 0 ? 0 : lay; }
 
-/* 10% (the default /JOYDZ) = 13000 as SC55W; each percent more or less moves it by about 1% of the travel */
+/* 10% (the default /JOYDZ) = 16000 (half the travel; beta.125, was 13000 as SC55W: a worn stick's drift typed keys);
+ * each percent more or less moves it by about 1% of the travel */
 void PADMAP_SetDeadZone(int pct)
 {
-    int t = 13000 + (pct - 10) * 328;
+    int t = 16000 + (pct - 10) * 328;
     S_thr = t < 3300 ? 3300 : t > 31000 ? 31000 : t;
 }
 int  PADMAP_Current(void) { return S_pend; }
@@ -591,7 +593,7 @@ void PADMAP_Step(const PADMAP_In* in, int npads, PADMAP_Out* out, PADMAP_EmitFn 
     for (k = 0; k < npads; ++k)
     {
         const PADMAP_In* p = &in[k];
-        if (!p->present) continue;
+        if (!p->present) { if (k < 2) memset(S_ax[k], 0, sizeof S_ax[k]); continue; }
         for (i = 0; i < NSLOT; ++i)
         {
             int on;
@@ -609,7 +611,23 @@ void PADMAP_Step(const PADMAP_In* in, int npads, PADMAP_Out* out, PADMAP_EmitFn 
                     else if (a == A_J2UP && b == A_J2DOWN) st = 3;
                     if (st >= 0) { if (k == 0) { aset[st] = 1; analog[st] = v; } ++i; continue; }
                 }
-                on = neg ? v < -S_thr : v > S_thr;
+                {   /* beta.125: hysteresis (on past the threshold, off only below 3/4 of it) and an axis must have been
+                     * seen at rest once (|v| < 1/2 threshold) after the pad came: a drifting or off-centre stick, a
+                     * slider resting at one end, hat / axis noise around the threshold type no keys */
+                    uint8_t* st = &S_ax[k & 1][ax & 3];
+                    const int bit = neg ? 1 : 2;
+                    if (!(*st & 4)) { if (v > -S_thr / 2 && v < S_thr / 2) *st |= 4; on = 0; }
+                    else
+                    {
+                        const int lim = (*st & bit) ? S_thr * 3 / 4 : S_thr, pend = bit << 3;
+                        on = neg ? v < -lim : v > lim;
+                        if (on && !(*st & bit))
+                        {   /* past the threshold in two polls in a row: one bad report's spike is no key */
+                            if (*st & pend) *st |= (uint8_t)bit; else { *st |= (uint8_t)pend; on = 0; }
+                        }
+                        else if (!on) *st &= (uint8_t)~(bit | pend);
+                    }
+                }
             }
             if (!on) continue;
             for (j = 0; j < S_r.n[i]; ++j)

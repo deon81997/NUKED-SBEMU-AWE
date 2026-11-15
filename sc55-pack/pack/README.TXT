@@ -225,6 +225,18 @@ CONTENTS
       refused under EMM386/QEMM and Windows, and left alone when the BIOS
       already covers the frame buffer with its own MTRR. SBDETAIL.TXT has
       a "[wc]" line for each change.
+      FAST VIDEO IN GAMES (SBEMU /VWC:1, since beta.124): SC55 /VWC:1 (or
+      SC55JEM /VWC:1) turns write-combining on for the VESA frame buffer
+      for as long as SBEMU is loaded, so games in VESA modes (640x480 and
+      up) spend less CPU time drawing and leave more for the SC-55. Off
+      by default. Only the frame buffer above 1 MB is changed, never the
+      VGA window at A0000-BFFFF, so 320x200 and Mode X games are not
+      affected. Works with HIMEM only (SC55) and with JEMM (SC55JEM); with
+      EMM386, QEMM or in Windows SBEMU says why it cannot and loads as
+      usual. SBEMU /VWC:0 takes it away again (or reboot). SBDIAG WC shows
+      on / off / unavailable and why; the SBDIAG report has the same
+      line. If a game shows broken pictures with it, start SC55 without
+      /VWC:1 and send SBDETAIL.TXT ("Video write-combining" lines).
       IF MENU CRASHES: the text screen comes back and MENU writes CRASH.TXT
       in C:\SC55 (the error, the CPU registers, 3D mode/style/look/colours,
       the chosen item, free memory and the last 50 keys/actions). Please
@@ -543,7 +555,11 @@ CONTENTS
   MIDI games, MIDPLAY and MENU's tests use the SC-55 (or what "MPU-401 also
   plays" says) at 330h. /AWEMPU:0 gives the old AWE-only setup (beta.121-
   awe.1): the MPU-401 then plays nothing, MENU shows "AWE32 (no MPU)" and
-  MIDPLAY says so instead of playing silently. Both follow the game's Sound
+  MIDPLAY says so instead of playing silently (with SBEMU's USB on, the
+  MPU-401's MIDI goes to a USB MIDI device instead). The MIDI output switch
+  (MENU "MIDI to", SBEMU /MOUT, Ctrl+Alt+F11) moves only the MPU-401 at 330h
+  between the emulated synth and USB MIDI devices; the AWE32 always stays on
+  its own ports (620h...) and keeps playing. Both follow the game's Sound
   Blaster 16 mixer (MIDI and master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
   (sample RAM in KB: AWE32 512, AWE64 Gold 4096, up to 28672), /AWEROM:file
   or folder. CPU: about 2-3% of a Pentium II 400 while Duke 3D's music plays;
@@ -596,6 +612,18 @@ CONTENTS
      /MUSB:1               send MIDI to a USB MIDI device instead (class
                            compliant, e.g. M-Audio Uno; section 10b). Needs
                            /JOY:1; the SC-55 is not loaded then.
+     /MOUT:x               MIDI output: SYNTH, USB, USB1, USB2 or NEXT; on a
+                           loaded SBEMU it switches at once (beta.123)
+     /MIDICAP:1            record the game's MPU-401 bytes and the USB MIDI
+                           packets for SBDIAG MIDICAP (bug reports; 320 KB)
+     /SPDIF:x              Sound Blaster Audigy S/PDIF out (beta.126): 1 =
+                           analog + S/PDIF (default), 0 = analog only, ONLY
+                           = S/PDIF only. 1 and ONLY switch the rear Digital
+                           Out / Center-Sub jack to digital (no Center/Sub
+                           then). Always 48 kHz. On a loaded SBEMU it
+                           switches at once; SBDIAG SPDIF shows it.
+     /SPDIFINV:1           the jack's analog/digital switch the other way
+                           round (try it when /SPDIF:1 gives no lock)
      /VMPU[:0]             virtual MPU-401 on (SC-55 or SoundFont); /VMPU=0
                            turns it off. Also switched on by /VSCROM, /VSCSET
                            or /VSF.
@@ -658,6 +686,11 @@ CONTENTS
                            0 off, 100 unity, 1-400 (section 10)
      /CARDWD:0|1|2         sound card interrupt watchdog: 0 off, 1 on,
                            2 auto (default: on only for the ES1371)
+
+  Video
+     /VWC:0|1              write-combining for the VESA frame buffer while
+                           SBEMU is loaded (default 0 = off; FAST VIDEO IN
+                           GAMES under section 3D MENU)
 
   Joystick (section 10b)
      /JOY:0|1              USB Xbox 360 pad as the gameport joystick at port
@@ -1164,6 +1197,20 @@ CONTENTS
        stick bound to keys presses them further out when Settings > Dead
        zone (/JOYDZ) is bigger. A key held on a USB keyboard and on the pad
        at once is let go only when both let go.
+     Since beta.125: no random key presses. A stick types its keys only
+       past half its travel and lets go below about a third (no chatter
+       around one point), only after it was seen centred once (a drifting
+       stick or a slider resting at one end types nothing), and only when
+       two polls in a row agree (one bad report is no key). Buttons count
+       after two polls agree; triggers press past 160, let go below 96.
+       A lost USB report lets go of every key that keyboard held, so no
+       key repeats on by itself. A mouse byte the keyboard controller
+       would hand over as a key is taken back.
+     Which keys SBEMU typed, and why: SBDIAG KEYS (USB keyboard, pad
+       layout, /JOYKEY, repeats; with time), also in SBTRACE.TXT.
+       SBDIAG SOAK 30 = idle test: touch nothing for 30 minutes with the
+       pads, keyboards and mice plugged in; it must say PASS (0 keys).
+       Result in KEYSOAK.TXT.
 
   Works with: the wired Microsoft Xbox 360 pad and wired pads that use the
   same protocol (Hori, Mad Catz, Logitech ChillStream, Saitek ... the
@@ -1260,6 +1307,42 @@ CONTENTS
    - The old M-Audio MidiSport / MidiSport Uno (0763:1010 etc., needs a
      firmware download) is not class compliant: USBTEST says so by name.
      The USB Uno (0763:0150) is the class-compliant one.
+   - beta.121 (wrong notes on a real SC-55 fixed): SBEMU now sends MIDI no
+     faster than the 31250-baud cable carries and tells the game to wait
+     (the MPU-401's busy bit) while its queue is nearly full, as a real
+     MPU-401 does - before, a game's burst at start (GS reset, set-up
+     SysEx, all channels' instruments) overflowed the queue and notes,
+     instrument changes and SysEx pieces were lost. Intelligent-mode games
+     (they never switch the MPU-401 to UART mode) get every command ACKed,
+     version/revision answered, "send data" messages and SysEx passed on
+     and command parameters kept out of the music; the MPU-401's own
+     sequencer is not emulated. A SysEx that starts before the last one
+     ended no longer loses bytes.
+   - beta.123: SWITCH WITHOUT A RESTART. The emulated synth (SC-55,
+     SoundFont or MT-32) stays loaded even with USB MIDI chosen, and up to
+     two USB MIDI devices can be plugged in; the MIDI goes to one of them
+     and can be moved at any time:
+       MENU > Sound > "MIDI to: ..." items (the one in use says "now");
+       SBEMU /MOUT:SYNTH, /MOUT:USB, /MOUT:USB1, /MOUT:USB2, /MOUT:NEXT;
+       SETTINGS > MIDI synth, then SC55 again (it switches the loaded
+       SBEMU instead of saying "restart");
+       Ctrl+Alt+F11 inside a game: next output (synth -> USB 1 -> USB 2),
+       a note in the top left corner (text and 320x200 screens) and 1-3
+       beeps (1 = emulated synth, 2 = USB 1, 3 = USB 2).
+     The old output's notes stop; the new one first gets the last GM/GS
+     reset and SysEx, then every channel's bank, instrument, controllers,
+     pitch bend range and pitch bend, so a song keeps playing with the
+     right instruments. The emulated synth uses no CPU while USB has the
+     music. Without ROMs or a SoundFont there is only USB to switch to.
+   - Where to see it: MENU's status panel (device, on / plug in / out /
+     error), MENU > Tests > "USB MIDI test (MPUTEST /USB)", SETTINGS (MIDI
+     synth line), SBDIAG USB (device, port, state, counters, last error),
+     GAMETEST (screen + GAMETEST.TXT), SC55MENU /STATUS and BUGREP.TXT.
+   - For a bug report: start the SC-55 as SC55 /MIDICAP:1, play the game
+     for a minute, quit it, then SBDIAG MIDICAP C:\SC55\CAP1.BIN: it holds
+     what the game wrote to the MPU-401 and every USB MIDI packet SBEMU
+     sent (the first ~100,000 bytes of each), then starts recording again
+     for the next game (CAP2.BIN ...).
 
 
 =============================================================================
@@ -1472,6 +1555,17 @@ CONTENTS
   saved at once, so if the PC hangs while SBEMU starts, the last
   "[step]" line shows where. At the end a table shows how long each
   step took (since beta.73). SET SBEMUDETAIL=OFF turns it off.
+
+  AUDIGY DIGITAL OUT (S/PDIF, beta.126): Audigy 1 / 2 / 2 ZS / 4 PRO share
+  the rear 3.5 mm "Digital Out / Center-Sub" jack. SBEMU /SPDIF:1 (the
+  default) or /SPDIF:ONLY turns it into a coaxial S/PDIF out: the signal
+  is on the jack's TIP, so with a 3.5 mm stereo (TRS) to 2x RCA cable it
+  is the WHITE (left) RCA plug that goes to the receiver's COAXIAL input
+  (the red one stays free). Audigy 2 Value / Audigy 4 have their own
+  digital out. Check:  SBDIAG SPDIF  (card, mode, jack), then
+  SBDIAG TONE  (1 kHz tone left, right, both). No lock on the receiver:
+  SBEMU /SPDIFINV:1, then SBDIAG SPDIF again. /SPDIF:0 gives the jack
+  back to the Center/Sub speakers. The S/PDIF stream is always 48 kHz.
 
   PC FREEZES WITH SATA "ENHANCED" MODE (seen: ASUS P5PE-VM, ICH5):
   in Enhanced (native) mode the SATA/IDE controller uses a PCI IRQ that

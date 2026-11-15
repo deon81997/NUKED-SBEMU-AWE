@@ -22,6 +22,8 @@
 #include "usbpad.h"
 #include "untrapio.h"
 #include "dpmi/dpmi.h"
+#include "trace.h"
+#include <stdio.h>
 
 static uint64_t Cps;
 static inline uint64_t tsc(void) { uint32_t lo, hi; __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi)); return ((uint64_t)hi << 32) | lo; }
@@ -35,24 +37,56 @@ static volatile uint8_t Aq[AQN]; static volatile int Ah, At;
 static int LastAux;
 static uint64_t Hold;
 
-static void kpush(uint8_t b)
+/* beta.125: every byte SBEMU puts in as a key is logged with its source (SBTRACE.TXT "Injected keys", SBDIAG KEYS,
+ * AMIS 09h, the SBDIAG SOAK idle test). Sources: */
+enum { KS_USBKB, KS_USBREP, KS_PAD, KS_PADREP, KS_JOYKEY, KS_AGAIN, KS_N };
+static const char* const KsName[KS_N] = { "USB keyboard", "USB key repeat", "pad layout", "pad key repeat", "/JOYKEY", "unread byte put in again" };
+#define KLN 64
+typedef struct { uint32_t t; uint8_t src, id, b; } KLog;
+static KLog Kl[KLN]; static uint32_t Kln;            /* ring of the last KLN bytes */
+static uint32_t KsBytes[KS_N], KsMakes[KS_N], KsDropped, MsMisroute, MsPackets;
+static uint8_t Src = KS_USBKB, SrcId;
+static uint32_t KlnShown;
+static int KPrevE1;
+
+static void klog(uint8_t b)
 {
+    KLog* e = &Kl[Kln++ % KLN];
+    TRACE_Dirty();
+    e->t = DPMI_LoadD(0x46C); e->src = Src; e->id = SrcId; e->b = b;
+    KsBytes[Src % KS_N]++;
+    if (b < 0x80 && !KPrevE1) KsMakes[Src % KS_N]++;
+    KPrevE1 = b == 0xE1 ? 2 : KPrevE1 ? KPrevE1 - 1 : 0;   /* Pause: E1 1D 45 counted as one key */
+    if (b == 0xE1) KsMakes[Src % KS_N]++;
+}
+
+/* one key's bytes (1-4) go in together or not at all; the last 16 places are kept for releases (a dropped make is
+ * harmless, a dropped break is a stuck key) */
+static void kpushn(const uint8_t* b, int n, int brk)
+{
+    int i, used, room;
     CLIS();
-    { int n = (Kh + 1) % KQN; if (n != Kt) { Kq[Kh] = b; Kh = n; } }
+    used = (Kh - Kt + KQN) % KQN; room = KQN - 1 - used;
+    if (n > room || (!brk && n > room - 16)) { ++KsDropped; STIL(); return; }
+    for (i = 0; i < n; ++i) { Kq[Kh] = b[i]; Kh = (Kh + 1) % KQN; klog(b[i]); }
     STIL();
 }
+static void kpush(uint8_t b) { kpushn(&b, 1, (b & 0x80) != 0); }
 static void apush(uint8_t b)
 {
     int n = (Ah + 1) % AQN;
     if (n != At) { Aq[Ah] = b; Ah = n; }
 }
+static int aroom(void) { return AQN - 1 - (Ah - At + AQN) % AQN; }
 
 /* A byte put in with D2h/D3h is "in flight" until it has shown up in the output buffer and been read.
  * Real keyboard controllers (the D810's embedded controller) take a while to move it there: status
  * then reads idle (bits 0 and 1 clear) although the byte has not arrived yet, and a next D3h in that
  * gap loses or overwrites it - the driver's 3-byte packets slip and it sees random moves and clicks.
  * Emulators are instant, so they never showed it. */
-static int Flight, FlightSeen;
+static int Flight, FlightSeen, FlightAux, MsNoKbc;
+static uint8_t FlightB;
+static uint64_t RealHold;          /* a real key's E0 / E1 prefix was read: our bytes wait for the rest of it */
 static uint64_t FlightT;
 
 static void kbc_put(int aux, uint8_t b)
@@ -61,13 +95,30 @@ static void kbc_put(int aux, uint8_t b)
     UntrappedIO_OUT(0x64, aux ? 0xD3 : 0xD2);
     for (n = 0; n < 2000 && (UntrappedIO_IN(0x64) & 2); ++n) {}
     UntrappedIO_OUT(0x60, b);
-    Flight = 1; FlightSeen = 0; FlightT = tsc();
+    Flight = 1; FlightSeen = 0; FlightT = tsc(); FlightAux = aux; FlightB = b;
 }
 
 /* 1 = the last byte put in is still on its way or unread */
 static int in_flight(uint8_t st, uint64_t t)
 {
     if (!Flight) return 0;
+    if ((st & 1) && !FlightSeen && FlightAux && !(st & 0x20))
+    {   /* beta.125: a mouse byte (D3h) showed up as KEYBOARD data (AUXB clear): this controller does not do D3h, the
+         * byte would be a random key press. Taken out at once (interrupts are off: IRQ 1 has not run); after 3 the
+         * USB mouse no longer goes through this controller. */
+        uint8_t b = (uint8_t)UntrappedIO_IN(0x60);
+        Flight = 0;
+        if (b != FlightB)
+        {   /* a real key that came first: back to the front of the queue (our mouse byte is lost: whole packets
+             * keep the driver in step as soon as the next one is in) */
+            int n = (Kt + KQN - 1) % KQN;
+            if (n != Kh) { uint8_t s0 = Src; Kt = n; Kq[Kt] = b; Src = KS_AGAIN; klog(b); Src = s0; }
+            return 0;
+        }
+        ++MsMisroute;
+        if (MsMisroute >= 3) MsNoKbc = 1;
+        return 0;
+    }
     if (st & 1) FlightSeen = 1;                                  /* arrived: wait until it is read */
     else if (FlightSeen || t - FlightT > ms2c(4)) Flight = 0;    /* read (or long enough to have been) */
     return Flight;
@@ -102,9 +153,11 @@ static void ms_take(uint8_t p[4])
 static void ms_packet(void)
 {
     uint8_t p[4];
+    if (aroom() < 4) return;                        /* a whole packet or none: a lost byte would shift the packets */
     ms_take(p);
     apush(p[0]); apush(p[1]); apush(p[2]);
     if (MsId == 3) apush(p[3]);
+    ++MsPackets;
 }
 
 /* BIOS mode: the whole packet to the mouse driver's handler through the INT 15h stub (see main.c MAIN_I15Stub):
@@ -202,11 +255,11 @@ static void inject(void)
     if ((st & 0x21) == 0x01)                                        /* keyboard byte waiting */
     {
         if (!ObfSince) ObfSince = t;
-        else if (t - ObfSince > ms2c(50))
+        else if (t - ObfSince > ms2c(50) && t >= Hold + ms2c(200))   /* not an answer a program asked for and reads slowly */
         {
             uint8_t b = (uint8_t)UntrappedIO_IN(0x60);
             int n = (Kt + KQN - 1) % KQN;
-            if (n != Kh) { Kt = n; Kq[Kt] = b; }
+            if (n != Kh) { uint8_t s0 = Src; Kt = n; Kq[Kt] = b; Src = KS_AGAIN; klog(b); Src = s0; }
             ObfSince = 0; Flight = 0; ++Unstuck;
             st = (uint8_t)UntrappedIO_IN(0x64);
         }
@@ -217,8 +270,9 @@ static void inject(void)
         int ha, hk;
         if (Ah == At && MsOn && MsStream && !MsRemote && MDirty && t - MsLast >= Cps / (uint64_t)MsRate)
         { MsLast = t; ms_packet(); }
-        ha = Ah != At;
-        hk = Kh != Kt && t >= Hold;
+        ha = Ah != At && !MsNoKbc;
+        if (MsNoKbc) At = Ah;                                       /* mouse bytes have no safe way in */
+        hk = Kh != Kt && t >= Hold && t >= RealHold;
         if (ha && (!hk || !LastAux)) { kbc_put(1, Aq[At]); At = (At + 1) % AQN; LastAux = 1; }
         else if (hk) { kbc_put(0, Kq[Kt]); Kt = (Kt + 1) % KQN; LastAux = 0; }
     }
@@ -250,11 +304,15 @@ static uint64_t PadRepT;
 
 static void put_key(uint16_t code, int down)    /* the bytes only */
 {
-    if (code > 0xFF) kpush(0xE0);
-    kpush((uint8_t)((code & 0x7F) | (down ? 0 : 0x80)));
+    uint8_t b[2]; int n = 0;
+    if (code > 0xFF) b[n++] = 0xE0;
+    b[n++] = (uint8_t)((code & 0x7F) | (down ? 0 : 0x80));
+    kpushn(b, n, !down);
 }
 
-void VKBC_Key(uint16_t code, int down)
+static void key_(uint16_t code, int down);
+void VKBC_Key(uint16_t code, int down) { Src = KS_JOYKEY; SrcId = 0; key_(code, down); }
+static void key_(uint16_t code, int down)
 {
     uint8_t* h = &Held[code > 0xFF][code & 0x7F];
     if (down) { if (*h < 255) ++*h; }
@@ -269,36 +327,35 @@ void VKBC_PadBytes(const uint8_t* b, int n)
     uint16_t code;
     int down;
     if (n <= 0) return;
+    Src = KS_PAD; SrcId = 0;
     if (b[0] == 0xE1 || n > 2 || (n == 2 && b[0] != 0xE0)) { VKBC_Bytes(b, n); return; }
     code = n == 2 ? (uint16_t)(0xE000 | (b[1] & 0x7F)) : (uint16_t)(b[0] & 0x7F);
     down = !((n == 2 ? b[1] : b[0]) & 0x80);
-    VKBC_Key(code, down);
+    key_(code, down);
     if (down && code != 0x3A && code != 0x45 && code != 0x46) { PadRep = code; PadRepT = tsc() + ms2c(500); }
     else if (!down && code == PadRep) PadRep = 0;
 }
 
 void VKBC_Bytes(const uint8_t* b, int n)
 {
-    int i;
-    for (i = 0; i < n; ++i) kpush(b[i]);
+    if (n > 0) kpushn(b, n, (b[n - 1] & 0x80) && b[0] != 0xE1);
 }
 
 static void usage_key(int u, int down, int again)   /* again: a repeat of a held key (not counted) */
 {
     if (u == 0x46)                                                      /* Print Screen */
     {
-        if (down) { kpush(0xE0); kpush(0x2A); kpush(0xE0); kpush(0x37); }
-        else { kpush(0xE0); kpush(0xB7); kpush(0xE0); kpush(0xAA); }
+        static const uint8_t mk[4] = { 0xE0, 0x2A, 0xE0, 0x37 }, bk[4] = { 0xE0, 0xB7, 0xE0, 0xAA };
+        kpushn(down ? mk : bk, 4, !down);
         return;
     }
     if (u == 0x48)                                                      /* Pause: make only */
     {
         static const uint8_t p[6] = { 0xE1, 0x1D, 0x45, 0xE1, 0x9D, 0xC5 };
-        int i;
-        if (down) for (i = 0; i < 6; ++i) kpush(p[i]);
+        if (down) kpushn(p, 6, 0);
         return;
     }
-    if (u < 0x66 && Usage[u]) { if (again) put_key(Usage[u], 1); else VKBC_Key(Usage[u], down); }
+    if (u < 0x66 && Usage[u]) { if (again) put_key(Usage[u], 1); else key_(Usage[u], down); }
 }
 
 static int has(const uint8_t* r, int u) { int i; for (i = 2; i < 8; ++i) if (r[i] == u) return 1; return 0; }
@@ -307,8 +364,9 @@ void VKBC_UsbKeys(int id, const uint8_t* r)
 {
     uint8_t* p = KPrev[id & 7];
     int i;
+    Src = KS_USBKB; SrcId = (uint8_t)id;
     for (i = 0; i < 8; ++i)
-        if ((r[0] ^ p[0]) & (1 << i)) VKBC_Key(Mods[i], (r[0] >> i) & 1);
+        if ((r[0] ^ p[0]) & (1 << i)) key_(Mods[i], (r[0] >> i) & 1);
     for (i = 2; i < 8; ++i)
         if (p[i] > 3 && !has(r, p[i])) { usage_key(p[i], 0, 0); if (Rep == p[i] && RepId == id) Rep = 0; }
     for (i = 2; i < 8; ++i)
@@ -343,8 +401,8 @@ void VKBC_SetBios(uint32_t lin) { BiosLin = lin; MsRes = 2; }
 void VKBC_Tick(void)
 {
     uint64_t t = tsc();
-    if (Rep && t >= RepT && Kh == Kt) { usage_key(Rep, 1, 1); RepT = t + ms2c(33); }
-    if (PadRep && t >= PadRepT && Kh == Kt) { put_key(PadRep, 1); PadRepT = t + ms2c(33); }
+    if (Rep && t >= RepT && Kh == Kt) { Src = KS_USBREP; SrcId = (uint8_t)RepId; usage_key(Rep, 1, 1); RepT = t + ms2c(33); }
+    if (PadRep && t >= PadRepT && Kh == Kt) { Src = KS_PADREP; SrcId = 0; put_key(PadRep, 1); PadRepT = t + ms2c(33); }
     USBPAD_SetLeds(VKBC_Leds());
 }
 
@@ -389,7 +447,11 @@ uint32_t VKBC_IOHandler(uint32_t port, uint32_t val, uint32_t out)
     {
         /* no next byte from here: QPIEMU reads the port once more after this handler, which would
          * swallow it (seen in QEMU: lost keys) - the sound interrupt puts it in */
-        return UntrappedIO_IN(0x60);
+        uint8_t st = (uint8_t)UntrappedIO_IN(0x64), b = (uint8_t)UntrappedIO_IN(0x60);
+        /* beta.125: a real key's E0 / E1 prefix: none of our bytes in front of the rest of it (E0 <ours> = a wrong key) */
+        if ((st & 0x21) == 0x01 && !(Flight && !FlightAux && b == FlightB))
+            RealHold = (b == 0xE0 || b == 0xE1) ? tsc() + ms2c(30) : 0;
+        return b;
     }
 }
 
@@ -399,8 +461,62 @@ void VKBC_Init(uint64_t cps, int mouse)
     Kh = Kt = Ah = At = 0;
     memset(KPrev, 0, sizeof(KPrev));
     memset(Held, 0, sizeof(Held));
-    Rep = 0; PadRep = 0; ObfSince = 0; Unstuck = 0;
+    Rep = 0; PadRep = 0; ObfSince = 0; Unstuck = 0; MsNoKbc = 0; MsMisroute = 0; RealHold = 0;
     MsOn = mouse; MsSeen = 0; BiosLin = 0; AuxNext = 0; MsArg = 0; MsWrap = 0; MsId = 0;
     ms_defaults();
     MDx = MDy = MDw = MB = MDirty = 0;
+}
+
+/* beta.125: let go of every key SBEMU holds down (all sources): USB reset / error / timeout, SBEMU re-run */
+void VKBC_ReleaseAll(void)
+{
+    int e, c;
+    Src = KS_USBKB; SrcId = 0xFF;
+    Rep = 0; PadRep = 0;
+    memset(KPrev, 0, sizeof(KPrev));
+    for (e = 0; e < 2; ++e)
+        for (c = 0; c < 128; ++c)
+            if (Held[e][c]) { Held[e][c] = 0; put_key((uint16_t)(e ? 0xE000 | c : c), 0); }
+}
+
+void VKBC_KeyStats(uint32_t* bytes, uint32_t* makes, uint32_t* misroute, uint32_t* packets)
+{
+    int i; uint32_t b = 0, m = 0;
+    for (i = 0; i < KS_N; ++i) { b += KsBytes[i]; m += KsMakes[i]; }
+    if (bytes) *bytes = b;
+    if (makes) *makes = m;
+    if (misroute) *misroute = MsMisroute;
+    if (packets) *packets = MsPackets;
+}
+
+void VKBC_KeyClear(void)
+{
+    CLIS();
+    Kln = 0; KlnShown = 0; memset(KsBytes, 0, sizeof KsBytes); memset(KsMakes, 0, sizeof KsMakes); KsDropped = 0; MsPackets = 0;
+    STIL();
+}
+
+/* "KEYS=n BYTES=n MISROUTE=n MOUSEPK=n DROP=n|src=bytes/keys ...|log: hh:mm:ss.t source byte ..." */
+int VKBC_KeyLog(char* t, int size, int full)
+{
+    uint32_t b, m, i, first;
+    int n;
+    VKBC_KeyStats(&b, &m, NULL, NULL);
+    n = snprintf(t, size, "KEYS=%lu BYTES=%lu MISROUTE=%lu MOUSEPK=%lu DROP=%lu NOKBCMOUSE=%d", (unsigned long)m, (unsigned long)b,
+        (unsigned long)MsMisroute, (unsigned long)MsPackets, (unsigned long)KsDropped, MsNoKbc);
+    for (i = 0; i < KS_N && n < size - 40; ++i)
+        if (KsBytes[i]) n += snprintf(t + n, size - n, "|%s: %lu keys (%lu bytes)", KsName[i], (unsigned long)KsMakes[i], (unsigned long)KsBytes[i]);
+    if (!full) return n;
+    first = Kln > KLN ? Kln - KLN : 0;
+    if (full == 2) { if (KlnShown > first) first = KlnShown; KlnShown = Kln; }   /* SBTRACE: only what is new */
+    for (i = first; i < Kln && n < size - 48; ++i)
+    {
+        const KLog* e = &Kl[i % KLN];
+        uint32_t cs = e->t * 549 / 10;                          /* 18.2 ticks/s -> 1/1000 s ~ *54.9 ms */
+        char who[8] = "";
+        if (e->src == KS_USBKB || e->src == KS_USBREP) snprintf(who, sizeof who, " #%u", (unsigned)e->id);
+        n += snprintf(t + n, size - n, "|%02lu:%02lu:%02lu.%lu %s%s %02X", (unsigned long)(cs / 3600000UL % 24), (unsigned long)(cs / 60000UL % 60),
+            (unsigned long)(cs / 1000UL % 60), (unsigned long)(cs / 100UL % 10), KsName[e->src % KS_N], who, e->b);
+    }
+    return n;
 }

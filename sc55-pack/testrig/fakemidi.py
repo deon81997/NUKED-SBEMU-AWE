@@ -57,7 +57,7 @@ else: body = AC + MS
 if BAD == 'zero': body = body[:20] + bytes([0, 0x24, 0, 0]) + body[20:]
 CFG = bytes([9, 2]) + struct.pack('<H', 9 + len(body) + (200 if BAD == 'long' else 0)) + \
       bytes([2 if PID != 0x1010 else 1, 1, 0, 0x80 if OLD else 0xC0, 50 if OLD else 0]) + body
-STR = {0: bytes([4, 3, 0x09, 0x04]), 1: 'M-Audio'.encode('utf-16-le'), 2: 'USB Uno MIDI Interface'.encode('utf-16-le')}
+STR = {0: bytes([4, 3, 0x09, 0x04]), 1: 'M-Audio'.encode('utf-16-le'), 2: os.environ.get('FAKEMIDI_NAME', 'USB Uno MIDI Interface').encode('utf-16-le')}   # FAKEMIDI_NAME: beta.123 second device
 CNT = [0, 0, 2, 3, 3, 1, 2, 3, 3, 3, 3, 3, 2, 2, 3, 1]
 
 def strdesc(i):

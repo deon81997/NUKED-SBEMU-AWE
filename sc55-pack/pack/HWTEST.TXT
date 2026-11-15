@@ -1,6 +1,34 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.114)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.126)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.125 no random keys (P5PE-VM and D810): plug in the 360 pad, a USB
+    keyboard and a USB mouse, start SC55 as usual, then C:\SC55> SBDIAG SOAK 30
+    and touch nothing for 30 minutes: PASS, 0 keys (KEYSOAK.TXT). Then one game
+    you play with the pad for 10 minutes: no keys you did not press;
+    afterwards SBDIAG KEYS > C:\SC55\KEYS1.TXT. Unplug the USB keyboard while
+    holding a key: the key must not keep repeating.
+
+[ ] beta.124 SBEMU /VWC:1 (video write-combining in games), D810 and P5PE-VM:
+    SC55 /VWC:1, then SBDIAG WC (send the line). Time 2-3 VESA games (e.g.
+    Duke 3D 640x480, Blood or Shadow Warrior in a VESA mode, Quake vid_mode
+    640x480) with SBDIAG START ... SBDIAG, first after SC55 (no /VWC), then
+    after SBEMU /VWC:1; note fps (Quake timedemo demo1) and the SBDIAG
+    "uses ..% of the CPU" line. 1-2 VGA / Mode X games (Doom, Heretic,
+    Jazz Jackrabbit) with /VWC:1: pictures must look the same as without.
+    Also once with SC55JEM /VWC:1. Send SBDIAG.TXT for each run.
+
+[ ] beta.123 switch without restart: SC55 (emulated SC-55), MENU > Sound >
+    "MIDI to: USB 1 ..." -> the SC-55 module plays; "MIDI to: SC-55" -> back.
+    In Duke 3D: Ctrl+Alt+F11 a few times while music plays: note top left,
+    beeps, the song keeps its instruments on both. SETTINGS USB, SC55 again.
+[ ] beta.121 M-Audio Uno -> real SC-55, wrong notes. SC55 with SETTINGS >
+    MIDI synth = USB MIDI device, started as SC55 /MIDICAP:1. MENU status panel
+    shows the Uno ("Uno ... on"); MENU > Tests > USB MIDI test: scale, chord,
+    drums, "USB MIDI" on the SC-55 screen, PASS. Then Duke 3D, Doom/Heretic,
+    Descent, Monkey Island 2, a Miles game, a GS game (each a minute; game
+    start = GS reset): right instruments, no stuck/missing notes. After each:
+    SBDIAG USB > C:\SC55\USB1.TXT, SBDIAG MIDICAP C:\SC55\CAP1.BIN (2, 3..).
 
 DELL LATITUDE D810 (ICH6 UHCI + EHCI, SigmaTel AC'97, Dell keyboard controller)
 [ ] Sound: first note of a MIDI file and first sound of a game after some
@@ -22,6 +50,18 @@ DELL LATITUDE D810 (ICH6 UHCI + EHCI, SigmaTel AC'97, Dell keyboard controller)
 [ ] A 3D DOS game (Quake / Descent / Duke 3D) with SB sound + pad: no glitches.
 
 ASUS P5PE-VM (+ NEC uPD720101 USB card, wired Xbox 360 pad, Logitech receiver)
+[ ] beta.126 Audigy S/PDIF. Cable: 3.5 mm stereo (TRS) plug into the card's
+    rear "Digital Out / Center-Sub" jack (Audigy 2 Value / 4: its own
+    Digital Out), WHITE (left) RCA plug into the receiver's COAXIAL in.
+    1. SC55.BAT, then SBDIAG SPDIF > C:\SC55\SPDIF1.TXT  (CARD= name, MODE=
+       analog + S/PDIF, JACK=digital, RATE=48000).
+    2. SBDIAG TONE: receiver locks (48 kHz) and plays left, right, both;
+       front speakers play it too. Then a game with music.
+    3. SBDIAG SPDIF ONLY: tone on the receiver only, front speakers quiet.
+       SBDIAG SPDIF 0: receiver loses lock, front speakers play.
+    4. No lock in 2? SBEMU /SPDIFINV:1, SBDIAG TONE again; still none: try
+       the RED plug. Front speakers silent with /SPDIF:1 but fine with
+       SBDIAG SPDIF 0? Note it. Send SPDIF1.TXT + which plug/switch worked.
 [ ] beta.114 M-Audio Uno (froze the PC in beta.113 on every port). Boot as
     usual (Win98 boot menu > command prompt, HIMEM only, no QEMM/JEMM),
     Uno plugged into a board port, nothing else needed. In this order:

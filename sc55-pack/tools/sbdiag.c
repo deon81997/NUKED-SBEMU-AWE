@@ -18,6 +18,8 @@
 #include "mpuport.h"
 #include "toolui.h"
 #include "doctor.h"
+#include "sbemuchk.h"
+#include "../vesawc.h"
 
 static int g_port = 0x330;
 static FILE* g_log;
@@ -139,6 +141,40 @@ static void bar_line(int x, int y, const char* label, double v, double full, int
     tui_bar(x + 22, y, 30, (long)(v * 100), (long)(full * 100), bad ? 0x1C : 0x1A, 0x18);
     tui_put(x + 54, y, a, text);
 }
+static SBMUSB g_mu; static int g_muon;   /* beta.121: SBEMU /MUSB (AMIS 05h) */
+/* SBDIAG MIDICAP FILE: SBEMU /MIDICAP:1's pages (the game's MPU-401 bytes + the USB MIDI packets) to a file
+ * for a bug report; testrig/midi/midicap.py compares them */
+static int midicap(const char* file)
+{
+    char t[8];
+    int id = sbc_amis(t, 2), pg, n = 0, k = 0;
+    FILE* f;
+    if (id <= 0) { printf("SBDIAG MIDICAP: SBEMU (beta.121+) is not loaded.\n"); return 1; }
+    if (!file || !file[0]) file = "MIDICAP.BIN";
+    f = fopen(file, "wb");
+    if (!f) { printf("SBDIAG MIDICAP: cannot write %s\n", file); return 1; }
+    for (pg = 0; pg < 4096 && (!n || pg < n); ++pg)
+    {
+        __dpmi_regs r; static unsigned char b[4096];
+        memset(&r, 0, sizeof r); r.h.ah = (unsigned char)id; r.h.al = 0x06; r.d.ecx = (unsigned long)pg; r.d.ebx = __tb;
+        if (__dpmi_int(0x2D, &r) != 0 || r.h.al != 0 || (r.x.flags & 1))
+        {
+            if (!pg) printf("SBDIAG MIDICAP: AMIS id %02X function 06h: AL=%02X CF=%d\n", id, r.h.al, r.x.flags & 1);
+            break;
+        }
+        n = (int)r.d.ecx;
+        dosmemget(__tb, 4096, b);
+        if (b[16] | b[17]) { fwrite(b, 1, 4096, f); k++; }   /* pages with something in them */
+    }
+    fclose(f);
+    if (!n) { printf("SBDIAG MIDICAP: SBEMU was not started with /MIDICAP:1 - nothing recorded.\n"); remove(file); return 1; }
+    {   /* start the recording again, so the next game gets its own file */
+        __dpmi_regs r; memset(&r, 0, sizeof r); r.h.ah = (unsigned char)id; r.h.al = 0x06; r.d.ecx = 0xFFFFFFFFUL; r.d.ebx = __tb;
+        __dpmi_int(0x2D, &r);
+    }
+    printf("SBDIAG MIDICAP: %d pages written to %s (send it with BUGREP.TXT); recording starts again.\n", k, file);
+    return 0;
+}
 static void show(const char* argv0, const SUM* m)
 {
     char t[80], r[4000];
@@ -150,6 +186,7 @@ static void show(const char* argv0, const SUM* m)
         tui_panel(2, 3, 77, 4, 1, 0x1E, "Measurement");
         snprintf(t, sizeof t, "%.0f s on a %.0f MHz CPU, synth %s", m->secs, m->mhz, g_synth);
         tui_put(4, 4, 0x1F, t);
+        if (g_muon) { char l[200]; tui_printf(30, 5, !strcmp(g_mu.state, "active") && !g_mu.drop && !g_mu.err ? 0x1A : 0x1C, "%.47s", musb_line(&g_mu, l, sizeof l) + 10); }
         snprintf(t, sizeof t, m->reasons == 1 ? "1 reason found" : "%d reasons found", m->reasons);
         tu_state(4, 5, m->reasons ? -1 : 1, m->reasons ? t : "no problem found");
         tui_panel(2, 7, 77, 8, 1, 0x1E, "The numbers");
@@ -178,6 +215,148 @@ static void show(const char* argv0, const SUM* m)
     tu_end();
 }
 
+
+/* ---------------------------------------------------------------- beta.125: keys SBEMU typed */
+static void keys_print(const char* t, FILE* f)
+{
+    const char* q;
+    for (q = t; *q; ++q) { if (*q == '|') fputs("\n  ", f); else fputc(*q, f); }
+    fputc('\n', f);
+}
+static int keys_cmd(int argc, char** argv)
+{
+    static char t[64 * 48 + 400];
+    int clr = argc > 2 && !stricmp(argv[2], "CLEAR");
+    if (!sbemu_text(0x09, clr ? 3 : 2, t, sizeof t)) { printf("Keys: SBEMU beta.125+ is not loaded.\n"); return 1; }
+    printf("Keys SBEMU typed (USB keyboard / pads / repeats; a real PS/2 keyboard is not counted):\n  ");
+    keys_print(t, stdout);
+    if (g_log) { fputs("  ", g_log); keys_print(t, g_log); }
+    return 0;
+}
+
+/* idle soak: nothing is touched for N minutes (default 30): SBEMU must type no key, the BIOS must get none */
+static int soak_cmd(int argc, char** argv)
+{
+    static char t[64 * 48 + 400];
+    int mins = argc > 2 ? atoi(argv[2]) : 30, s, bios = 0, fail, esc = 0;
+    unsigned long keys = 0, bytes = 0, err0 = 0, err = 0, mis = 0, mpk = 0;
+    FILE* f;
+    if (mins < 1) mins = 1;
+    int old = !sbemu_text(0x09, 3, t, sizeof t);
+    if (old) printf("SOAK: SBEMU beta.125+ not loaded: only keys that reach the BIOS are counted.\n");
+    err0 = old ? 0 : sbc_num(t, "USBERR=");
+    while (kbhit()) { getkey(); }                             /* what was typed before the start */
+    printf("Idle soak %d min: do not touch the pads, keyboards or mice. Esc (on any keyboard) stops.\n", mins);
+    for (s = 0; s < mins * 60; ++s)
+    {
+        int i;
+        for (i = 0; i < 10; ++i)
+        {
+            delay(100);
+            while (kbhit()) { int k = getkey(); ++bios; if (k == 27) { esc = 1; s = mins * 60; break; } }
+        }
+        if (old || !sbemu_text(0x09, 0, t, sizeof t)) t[0] = 0;
+        if (t[0]) keys = sbc_num(t, "KEYS="); bytes = sbc_num(t, "BYTES="); mis = sbc_num(t, "MISROUTE="); mpk = sbc_num(t, "MOUSEPK=");
+        if (t[0]) err = sbc_num(t, "USBERR=") - err0;
+        printf("\r  %02d:%02d  keys typed by SBEMU %lu (bytes %lu)  BIOS keys %d  mouse packets %lu  lost USB reports %lu  ",
+               s / 60, s % 60, keys, bytes, bios, mpk, err);
+        fflush(stdout);
+    }
+    printf("\n");
+    if (old || !sbemu_text(0x09, 2, t, sizeof t)) strcpy(t, "(no SBEMU key log)");
+    fail = keys || bytes || bios || mis || esc;
+    f = fopen("KEYSOAK.TXT", "w");
+    if (f)
+    {
+        fprintf(f, "SBDIAG SOAK %d min (%s)\n", mins, esc ? "stopped with Esc" : "full time");
+        fprintf(f, "keys typed by SBEMU %lu, bytes %lu, BIOS keys %d, mouse bytes as keys swallowed %lu, mouse packets %lu, lost USB reports %lu\n",
+                keys, bytes, bios, mis, mpk, err);
+        fputs("  ", f); keys_print(t, f);
+        fprintf(f, "%s\n", fail ? "FAIL" : "PASS");
+        fclose(f);
+    }
+    printf("%s: %lu keys typed by SBEMU, %d keys reached the BIOS, %lu mouse bytes caught as keys. Saved KEYSOAK.TXT\n",
+           fail ? "FAIL" : "PASS", keys, bios, mis);
+    return fail ? 1 : 0;
+}
+
+/* ---------------------------------------------------------------- beta.126: Audigy S/PDIF, test tone */
+static void spdif_show(const char* t)
+{
+    char v[64];
+    if (!strncmp(t, "SPDIF=", 6) && strstr(t, "CARD=none")) { printf("S/PDIF: %s\n", strchr(t, ' ') + 1); return; }
+    sbc_field(t, "MODE=", v, sizeof v);
+    printf("S/PDIF mode %c = ", t[6]);
+    { const char* m = strstr(t, "MODE="); const char* e = m ? strstr(m, " CARD=") : NULL; if (m && e) printf("%.*s\n", (int)(e - m - 5), m + 5); }
+    { const char* c = strstr(t, "CARD="); const char* e = c ? strstr(c, " SSID=") : NULL; if (c && e) printf("  card: %.*s", (int)(e - c - 5), c + 5); }
+    sbc_field(t, "SSID=", v, sizeof v); printf(" (subsystem %s", v);
+    sbc_field(t, "REV=", v, sizeof v); printf(", rev %s)\n", v);
+    sbc_field(t, "JACK=", v, sizeof v);
+    if (!strncmp(v, "own-", 4)) printf("  S/PDIF out: its own jack, %s\n", strstr(v, "on") ? "on" : "off");
+    else printf("  rear Digital Out / Center-Sub jack: %s%s\n", strncmp(v, "digital", 7) ? "ANALOG (center / subwoofer)" : "DIGITAL (coax S/PDIF on the tip)",
+                strstr(v, "(inv)") ? " [Audigy 2 polarity]" : "");
+    sbc_field(t, "RATE=", v, sizeof v); printf("  S/PDIF rate: %s Hz (channel status says the same)\n", v);
+    printf("  raw: %s\n", strstr(t, "IOCFG=") ? strstr(t, "IOCFG=") : t);
+}
+
+static int spdif_cmd(int argc, char** argv)
+{
+    char t[256]; unsigned long m = 0xFF;
+    if (argc > 2)
+    {
+        if (!stricmp(argv[2], "ONLY") || !strcmp(argv[2], "2")) m = 2;
+        else if (!strcmp(argv[2], "0") || !stricmp(argv[2], "OFF")) m = 0;
+        else if (!strcmp(argv[2], "1") || !stricmp(argv[2], "ON")) m = 1;
+        else { printf("SBDIAG SPDIF [0|1|ONLY]\n"); return 2; }
+    }
+    if (!sbemu_text(0x08, m, t, sizeof t)) { printf("S/PDIF: SBEMU beta.126+ is not loaded (run SC55 first).\n"); return 1; }
+    spdif_show(t);
+    if (g_log) fprintf(g_log, "%s\n", t);
+    return strstr(t, "CARD=none") ? 1 : 0;
+}
+
+/* OPL3 sine tone through SBEMU (so through the card's mix and its S/PDIF): left, right, both */
+static void opl(int bank, int reg, int val)
+{
+    int p = 0x388 + bank * 2, i;
+    outportb(p, (unsigned char)reg); for (i = 0; i < 6; ++i) (void)inportb(p);
+    outportb(p + 1, (unsigned char)val); for (i = 0; i < 35; ++i) (void)inportb(p);
+}
+static void opl_note(int lr, int on)
+{
+    const int fnum = 659, block = 5;                           /* 1000 Hz: fnum * 49716 / 2^(20-block) */
+    opl(0, 0xC0, (lr << 4) | 0x00);
+    opl(0, 0xA0, fnum & 0xFF);
+    opl(0, 0xB0, (on ? 0x20 : 0) | (block << 2) | (fnum >> 8));
+}
+static int tone_cmd(int argc, char** argv)
+{
+    int secs = argc > 2 ? atoi(argv[2]) : 3, r, i;
+    static const char* const nm[3] = { "LEFT", "RIGHT", "BOTH" };
+    static const int lr[3] = { 1, 2, 3 };
+    char t[256];
+    if (secs < 1) secs = 1; if (secs > 60) secs = 60;
+    if (sbemu_text(0x08, 0xFF, t, sizeof t)) spdif_show(t);
+    else printf("(SBEMU beta.126+ not found: the tone needs SBEMU's OPL3 emulation, /OPL:1)\n");
+    for (i = 0; i < 0xF6; ++i) { opl(0, i, 0); opl(1, i, 0); }
+    opl(1, 0x05, 1);                                           /* OPL3 mode: left / right bits */
+    opl(0, 0x20, 0x21); opl(0, 0x23, 0x21);                    /* sustained, multiple 1 */
+    opl(0, 0x40, 0x3F); opl(0, 0x43, 0x04);                    /* modulator silent, carrier loud: a pure sine */
+    opl(0, 0x60, 0xF0); opl(0, 0x63, 0xF0);
+    opl(0, 0x80, 0x0F); opl(0, 0x83, 0x0F);
+    opl(0, 0xE0, 0); opl(0, 0xE3, 0);
+    for (r = 0; r < 3; ++r)
+    {
+        printf("1 kHz tone %-5s %d s ...\n", nm[r], secs); fflush(stdout);
+        opl_note(lr[r], 1); delay(secs * 1000); opl_note(lr[r], 0); delay(400);
+    }
+    for (i = 0; i < 0xF6; ++i) { opl(0, i, 0); opl(1, i, 0); }
+    opl(1, 0x05, 0);
+    printf("Done. Heard LEFT, RIGHT, BOTH in that order?\n");
+    return 0;
+}
+
+
 int main(int argc, char** argv)
 {
     unsigned long d[F_COUNT];
@@ -200,8 +379,39 @@ int main(int argc, char** argv)
         printf("SBDIAG START   start measuring (run SC55 first)\n"
                "  ...play the game for a minute, quit it...\n"
                "SBDIAG         show the report (saved to SBDIAG.TXT)\n"
-               "SBDIAG STOP    stop measuring\n");
+               "SBDIAG STOP    stop measuring\n"
+               "SBDIAG USB     USB MIDI (SBEMU /MUSB): device, port, state, counters, last error\n"
+               "SBDIAG MIDICAP [file]  what SBEMU /MIDICAP:1 recorded (game MPU bytes + USB MIDI packets)\n"
+               "SBDIAG WC      video write-combining (SBEMU /VWC): on, off or unavailable and why\n"
+               "SBDIAG KEYS [CLEAR]  every key SBEMU typed (USB keyboard, pads, repeats) and why\n"
+               "SBDIAG SOAK [min]  idle test (default 30 min): nothing touched must type no key (KEYSOAK.TXT)\n"
+               "SBDIAG SPDIF [0|1|ONLY]  Audigy S/PDIF: show / switch (0 analog, 1 analog + S/PDIF, ONLY S/PDIF)\n"
+               "SBDIAG TONE [s]  1 kHz test tone left, right, both (OPL3 through SBEMU and the card)\n");
         return 0;
+    }
+    if (!stricmp(cmd, "MIDICAP")) return midicap(argc > 2 ? argv[2] : NULL);
+    if (!stricmp(cmd, "WC")) { char w[300]; int st = VESAWC_Status(w, sizeof w); printf("Video write-combining (SBEMU /VWC): %s\n", w); return st > 0 ? 0 : st == 0 ? 1 : 2; }
+    if (!stricmp(cmd, "KEYS")) return keys_cmd(argc, argv);
+    if (!stricmp(cmd, "SOAK")) return soak_cmd(argc, argv);
+    if (!stricmp(cmd, "SPDIF")) return spdif_cmd(argc, argv);
+    if (!stricmp(cmd, "TONE")) return tone_cmd(argc, argv);
+    g_muon = sbemu_musb(&g_mu) && g_mu.out > 0;
+    if (!stricmp(cmd, "USB"))
+    {
+        char l[200];
+        if (!sbemu_musb(&g_mu)) { printf("USB MIDI: SBEMU (beta.121+) is not loaded.\n"); return 1; }
+        {
+            char o[120]; int k;
+            printf("%s%s\n", musb_outline(&g_mu, o, sizeof o), g_mu.syn ? "" : " (no emulated synth loaded)");
+            for (k = 0; k < g_mu.nu; k++) printf("  USB %d: %s (%s) on %s, %s\n", g_mu.u[k].slot, g_mu.u[k].name, g_mu.u[k].id, g_mu.u[k].port, g_mu.u[k].state);
+            printf("  switch: MENU (Sound > MIDI to), SBEMU /MOUT:SYNTH|USB|USB1|USB2|NEXT, Ctrl+Alt+F11 in a game\n");
+        }
+        printf("%s\n", musb_line(&g_mu, l, sizeof l));
+        printf("  device %s, MPU-401 mode %s, %lu packets sent, %lu dropped, %lu USB errors, %lu queued, %lu MIDI IN\n"
+               "  the game waited for the cable %lu times (%lu waits cut short: no progress for 1 s), %lu intelligent-mode bytes ignored%s\n",
+               g_mu.id, g_mu.mpu, g_mu.sent, g_mu.drop, g_mu.err, g_mu.q, g_mu.in, g_mu.busy, g_mu.btmo, g_mu.ign,
+               g_mu.cap ? ", recording (/MIDICAP)" : "");
+        return g_mu.out == 0 || !strcmp(g_mu.state, "active") ? 0 : 1;
     }
     g_ui = isatty(fileno(stdout));
     if (!stricmp(cmd, "DEMO"))
@@ -241,6 +451,7 @@ report:
     secs = d[F_MS] / 1000.0;
     out("SBDIAG - why the MIDI music is not at full speed\n");
     out("================================================\n");
+    { char w[300]; VESAWC_Status(w, sizeof w); out("Video write-combining (SBEMU /VWC): %s\n", w); }
     if (d[F_ISRN] == 0 || secs < 2)
     {
         out("Nothing measured yet. Run SBDIAG START, play the game with music, quit, then run SBDIAG.\n");
@@ -255,8 +466,9 @@ report:
     {   /* layout 6: the AWE32 renders beside the MPU-401's synth (SC-55 + AWE32), counted apart */
         int awe = d[F_VER] >= 6 && d[F_AWEN], mpu = d[F_RENN] != 0 || d[F_SYNTH] == 3;
         double awe_audio = d[F_FREQ] && awe ? d[F_AWEFR] * 1000.0 / d[F_FREQ] : 0;
-        if (!awe) snprintf(g_synth, sizeof g_synth, "%s", synth_name(d[F_SYNTH]));
-        else if (d[F_RENN]) snprintf(g_synth, sizeof g_synth, "%s + AWE32", synth_name(d[F_SYNTH]));
+        const char* base = g_muon ? "USB MIDI device" : synth_name(d[F_SYNTH]);   /* beta.126-awe.1: MUXED /MUSB */
+        if (!awe) snprintf(g_synth, sizeof g_synth, "%s", base);
+        else if (d[F_RENN] || g_muon) snprintf(g_synth, sizeof g_synth, "%s + AWE32", base);
         else snprintf(g_synth, sizeof g_synth, "AWE32");
         g_awe_ms = awe ? d[F_AWEMS] : 0; g_awe_load = awe_audio > 0 ? 100.0 * g_awe_ms / awe_audio : 0;
         g_awe_max = awe ? d[F_AWEMAX] / 1000.0 : 0; g_mpu_ren = mpu;
@@ -279,8 +491,14 @@ report:
     traps = (double)d[F_TMPU] + d[F_TSB] + d[F_TOPL] + d[F_TPIT] + d[F_TPIC] + d[F_TOTH];
     trap_pct = 100.0 * traps * trapcost / 1e6 / secs;
 
-    out("Measured %.0f s on a %.0f MHz CPU. Synth: %s", secs, cps / 1e6, g_synth);
-    if (!d[F_SYNTH] && d[F_RENN]) out(" (reverb/chorus %s, voices %s, speed-control level %lu)",
+    if (g_muon)
+    {
+        char l[200];
+        out("Measured %.0f s on a %.0f MHz CPU. Synth: %s (SBEMU /MUSB, no synth load here)\n", secs, cps / 1e6, g_synth);
+        out("%s\n  %lu dropped, %lu USB errors, the game waited for the cable %lu times", musb_line(&g_mu, l, sizeof l), g_mu.drop, g_mu.err, g_mu.busy);
+    }
+    else out("Measured %.0f s on a %.0f MHz CPU. Synth: %s", secs, cps / 1e6, g_synth);
+    if (!d[F_SYNTH] && !g_muon) out(" (reverb/chorus %s, voices %s, speed-control level %lu)",
                          d[F_FX] ? "on" : "off", d[F_VOICES] ? "limited" : "all", d[F_GOV]);
     out("\n\n");
 

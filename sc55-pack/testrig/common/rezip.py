@@ -7,6 +7,7 @@ for i in z.infolist():
     n=i.filename; b=os.path.basename(n); f=None
     if n.startswith('NUKEDSB/FILES/SC55/'): seen.add(b.upper())
     if n=='NUKEDSB/README.TXT': f='sc55-pack/pack/README.TXT'
+    elif n=='NUKEDSB/HWTEST.TXT': f='sc55-pack/pack/HWTEST.TXT'
     elif n.startswith('NUKEDSB/FILES/SC55/') and b and os.path.isfile(P+b): f=P+b
     elif (n.startswith('NUKEDSB/FILES/SC55/') or n=='NUKEDSB/FILES/CDSET/CDGUI.EXE') and b and os.path.isfile(O+b.lower()): f=O+b.lower()
     if f: w.writestr(i,open(f,'rb').read()); sw+=1

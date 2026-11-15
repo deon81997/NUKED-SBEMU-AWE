@@ -1,0 +1,39 @@
+@ECHO OFF
+REM VWT CASE: SBEMU /VWC tests (feature/vesa-wc). CASE pm (SC55.BAT, HIMEM only), rm (SC55JEM.BAT, JEMMEX),
+REM emm (SC55.BAT under HIMEM + EMM386). Log C:\RESULT.LOG; the host script (run.sh) judges it. Last line DONE PASS.
+C:
+CD \NUKEDSB
+CALL SETUP C > NUL
+ECHO == case %1 > C:\RESULT.LOG
+C:
+CD \SC55
+C:\HDPMI\HDPMI32I.EXE -r -x > NUL
+ECHO -- fail-start (SBEMU /VWC:1 /PADLOG exits before going resident) >> C:\RESULT.LOG
+SBEMU.EXE /VWC:1 /PADLOG > C:\T.TXT
+FIND "write-combining" C:\T.TXT >> C:\RESULT.LOG
+SBDIAG.EXE WC >> C:\RESULT.LOG
+ECHO -- start /VWC:1 >> C:\RESULT.LOG
+IF "%1"=="rm" CALL C:\SC55\SC55JEM.BAT /VWC:1 > C:\SBOUT.TXT
+IF NOT "%1"=="rm" CALL C:\SC55\SC55.BAT /VWC:1 > C:\SBOUT.TXT
+C:
+CD \SC55
+FIND "write-combining" C:\SBOUT.TXT >> C:\RESULT.LOG
+FIND "write-combining" C:\SC55\SBDETAIL.TXT >> C:\RESULT.LOG
+FIND "going resident" C:\SC55\SBDETAIL.TXT >> C:\RESULT.LOG
+SBDIAG.EXE WC >> C:\RESULT.LOG
+ECHO -- rerun /VWC:0 >> C:\RESULT.LOG
+SBEMU.EXE /VWC:0 > C:\T.TXT
+FIND "write-combining" C:\T.TXT >> C:\RESULT.LOG
+SBDIAG.EXE WC >> C:\RESULT.LOG
+ECHO -- rerun /VWC:1 >> C:\RESULT.LOG
+SBEMU.EXE /VWC:1 > C:\T.TXT
+FIND "write-combining" C:\T.TXT >> C:\RESULT.LOG
+SBDIAG.EXE WC >> C:\RESULT.LOG
+ECHO -- sbemu alive >> C:\RESULT.LOG
+SC55MENU.EXE C:\SC55 /STATUS >> C:\RESULT.LOG
+IF ERRORLEVEL 1 ECHO menu status errorlevel >> C:\RESULT.LOG
+MPUTEST.EXE > NUL
+ECHO mputest errorlevel follows >> C:\RESULT.LOG
+IF ERRORLEVEL 1 ECHO mputest FAILED >> C:\RESULT.LOG
+SBDIAG.EXE WC >> C:\RESULT.LOG
+ECHO DONE PASS >> C:\RESULT.LOG

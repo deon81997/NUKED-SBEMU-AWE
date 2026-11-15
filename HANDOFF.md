@@ -1,3 +1,18 @@
+## beta.127-awe.1 (2026-11-15, AWE session): MUXED beta.127 (serial debug link /DBG) merged into the AWE line
+- main = beta.126-awe.1 + MUXED v1.0.0-beta.126-usb..v1.0.0-beta.127-usb (c0630cf) as a 3-way patch, branch awe-beta127.
+  Conflicts only in makefile VERSION, midplay.c includes (sbemuchk.h + dbg.h), README news, HANDOFF. main.c, hdpmipt.c,
+  qemm.c merged cleanly; DBGL_Trap sits in the shared trap dispatchers, so AWE32 port writes (MAIN_AWE_IODT) go into the
+  level 3 capture too. No new port traps (the link uses the UART directly).
+- Tests: testrig/dbg (QEMU, SBX="/AWE:620", new SBX hook) pm + rm + both hang runs PASS (one earlier pm run had "tool
+  direct" 0 lines once, not repeated). duke.sh HIMEM 325 int/s 0.10 ms 0.0% lost, AWE 2%; cmp.py vs awe.2 within 0.1 dB;
+  /AWE /JOY:1 /MUSB:1 /SPDIF:1 + pad: 14 of 16 traps. perf.sh /AWE idle 0.04 ms; SC-55 + AWELOAD 1.96 ms 67%, SC-55
+  302%, AWE 7% (= beta.126-awe.1). mpu.sh /MOUT:USB silent -> /MOUT:SYNTH MT-32 audible. sata 5/5, menustat 5/5,
+  gamecap miles PASS, switch.sh mout PASS, keysoak JEMM 2 min 0 keys (all with /AWE:620 where the rig takes options).
+- Rig: earlier uncommitted beta.126-awe.1 rig edits (duke.sh LOG=1, perf.sh EXTRA) committed now; dbg/run.sh is bash.
+- Release: NUKED-SB-EMU-1.0.0-beta.127-awe.1-usb.zip (file list = MUXED beta.127), tag v1.0.0-beta.127-awe.1-usb.
+- Hardware to retest: /DBG:COM1 with AWE32 on the P5PE-VM (null-modem to a second PC, DBGLOG.PY): Duke AWE music
+  while level 2 runs (no stutter), Ctrl+Alt+F10 level 3 capture shows 620h/A20h/E20h writes.
+
 ## beta.126-awe.1 (2026-11-14, AWE session, repo deon81997/spare-01): MUXED beta.122-126 merged into the AWE line
 - main = awe.2 + NUKED-SBEMU-MUXED v1.0.0-beta.121-usb..v1.0.0-beta.126-usb (6f5ec98) as a 3-way patch (same recipe as
   awe.1; branch awe-beta126). Brings USB MIDI byte-exact + MPU front end (122), live MIDI output switch /MOUT + MENU

@@ -12,7 +12,9 @@ H=$(cd "$(dirname "$0")" && pwd); W=/tmp/dbgtest; T=$H/../..
 ZIP=$1; shift
 mkdir -p "$W"; nasm -f bin -o "$W/SBT.COM" "$H/../sbt.asm" || exit 2
 sh "$H/../menustat/mkimg.sh" "$ZIP" "$W" "$@" || exit 2
-for m in pm rm; do mcopy -o -i "$W/$m.img@@32256" "$W/SBT.COM" "$H/DBG.BAT" ::/ || exit 2; done
+# SBX: extra SBEMU options for both modes (AWE line: SBX="/AWE:620"), put into a copy of DBG.BAT
+sed "s#/DBG:COM1:1 >#/DBG:COM1:1 ${SBX:-}>#" "$H/DBG.BAT" > "$W/DBG.BAT"
+for m in pm rm; do mcopy -o -i "$W/$m.img@@32256" "$W/SBT.COM" "$W/DBG.BAT" ::/ || exit 2; done
 export QAUDIO=${QAUDIO:-none,id=snd,timer-period=2000}
 F=0
 logrun() {  # MODE NAME BATCHARG TIMEOUT UNTIL

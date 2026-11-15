@@ -555,7 +555,11 @@ CONTENTS
   MIDI games, MIDPLAY and MENU's tests use the SC-55 (or what "MPU-401 also
   plays" says) at 330h. /AWEMPU:0 gives the old AWE-only setup (beta.121-
   awe.1): the MPU-401 then plays nothing, MENU shows "AWE32 (no MPU)" and
-  MIDPLAY says so instead of playing silently. Both follow the game's Sound
+  MIDPLAY says so instead of playing silently (with SBEMU's USB on, the
+  MPU-401's MIDI goes to a USB MIDI device instead). The MIDI output switch
+  (MENU "MIDI to", SBEMU /MOUT, Ctrl+Alt+F11) moves only the MPU-401 at 330h
+  between the emulated synth and USB MIDI devices; the AWE32 always stays on
+  its own ports (620h...) and keeps playing. Both follow the game's Sound
   Blaster 16 mixer (MIDI and master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
   (sample RAM in KB: AWE32 512, AWE64 Gold 4096, up to 28672), /AWEROM:file
   or folder. CPU: about 2-3% of a Pentium II 400 while Duke 3D's music plays;

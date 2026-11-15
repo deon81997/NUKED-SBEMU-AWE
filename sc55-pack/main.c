@@ -2519,7 +2519,8 @@ int main(int argc, char* argv[])
             romok ? romname : "not found (put AWE32.RAW / AWEROM.BIN into ROMS; games that load their own samples still play)");
         MAIN_Print_Enabled_Newline(true);
         if(!MAIN_Options[OPT_AWEMPU].value)
-            MAIN_CPrintf(LIGHTGRAY, "  MPU-401 %x: no synth with the AWE32 (/AWEMPU:0)\n", MAIN_Options[OPT_MPUADDR].value);
+            MAIN_CPrintf(LIGHTGRAY, "  MPU-401 %x: no emulated synth with the AWE32 (/AWEMPU:0)%s\n", MAIN_Options[OPT_MPUADDR].value,
+                MAIN_UsbOut ? "; its MIDI goes to the USB MIDI device" : "");
     }
 
     MAIN_Step("Sound Blaster init");
@@ -3670,8 +3671,9 @@ static void MAIN_TSR_Interrupt()
             char t[160];
             extern int VMPU_Kind(void);
             /* SYNTH= what plays the MPU-401's MIDI; AWE= the EMU8000 port (beta.121-awe.2; MIDPLAY warns on SYNTH=NONE) */
-            const char* syn = VMPU_ENABLED ? (VMPU_Kind() == 2 ? "MT32" : VMPU_Kind() == 1 ? "SF" : "SC55")
-                            : MAIN_MUSB ? "USB" : mpu401_aui.mpu401 ? "HW" : "NONE";
+            /* beta.126-awe.1: the live output (MUXED beta.123 /MOUT switch: the synth stays loaded while USB plays) */
+            const char* syn = MAIN_UsbOut ? "USB" : VMPU_ENABLED ? (VMPU_Kind() == 2 ? "MT32" : VMPU_Kind() == 1 ? "SF" : "SC55")
+                            : mpu401_aui.mpu401 ? "HW" : "NONE";
             int n = snprintf(t, sizeof t, "VER=%s MODE=%s%s%s MPU=%X TRAP=%s%s%s SB=%X SYNTH=%s AWE=%X",
                 MAIN_SBEMU_VER, MAIN_Options[OPT_RM].value ? "RM" : "", MAIN_Options[OPT_RM].value && MAIN_Options[OPT_PM].value ? "+" : "",
                 MAIN_Options[OPT_PM].value ? "PM" : "", (unsigned)MAIN_Options[OPT_MPUADDR].value,

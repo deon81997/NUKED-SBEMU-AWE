@@ -6,7 +6,7 @@
 # (store-personal ROMs: SC-55 sets + AWEROM.BIN). AUTOEXEC: HDPMI32I -r, SBEMU opts > C:\SB.TXT, SBDIAG START, the
 # commands (from C:\SC55), SBDIAG > C:\DIAG.TXT. Records 86Box audio for SECS (default 40) of emulated time.
 # Out: /tmp/mpu-NAME/{SB,DIAG,OUT}.TXT (OUT = what the commands printed, if they redirect to C:\OUT.TXT), aud/main.wav.
-# ENV: ENG=qemu (QEMU TCG + AC97 instead of 86Box: fast enough for the SC-55); EXTRA="file ..." more files into C:\SC55; PRE="DOS line" before SBEMU (e.g. SET SBEMULOG=...).
+# ENV: XPAD=1 (86Box: one emulated wired 360 pad on UHCI, as duke.sh); ENG=qemu (QEMU TCG + AC97 instead of 86Box: fast enough for the SC-55); EXTRA="file ..." more files into C:\SC55; PRE="DOS line" before SBEMU (e.g. SET SBEMULOG=...).
 set -e
 H=$(cd $(dirname $0); pwd); TR=$(dirname $H); P=$(dirname $TR); R=/home/claude/rel/NUKEDSB/FILES; O=$P/output
 N=$1; EXE=$2; OPTS=$3; CMDS=$4; SECS=${5:-40}; MODE=${6:-himem}; V=/tmp/mpu-$N; rm -rf $V; mkdir -p $V/c/SC55/ROMS
@@ -34,6 +34,7 @@ if [ "${ENG:-86box}" = qemu ]; then   # ENG=qemu: fast TCG (the SC-55 runs in re
   sleep 2; pkill -f "qemu-system-i386.*$V/hd.img" || true; sleep 1
 else
 sed -e 's#^hdd_01_fn = .*#hdd_01_fn = hd.img#' -e 's/^hdd_01_parameters = .*/hdd_01_parameters = 63, 16, 2080, 0, ide/' $TR/86box/p2bls-uhci.cfg > $V/86box.cfg
+if [ -n "${XPAD:-}" ]; then echo 'lx=0 ly=0 rx=0 ry=0 lt=0 rt=0 buttons=0' > $V/xpad1.st; echo "export XPAD=1 XPAD_STATE=$V/xpad1.st" > $V/env; fi
 bash $TR/86box/run.sh $V > /dev/null
 python3 $H/drv.py $V $SECS > $V/drv.log 2>&1 || true
 python3 $TR/86box/a.py $V/a.sock release > /dev/null 2>&1 || true

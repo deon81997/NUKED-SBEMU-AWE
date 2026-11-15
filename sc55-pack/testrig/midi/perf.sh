@@ -1,5 +1,6 @@
 #!/bin/bash
 # perf.sh NAME SBEMU.EXE "SBEMU options" [seconds]: 86Box ASUS P2B-LS, Pentium II 450, ES1371 (testrig/86box): SBEMU,
+# ENV: PRECMD / POSTCMD DOS lines, EXTRA="files or dirs" copied into C:\SC55 (beta.126-awe.1).
 # SBDIAG START, POSTCMD (env, e.g. AWELOAD), MIDPLAY of a busy song (genmid.py, 16 channels) for 40 s, SBDIAG report -> perf-NAME.txt here
 set -e
 H=$(cd $(dirname $0); pwd); TR=$(dirname $H); P=$(dirname $TR); R=/home/claude/rel/NUKEDSB/FILES
@@ -7,6 +8,7 @@ V=/tmp/perf-$1; rm -rf $V; mkdir -p $V/c/SC55
 cp $TR/rufus/res/freedos/KERNEL.SYS $TR/rufus/res/freedos/COMMAND.COM $V/c/
 cp $R/JEMM/JEMMEX.EXE $R/HDPMI/HDPMI32I.EXE $V/c/SC55/
 cp $P/output/sbdiag.exe $V/c/SC55/SBDIAG.EXE; cp $P/output/midplay.exe $V/c/SC55/MIDPLAY.EXE; cp $2 $V/c/SC55/SBEMU.EXE
+for f in ${EXTRA:-}; do cp -r $f $V/c/SC55/; done   # EXTRA="files/dirs" into C:\SC55 (AWELOAD.COM, ROMS)
 for f in ${PREFILES:-}; do cp $f $V/c/SC55/; done        # PREFILES="a b": extra files into C:\SC55
 python3 $TR/midplay/genmid.py $V/c/T.MID 60 2 > /dev/null
 printf 'DEVICE=C:\\SC55\\JEMMEX.EXE NOEMS\r\nSHELL=C:\\COMMAND.COM C:\\ /E:1024 /P\r\n' > $V/c/CONFIG.SYS

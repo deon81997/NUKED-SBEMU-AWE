@@ -7,7 +7,7 @@ DEBUG ?= 0
 # 0: original SBEMU build with the TinySoundFont SoundFont synth
 VSC55 ?= 1
 
-VERSION ?= 1.0.0-beta.126-awe.1-usb-sc55
+VERSION ?= 1.0.0-beta.127-awe.1-usb-sc55
 PACKVER = -DNSB_VER=\"$(VERSION)\" -include tools/packver.h
 
 INCLUDES := -I./mpxplay -I./sbemu -I./drivers/include -I./sc55 -I./third_party/nuked-opl3-fast
@@ -138,7 +138,7 @@ SBEMU_SRC := sbemu/dbopl.cpp \
 	     vesawc.c \
 
 ifeq ($(VSC55),1)
-SBEMU_SRC += sbemu/vmpu_sc55.c sbemu/vmpu_sf.c sbemu/vdiag.c sbemu/trace.c
+SBEMU_SRC += sbemu/vmpu_sc55.c sbemu/vmpu_sf.c sbemu/vdiag.c sbemu/trace.c sbemu/dbglink.c
 else
 SBEMU_SRC += sbemu/vmpu.c
 endif
@@ -195,7 +195,7 @@ AWE_OBJS := output/awe/synth/emu8k.o output/awe/synth/emu8k_rom.o
 OBJS := $(patsubst %.cpp,output/%.o,$(patsubst %.c,output/%.o,$(SRC))) $(SC55_OBJS) $(NUKEDOPL_OBJ) $(AWE_OBJS)
 # no per-file header tracking: rebuild every object when any project header changes
 # (a stale object built against an older opl3.h corrupted memory in beta.50 testing)
-PROJECT_HEADERS := $(wildcard sbemu/*.h sbemu/*/*.h mpxplay/*.h mpxplay/au_cards/*.h sc55/*.h third_party/*/*.h $(CORE_DIR)/*.h)
+PROJECT_HEADERS := tools/dbg.h $(wildcard sbemu/*.h sbemu/*/*.h mpxplay/*.h mpxplay/au_cards/*.h sc55/*.h third_party/*/*.h $(CORE_DIR)/*.h)
 output/packver.o: tools/packver.c makefile
 	@mkdir -p $(dir $@)
 	$(SILENTCMD)$(CC) -O2 -Wall -DPACK_VER=\"$(VERSION)\" -c $< -o $@

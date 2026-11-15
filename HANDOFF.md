@@ -1,3 +1,18 @@
+## beta.127-awe.1 (2026-11-15, AWE session): MUXED beta.127 (serial debug link /DBG) merged into the AWE line
+- main = beta.126-awe.1 + MUXED v1.0.0-beta.126-usb..v1.0.0-beta.127-usb (c0630cf) as a 3-way patch, branch awe-beta127.
+  Conflicts only in makefile VERSION, midplay.c includes (sbemuchk.h + dbg.h), README news, HANDOFF. main.c, hdpmipt.c,
+  qemm.c merged cleanly; DBGL_Trap sits in the shared trap dispatchers, so AWE32 port writes (MAIN_AWE_IODT) go into the
+  level 3 capture too. No new port traps (the link uses the UART directly).
+- Tests: testrig/dbg (QEMU, SBX="/AWE:620", new SBX hook) pm + rm + both hang runs PASS (one earlier pm run had "tool
+  direct" 0 lines once, not repeated). duke.sh HIMEM 325 int/s 0.10 ms 0.0% lost, AWE 2%; cmp.py vs awe.2 within 0.1 dB;
+  /AWE /JOY:1 /MUSB:1 /SPDIF:1 + pad: 14 of 16 traps. perf.sh /AWE idle 0.04 ms; SC-55 + AWELOAD 1.96 ms 67%, SC-55
+  302%, AWE 7% (= beta.126-awe.1). mpu.sh /MOUT:USB silent -> /MOUT:SYNTH MT-32 audible. sata 5/5, menustat 5/5,
+  gamecap miles PASS, switch.sh mout PASS, keysoak JEMM 2 min 0 keys (all with /AWE:620 where the rig takes options).
+- Rig: earlier uncommitted beta.126-awe.1 rig edits (duke.sh LOG=1, perf.sh EXTRA) committed now; dbg/run.sh is bash.
+- Release: NUKED-SB-EMU-1.0.0-beta.127-awe.1-usb.zip (file list = MUXED beta.127), tag v1.0.0-beta.127-awe.1-usb.
+- Hardware to retest: /DBG:COM1 with AWE32 on the P5PE-VM (null-modem to a second PC, DBGLOG.PY): Duke AWE music
+  while level 2 runs (no stutter), Ctrl+Alt+F10 level 3 capture shows 620h/A20h/E20h writes.
+
 ## beta.126-awe.1 (2026-11-14, AWE session, repo deon81997/spare-01): MUXED beta.122-126 merged into the AWE line
 - main = awe.2 + NUKED-SBEMU-MUXED v1.0.0-beta.121-usb..v1.0.0-beta.126-usb (6f5ec98) as a 3-way patch (same recipe as
   awe.1; branch awe-beta126). Brings USB MIDI byte-exact + MPU front end (122), live MIDI output switch /MOUT + MENU
@@ -166,6 +181,33 @@
   HIMEM only and with JEMM; SETTINGS: pick AWE32, save, reboot, MENU shows "AWE32 at 620"; SBDIAG while it plays.
 - Test downloads: DJGPP v3.4 gcc12.2; 86Box 0935207 + roms; HX (Baron) + crazii/HX (trap API reading); Jemm (QPIEMU
   reading); JWasm + HimemX (built HIMEMX.EXE for the rig); rufus res/freedos.
+## beta.127 (2026-11-15, DOS session): serial debug link (SBEMU /DBG, DBGLOG.PY)
+- User: /DBG:COM1|COM2[,baud][,level] (default off), level 1 events + errors + stats/s, 2 + per-frame port/DMA/IRQ,
+  3 RAM capture of every trapped port sent on trigger/keypress; polled UART + ring, ISR/trap safe, flush on fatal;
+  MENU/MIDPLAY/GAMETEST/SBDIAG on the same port (shared DBG.H); host DBGLOG.PY (pyserial) + cable README; stage 2
+  (two-way, UDP/packet driver) design note only; no slowdown.
+- Done: tools/dbg.h (parser - ':' = ',' because batch %1 splits at commas -, 16550 init FIFO/no IRQ, 8 KB ring,
+  dbg_pump one FIFO load, dbg_sync time-limited; tool side: argv /DBG: or SBDBG, through SBEMU AMIS 0Ah when its
+  link is on). sbemu/dbglink.c (lines "<s.ms> SB <kind> text"; E sync for IRQ/DMA events, repeats counted; stats from
+  TSC; level 2 F lines; level 3 4096-record ring, Ctrl+Alt+F10 / SBDIAG DBG DUMP; DBGL_Fatal; hang test). Hooks:
+  trace.c TRACE_Event (+ IRQ/ack counts, SdaLin), vdiag.c (MIDI, underruns, Ctrl+Alt+F10), hdpmipt.c + qemm.c traps,
+  main.c (/DBG string option replaces upstream numeric /DBG, re-run, INT 28h pump, AMIS 0Ah, DBGL_Isr before
+  DIAG_IsrEnd). SBDIAG DBG [DUMP|HANG|LEVEL n|LOG text]. pack/FILES/SC55/DBGLOG.PY + DBGLOG.TXT (cables, P5PE-VM,
+  D810 D/Port), README.TXT 7 + 15, HWTEST beta.127, docs/DBGLINK.md (stage 2/2b design).
+- Bugs found on the way: (1) put_line's `kind ? "%s %c %s" : "%s %s"` passed a char to %s -> SBEMU fault in AMIS
+  (QEMU). (2) DPMI_LoadW at option time = LOAD_DS before DPMI_Init -> GPF ds=0 (86Box only): use _farpeekw(_dos_ds).
+  (3) DPMI_LoadB/W of the PSP/MCB from inside the sound ISR froze 86Box PII-450+ES1371 (QEMU fine): dbglink reads them
+  with _farpeek. trace.c prog() does the same from traps/ISR (TRACE_Irq) - untouched, but suspect if SBTRACE hangs.
+  (4) HDPMI virtualises ring-3 CLI/HLT: the hang test spins instead of HLT.
+- Tests: testrig/dbg/run.sh ZIP EXEs (QEMU dos71, COM1 -> TCP -> DBGLOG.PY, QAUDIO timer-period=2000; common/run.sh
+  got env QAUDIO): pm (SC55.BAT) + rm (SC55JEM.BAT): link line, start events, stats, tool lines via SBEMU and direct,
+  SBDIAG LOG, level 2 F lines, level 3 capture 4096 T lines + end, hang: "!" is the last line and nothing follows for
+  40 s -> PASS. Speed (testrig/dbg/perf.sh, 86Box P3B-F PII-450 ES1371, TimGM6mb 40 s): base / off / level 1 all 61%
+  CPU, ISR avg 1.77 ms; level 2 1.78 ms (+0.6% ISR time). SBT.COM (real-mode SB DMA) only in rm.
+- Test downloads: DJGPP gcc 12.2 (andrewwutw build-djgpp v3.4), apt timgm6mb-soundfont, nasm, librtmidi6, pip pyserial.
+- Next 3 steps: 1) P5PE-VM + D810 HWTEST beta.127 (dbg-*.log, capture, hang line); 2) stage 2 two-way commands
+  (docs/DBGLINK.md); 3) MENU item "Serial debug link" in SETTINGS (port/level saved to SBOPTS.TXT).
+
 ## beta.126 (2026-11-15, DOS session): Audigy S/PDIF out (/SPDIF, jack switch, SBDIAG SPDIF/TONE)
 - User: S/PDIF on every Audigy (1 / 2 / 2 ZS / 2 Value / 4), /SPDIF:0|1|ONLY (default 1 = analog + S/PDIF), shown in SBDIAG; S/PDIF
   shares the rear 3.5 mm Digital Out / Center-Sub jack (tip = coax via TRS-to-RCA): /SPDIF:1 must switch that jack to digital.

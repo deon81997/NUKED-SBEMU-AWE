@@ -39,6 +39,7 @@
 #include "qemm.h"
 #include "hdpmipt.h"
 #include "serial.h"
+#include "dbglink.h"
 #include "irqguard.h"
 #include "vesawc.h"
 #include "utility.h"
@@ -1071,7 +1072,7 @@ struct MAIN_OPT
 }MAIN_Options[] =
 {
     "/?", "Show this help screen", FALSE, 0,
-    "/DBG", "Debug output (0=console, 1=COM1, 2=COM2, 3=COM3, 4=COM4, otherwise base address)", 0, 0,
+    "/DBG", "Serial debug link: COM1|COM2[,baud][,level] - level 1 events + errors + stats/s, 2 + per-frame port/DMA/IRQ, 3 + port capture sent on Ctrl+Alt+F10 (0 = off)", (uintptr_t)"0", MAIN_SETCMD_STR,
 
     "/A", "IO address (220 or 240) [*]", 0x220, 0,
     "/I", "IRQ number (5 or 7 or 9) [*]", 7, 0,
@@ -1677,22 +1678,18 @@ MAIN_Print_Enabled_Newline(bool enabled)
     MAIN_PutStr(".\r\n");
 }
 
+/* /DBG:COM1|COM2[,baud][,level] (beta.127): the serial debug link (sbemu/dbglink.c). DEBUG builds' _LOG used to go to
+ * /DBG:n; it now goes to the console (the link owns the port). 1 = bad option / no port */
 static int
 update_serial_debug_output()
 {
-    bool enabled = (MAIN_Options[OPT_DEBUG_OUTPUT].value != 0);
-    if (!enabled) {
-        _LOG("Serial port debugging disabled.\n");
-    }
-    #if MPU_DEBUG
-    int err = ser_setup(MAIN_Options[OPT_MDBG].value ? SBEMU_SERIAL_TYPE_FASTDBG : SBEMU_SERIAL_TYPE_DBG, MAIN_Options[OPT_DEBUG_OUTPUT].value);
-    #else
-    int err = ser_setup(SBEMU_SERIAL_TYPE_DBG, MAIN_Options[OPT_DEBUG_OUTPUT].value);
-    #endif
-    if (enabled) {
-        _LOG("Serial port debugging enabled.\n");
-    }
-    return err;
+    char msg[120];
+    const char* v = (const char*)MAIN_Options[OPT_DEBUG_OUTPUT].value;
+    int r = DBGL_Init(v, msg, sizeof msg);
+    if (r == -1) { MAIN_CPrintf(RED, "Error: %s.\n", msg); return 1; }                 /* a typo in the option */
+    if (r == -2) { MAIN_CPrintf(YELLOW, "Warning: %s - SBEMU goes on without it.\n", msg); return 0; }   /* no such port */
+    if (msg[0]) MAIN_D("%s\n", msg);
+    return 0;
 }
 
 static int
@@ -1946,8 +1943,9 @@ int main(int argc, char* argv[])
 #if MPU_DEBUG
     mpu_debug = MAIN_Options[OPT_MDBG].value;
 #endif
-    if (MAIN_Options[OPT_DEBUG_OUTPUT].value) {
-        if (update_serial_debug_output()) {
+    {
+        const char* v = (const char*)MAIN_Options[OPT_DEBUG_OUTPUT].value;
+        if (v && *v && strcmp(v, "0") && update_serial_debug_output()) {
             return 1;
         }
     }
@@ -2725,6 +2723,11 @@ int main(int argc, char* argv[])
             MAIN_D("Flight recorder: %s, INT 28h %s\n", MAIN_TracePath, MAIN_Int28On ? "hooked" : "FAILED");
             TRACE_Event(TR_INFO, "SBEMU %s started", MAIN_SBEMU_VER);
         }
+        if(DBGL_On)
+        {   /* beta.127: the link pumps at the DOS prompt too (INT 28h), so a capture or a tool's lines leave fast there */
+            if(!MAIN_Int28On) MAIN_Int28On = DPMI_InstallRealModeISR(0x28, MAIN_Int28, &MAIN_Int28REG, &MAIN_Int28Handle, FALSE) == 0;
+            if(!MAIN_TracePath[0]) DBGL_Line(0, 'I', "SBEMU %s started (flight recorder off)", MAIN_SBEMU_VER);
+        }
     }
 
 #if SBEMU_PCSPEAKER
@@ -3024,6 +3027,7 @@ static void MAIN_InterruptPM()
         MAIN_Interrupt();
         RESETIF();
         PIC_SendEOIWithIRQ(aui.card_irq); //some BIOS driver doesn't works well if not sending EOI, there's extra check for EOI in DPMI_RMISR_ChainedWrapper
+        if(DBGL_On) DBGL_Isr(DIAG_Tsc() - isr_t0);   /* beta.127: before DIAG_IsrEnd, so SBDIAG's load includes the link */
         DIAG_IsrEnd(MAIN_DiagFrames);
         MAIN_TimerReplay(DIAG_Tsc() - isr_t0);
         MAIN_CDService();
@@ -3065,6 +3069,7 @@ static void MAIN_InterruptRM()
         MAIN_Interrupt();
         RESETIF();
         PIC_SendEOIWithIRQ(aui.card_irq); //some BIOS driver doesn't works well if not sending EOI, there's extra check for EOI in DPMI_RMISR_ChainedWrapper
+        if(DBGL_On) DBGL_Isr(DIAG_Tsc() - isr_t0);   /* beta.127: before DIAG_IsrEnd, so SBDIAG's load includes the link */
         DIAG_IsrEnd(MAIN_DiagFrames);
         MAIN_TimerReplay(DIAG_Tsc() - isr_t0);
         MAIN_CDService();
@@ -3109,6 +3114,7 @@ static void MAIN_Int28()
 {
     if(MAIN_CdlOn) CDLINK_Service(1);
     TRACE_Idle();
+    if(DBGL_On) DBGL_Pump();
     DPMI_CallRealModeOldISR(&MAIN_Int28Handle, &MAIN_Int28REG);
 }
 
@@ -3714,6 +3720,32 @@ static void MAIN_TSR_Interrupt()
             MAIN_TSRREG.w.flags &= ~CPU_CFLAG;
         }
         return;
+        case 0x0A: //beta.127: serial debug link (/DBG): ECX 0 = status line into EBX (EDX = size), EDX out = level (0 off);
+        {          //1 = a tool's line at EBX ("MENU text", EDX 1 = wait until sent); 2 = send the level-3 capture; 3 = forced hang test; 4 = level EDX
+            uint32_t fn = MAIN_TSRREG.d.ecx;
+            if(fn == 0)
+            {
+                char t[160]; int n = DBGL_Status(t, sizeof t);
+                if(n > (int)sizeof t - 1) n = sizeof t - 1;
+                if(MAIN_TSRREG.d.edx < (uint32_t)n + 1) n = MAIN_TSRREG.d.edx ? (int)MAIN_TSRREG.d.edx - 1 : 0;
+                t[n] = 0;
+                if(MAIN_TSRREG.d.edx) DPMI_LMemcpy(MAIN_TSRREG.d.ebx, DPMI_PTR2L(t), n + 1);
+                MAIN_TSRREG.d.ecx = n; MAIN_TSRREG.d.edx = DBGL_On;
+            }
+            else if(fn == 1 && DBGL_On)
+            {
+                char t[224]; char* sp;
+                DPMI_LMemcpy(DPMI_PTR2L(t), MAIN_TSRREG.d.ebx, sizeof t - 1); t[sizeof t - 1] = 0;
+                sp = strchr(t, ' ');
+                if(sp && sp - t < 12) { *sp = 0; DBGL_Raw(MAIN_TSRREG.d.edx & 1, t, sp + 1); } else DBGL_Raw(MAIN_TSRREG.d.edx & 1, "TOOL", t);
+            }
+            else if(fn == 2) DBGL_Trigger();
+            else if(fn == 3 && DBGL_On) DBGL_HangTest();
+            else if(fn == 4) MAIN_TSRREG.d.edx = DBGL_SetLevel((int)MAIN_TSRREG.d.edx);
+            MAIN_TSRREG.h.al = 0;
+            MAIN_TSRREG.w.flags &= ~CPU_CFLAG;
+        }
+        return;
         case 0x09: //beta.125: keys SBEMU typed (vkbc.c log): ECX bit 0 = clear first, bit 1 = with the byte log; text into EBX (EDX = size)
         {
             static char t[64 * 48 + 300];
@@ -3843,6 +3875,7 @@ static void MAIN_TSR_Interrupt()
             if(OPT_CHANGED(OPT_DEBUG_OUTPUT))
             {
                 update_serial_debug_output();
+                if(DBGL_On && !MAIN_Int28On) MAIN_Int28On = DPMI_InstallRealModeISR(0x28, MAIN_Int28, &MAIN_Int28REG, &MAIN_Int28Handle, FALSE) == 0;
             }
             if(OPT_CHANGED(OPT_AWE) || OPT_CHANGED(OPT_AWERAM) || OPT_CHANGED(OPT_AWEROM) || OPT_CHANGED(OPT_AWEMPU))
             {   /* the EMU8000's memory and port traps are set up when SBEMU loads: keep what is running */

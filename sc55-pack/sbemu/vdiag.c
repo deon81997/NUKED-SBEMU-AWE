@@ -4,6 +4,7 @@
 #include "dpmi/dpmi.h"
 #include <string.h>
 #include <time.h>
+#include "dbglink.h"
 
 volatile int DIAG_Armed;
 /* timed measurement (GAMETEST): 0xA9 n = stop by itself after n seconds and keep that report */
@@ -289,6 +290,7 @@ void DIAG_Trap(uint32_t port)
 void DIAG_Fifo(int fill, uint32_t under_total)
 {
     TRACE_Underruns(under_total);
+    if (DBGL_On) DBGL_Under(under_total);
     if (!DIAG_Armed) return;
     if (!D_UnderInit) { D_UnderBase = under_total; D_UnderInit = 1; }
     D_UnderNow = under_total;
@@ -302,7 +304,7 @@ void DIAG_BiosClock(uint64_t e, uint64_t g)
     D_BiosExp = e - D_BiosExp0; D_BiosGot = g - D_BiosGot0;
 }
 void DIAG_TimerReplayed(uint32_t n) { TRACE_Replayed(n); if (DIAG_Armed) D_Replayed += n; }
-void DIAG_Midi(int dropped) { if (dropped) TRACE_MidiDropped(); if (DIAG_Armed) { ++D_MidiBytes; if (dropped) ++D_MidiDropped; } }
+void DIAG_Midi(int dropped) { if (DBGL_On) DBGL_Midi(dropped); if (dropped) TRACE_MidiDropped(); if (DIAG_Armed) { ++D_MidiBytes; if (dropped) ++D_MidiDropped; } }
 void DIAG_SetSynthInfo(int gov_level, int fx_on, int voices) { D_GovLevel = (uint32_t)gov_level; D_Fx = (uint32_t)fx_on; D_Voices = (uint32_t)voices; }
 
 static void put(int i, uint32_t v) { D_Buf[4*i] = (uint8_t)v; D_Buf[4*i+1] = (uint8_t)(v >> 8); D_Buf[4*i+2] = (uint8_t)(v >> 16); D_Buf[4*i+3] = (uint8_t)(v >> 24); }
@@ -614,6 +616,7 @@ static void ovl_tick(void)
             if (b == 0x1D) O_Ctrl = 1; else if (b == 0x9D) O_Ctrl = 0;
             else if (b == 0x38) O_Alt = 1; else if (b == 0xB8) O_Alt = 0;
             else if (b == 0x57 && ovl_ctrlalt()) { if (T_Hotkey) T_Hotkey(); }      /* Ctrl+Alt+F11: MIDI output */
+            else if (b == 0x44 && ovl_ctrlalt() && DBGL_On == 3) { DBGL_Trigger(); DIAG_Toast("DBG: sending capture", 1); }  /* Ctrl+Alt+F10 */
             else if (b == 0x58 && ovl_ctrlalt())
             {
                 if (O_On && O_Kind == 1 && ovl_kind() == 1) ovl_text_save(1);   /* hide: put the text back */

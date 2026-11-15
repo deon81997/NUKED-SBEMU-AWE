@@ -10,6 +10,7 @@
 #include <untrapio.h>
 
 #include "hdpmipt.h"
+#include "sbemu/dbglink.h"
 
 #define HDPMIPT_SWITCH_STACK 1 //TODO: debug
 #define HDPMIPT_STACKSIZE 16384
@@ -71,6 +72,7 @@ uint32_t __attribute__((noinline, used)) HDPMIPT_TrapHandler()
                 asm volatile("fnsave %0\n\tfldcw %0" : "+m"(fpu_state));
                 r = link->iodt[i].handler(port, value, out);
                 asm volatile("frstor %0" :: "m"(fpu_state));
+                if(DBGL_On) DBGL_Trap(port, out ? value : r, out);
                 return r;
             }
         }

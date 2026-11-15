@@ -20,7 +20,7 @@
 #   -c CFG          86Box config (default /home/claude/86rig/vm/86box.cfg; its nvr/ dir is copied too)
 #   -i              in place: no copy of IMAGE
 #   -k              keep the work dir (image copy, emulator log) and print its path on stderr
-# env: QEMU (default qemu-system-i386), B86 (86Box binary), ROMS (default /home/claude/86box/roms)
+# env: QAUDIO (default none,id=snd; e.g. none,id=snd,timer-period=2000 for ~200 sound IRQs/s), QEMU (default qemu-system-i386), B86 (86Box binary), ROMS (default /home/claude/86box/roms)
 # While it runs, the work dir is /tmp/testrig-run-latest (shot.sh uses it).
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -80,7 +80,7 @@ case $ENG in
   qemu)
     ${QEMU:-qemu-system-i386} -machine pc -cpu pentium3 -m 64 -vga std -display none \
       -drive file="$DISK",format=raw,if=ide,index=0,cache=writethrough -boot c \
-      -audiodev none,id=snd -device AC97,audiodev=snd \
+      -audiodev ${QAUDIO:-none,id=snd} -device AC97,audiodev=snd \
       -monitor unix:"$WORK/mon.sock",server,nowait "${EXTRA[@]}" > "$WORK/emu.log" 2>&1 &
     VMPID=$!
     echo "MON=$WORK/mon.sock" >> "$WORK/state" ;;

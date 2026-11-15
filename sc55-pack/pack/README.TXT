@@ -624,6 +624,12 @@ CONTENTS
                            switches at once; SBDIAG SPDIF shows it.
      /SPDIFINV:1           the jack's analog/digital switch the other way
                            round (try it when /SPDIF:1 gives no lock)
+     /DBG:COM1[,baud][,level]  serial debug link (beta.127): live lines
+                           to a second PC (DBGLOG.PY). Level 1 events +
+                           errors + stats/s (default), 2 + per-frame port/
+                           DMA/IRQ, 3 + port capture sent on Ctrl+Alt+F10.
+                           In batch files use ':' (SC55 /DBG:COM1:2).
+                           Cables and setup: C:\SC55\DBGLOG.TXT
      /VMPU[:0]             virtual MPU-401 on (SC-55 or SoundFont); /VMPU=0
                            turns it off. Also switched on by /VSCROM, /VSCSET
                            or /VSF.
@@ -1567,6 +1573,13 @@ CONTENTS
   SBEMU /SPDIFINV:1, then SBDIAG SPDIF again. /SPDIF:0 gives the jack
   back to the Center/Sub speakers. The S/PDIF stream is always 48 kHz.
 
+  FREEZES YOU CANNOT EXPLAIN - WATCH SBEMU LIVE (beta.127): connect the
+  DOS PC's COM1 to a second PC (null-modem cable + USB-serial adapter),
+  run  python DBGLOG.PY COM3  there and  SC55 /DBG:COM1  on the DOS PC.
+  SBEMU sends its events, errors and a stats line every second; when the
+  PC freezes, the last line in the second PC's log is the last thing that
+  happened. Details, cables, the D810 D/Port and the P5PE-VM: DBGLOG.TXT.
+
   PC FREEZES WITH SATA "ENHANCED" MODE (seen: ASUS P5PE-VM, ICH5):
   in Enhanced (native) mode the SATA/IDE controller uses a PCI IRQ that
   can be the same as the sound card's. Before beta.120 the Audigy/Live
@@ -1726,7 +1739,7 @@ CONTENTS
                       MPUTEST.EXE, MIDPLAY.EXE, CPUMHZ.EXE, SC55MENU.EXE,
                       SBDIAG.EXE, GAMETEST.EXE, TIMETEST.EXE, JOYTEST.EXE,
                       USBTEST.EXE, KMTEST.EXE, USBDRV.EXE, SBEMU16.COM, PADCONV.EXE,
-                      BUGREP.BAT
+                      BUGREP.BAT, DBGLOG.PY + DBGLOG.TXT (serial debug link)
                       Every EXE answers  NAME /VER  with the pack version,
                       e.g. "MIDPLAY.EXE: NUKED SB-EMU 1.0.0-beta.116-usb-sc55"
                       (the same for all; BUGREP.BAT lists them, and SBDIAG

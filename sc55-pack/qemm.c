@@ -9,6 +9,7 @@
 #include <sys/ioctl.h>
 #endif
 #include "qemm.h"
+#include "sbemu/dbglink.h"
 #include <dpmi/dpmi.h>
 #include <dpmi/dbgutil.h>
 #include <untrapio.h>
@@ -111,6 +112,7 @@ static void QEMM_TrapHandler()
                         QEMM_TrapHandlerREG.h.al = link->iodt[i].handler(port, val, out);
                     asm volatile("frstor %0" :: "m"(fpu_state));
                 }
+                if(DBGL_On) DBGL_Trap(port, out ? val : QEMM_TrapHandlerREG.h.al, out);
                 return;
             }
         }

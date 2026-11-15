@@ -25,6 +25,7 @@
 #include "form3d.h"
 #include "safewr.h"
 #include "mpuport.h"
+#include "dbg.h"
 #include "sbemuchk.h"
 #include <unistd.h>
 #include <dir.h>
@@ -258,6 +259,11 @@ static void appendf(const char* file, const char* fmt, ...)
     if (!f) return;
     va_start(ap, fmt); vfprintf(f, fmt, ap); va_end(ap);
     fflush(f); fsync(fileno(f)); fclose(f);           /* on disk now, in case the next test locks up */
+    if (g_dbg_level)
+    {   /* beta.127: the same line on the /DBG serial link, sent before the next test starts */
+        char b[200]; va_start(ap, fmt); vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
+        dbg_err("%s: %s", file, b);
+    }
 }
 
 static void save_cfg(void)
@@ -863,6 +869,7 @@ int main(int argc, char** argv)
     strcpy(g_home, argv[0]);
     for (s = g_home; *s; ++s) if (*s == '/') *s = '\\';
     s = strrchr(g_home, '\\'); if (s) *s = 0; else getcwd(g_home, sizeof g_home);
+    dbg_tool_init(&argc, argv, "GAMETEST");       /* beta.127: /DBG serial link */
     load_cfg();
     best_load();
     sbemu_present();                              /* beta.121: knows about USB MIDI (SBEMU /MUSB) from the start */

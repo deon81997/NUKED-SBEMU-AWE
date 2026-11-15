@@ -3,6 +3,7 @@
  * and writes the full one to SBTRACE.TXT. */
 #include "trace.h"
 #include "dpmi/dpmi.h"
+#include "dbglink.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -60,9 +61,10 @@ static void ev_add(int kind, uint32_t n, const char* txt)
 }
 void TRACE_Event(int kind, const char* fmt, ...)
 {
-    char b[TR_TXT]; va_list ap;
-    if (!g_on) return;
+    char b[160]; va_list ap;
+    if (!g_on && !DBGL_On) return;
     va_start(ap, fmt); vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
+    if (DBGL_On) DBGL_Event(kind, b);          /* the serial debug link gets the whole line */
     ev_add(kind, 1, b);
 }
 
@@ -80,6 +82,8 @@ static void psp_name(uint16_t psp, char* out)
     }
     snprintf(out, 9, "PSP%04X", psp);
 }
+/* /DBG stats: DOS's swappable data area (current PSP at +10h), 0 = unknown */
+uint32_t TRACE_SdaLin(void) { return g_sda_lin; }
 static TrProg* prog(void)
 {
     TrBank* b = bank(); uint16_t psp = cur_psp(); int i; TrProg* p; uint32_t t = ticks(); char nm[9];
@@ -107,7 +111,7 @@ void TRACE_Mpu(int cmdport, uint8_t v)
     else if (v >= 0xF1) p->common++;
     else if (v >= 0x80) p->midi[(v >> 4) & 7]++;
 }
-void TRACE_MidiDropped(void) { if (g_on) { prog()->dropped++; ev_add(TR_MIDI, 1, "MIDI bytes dropped (synth queue full)"); } }
+void TRACE_MidiDropped(void) { if (g_on) { prog()->dropped++; if (DBGL_On) DBGL_Event(TR_MIDI, "MIDI bytes dropped (synth queue full)"); ev_add(TR_MIDI, 1, "MIDI bytes dropped (synth queue full)"); } }
 void TRACE_Underruns(uint32_t total)
 {
     uint32_t d;
@@ -120,6 +124,7 @@ void TRACE_Replayed(uint32_t n) { if (g_on && n) { prog()->replayed += n; ev_add
 void TRACE_Irq(int irq)
 {
     TrProg* p; char b[TR_TXT];
+    if (DBGL_On) DBGL_Irq();
     if (!g_on) return;
     p = prog(); p->irq = irq; p->irq_raised++;
     if (!p->irq_warned && p->irq_raised >= 16 && !p->irq_acked)
@@ -129,7 +134,7 @@ void TRACE_Irq(int irq)
         ev_add(TR_IRQ, 1, b);
     }
 }
-void TRACE_IrqAck(void) { if (g_on) prog()->irq_acked++; }
+void TRACE_IrqAck(void) { if (DBGL_On) DBGL_Ack(); if (g_on) prog()->irq_acked++; }
 void TRACE_DmaCheck(int dma, uint32_t addr, int32_t count)
 {
     TrProg* p; char b[TR_TXT];

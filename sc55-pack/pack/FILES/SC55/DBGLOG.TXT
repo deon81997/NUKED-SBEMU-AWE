@@ -1,0 +1,94 @@
+NUKED SB-EMU - SERIAL DEBUG LINK (SBEMU /DBG, beta.127)
+=======================================================
+
+SBEMU sends what it is doing, live, as short text lines over a serial port to a
+second PC, which shows them and saves them to a file. When the DOS PC freezes,
+the last line in that file is the last thing SBEMU did - no CRASH.TXT needed,
+no reboot needed to read it.
+
+WHAT YOU NEED
+-------------
+- The DOS PC's serial port (COM1 or COM2), turned on in its BIOS setup
+  ("Onboard Serial Port 1: 3F8/IRQ4" or "Auto"). SBEMU does not use the IRQ.
+- A second PC (Windows or Linux) with Python 3 and pyserial:
+      pip install pyserial
+  and DBGLOG.PY (this folder) copied to it.
+- A cable: a USB-serial adapter on the second PC (FTDI, Prolific PL2303 or CH340 chip,
+     9-pin male plug) + a NULL-MODEM cable, 9-pin female on both ends.
+     A plain "straight" serial extension cable does NOT work: the null-modem
+     cable crosses TX and RX. If you only have a straight cable, put a small
+     null-modem adapter (DB9 female-female, "crossover") in between.
+     The DOS PC needs a real serial port (16550 UART); a USB-serial adapter
+     on the DOS side does not work in DOS.
+  Windows: Device Manager > Ports (COM & LPT) shows the adapter's name (COM3,
+  COM4...). Linux: /dev/ttyUSB0 (add yourself to the "dialout" group).
+
+PER MACHINE
+-----------
+ASUS P5PE-VM: COM1 is the 9-pin male plug on the back panel. BIOS setup
+  (Del): Advanced > Onboard Devices / I/O configuration: Serial Port1 =
+  3F8/IRQ4 (any "enabled" setting is fine). Null-modem cable
+  from there to the USB-serial adapter on the main PC.
+Dell Latitude D810: the laptop itself has no serial plug; the Dell D/Port
+  (PR01X port replicator) or D/Dock has one - the 9-pin male plug on its
+  back is the D810's own COM1. BIOS setup (F2): Onboard Devices > Serial
+  Port = COM1 (not Disabled / not Auto if Auto leaves it off when undocked). Dock the laptop BEFORE switching it on, then the null-modem cable from
+  the D/Port's serial plug to the USB-serial adapter on the main PC.
+
+START
+-----
+1. On the second PC:   python DBGLOG.PY COM3            (Windows, your COM)
+                       python3 DBGLOG.PY /dev/ttyUSB0   (Linux)
+   It shows the lines and writes dbg-<date>-<time>.log next to DBGLOG.PY.
+   python DBGLOG.PY --list   lists the serial ports.
+2. On the DOS PC:      C:\SC55\SC55 /DBG:COM1
+   (in a batch file or SC55.BAT use ':' between the parts, because DOS
+   batch files cut %1 at commas:  SC55 /DBG:COM1:2  =  /DBG:COM1,2)
+   You can also add /DBG:COM1 to SBOPTS.TXT, or run SBEMU /DBG:COM1 again
+   on a loaded SBEMU to switch it on, or SBEMU /DBG:0 to switch it off.
+3. Play. The first line is "SB I Serial debug link: COM1 (3F8), 115200
+   baud, level 1". No line at all: wrong cable (straight instead of
+   null-modem), wrong COM on the second PC, or the port is off in the BIOS.
+
+SPEC:  /DBG:COM1|COM2|COM3|COM4[,baud][,level]
+  baud  300..115200 (default 115200; DBGLOG.PY -b 57600 must then match)
+  level 1 = events + errors + one stats line per second (default)
+        2 = also one line per sound interrupt: port accesses (MPU, SB, OPL,
+            PIT, PIC, other), virtual IRQs, acknowledges, DMA address/count.
+            A lot of text: some lines may be dropped ("lost=" in the stats).
+        3 = level 1 + every trapped port access goes into a RAM ring (the
+            last 4096) but nothing extra is sent while you play. Press
+            Ctrl+Alt+F10 in the game (or SBDIAG DBG DUMP at the prompt) and
+            SBEMU sends that capture. At the DOS prompt it goes out in a few
+            seconds; inside a game it takes longer (about 30 s).
+
+LINES:  <seconds since SBEMU started> <source> <kind> <text>
+  source  SB = SBEMU; MENU, MIDPLAY, GAMETEST, SBDIAG = the tools (they send
+          through SBEMU, or open the port themselves with /DBG:COM1 or
+          SET SBDBG=COM1 when SBEMU is not loaded)
+  kind    E error (SBEMU waits until it has left the cable before going on)
+          ! fatal  I event  S stats  F per-frame (level 2)
+          T capture record: T <microseconds> <i|o> <port> <value>
+  S line: prog = program running, load = SBEMU's share of the CPU, isr =
+          sound interrupts/s, max = longest one, virq/ack = Sound Blaster
+          IRQs given to the game / acknowledged by it, traps = port accesses
+          SBEMU caught, midi = MIDI bytes, drop = MIDI bytes lost, under =
+          sound buffer underruns, sb = rate/bits/channels, lost = link lines
+          that did not fit (level 2 at low baud).
+
+DBGLOG.PY FILTERS (the log file still gets every line):
+  -k E!       only errors and fatal lines     -k S   only stats
+  -f usb      only lines matching usb         -x MENU  hide the menu's lines
+  -s SB       only SBEMU's lines              -q     no display, file only
+  --filter-file  apply the filters to the file too
+
+TOOLS:  SBDIAG DBG               link status (port, baud, level, bytes sent)
+        SBDIAG DBG LEVEL 0-3     change the level (0 = quiet, port kept)
+        SBDIAG DBG DUMP          send the level-3 capture
+        SBDIAG DBG LOG text      put your own marker line in the log
+        SBDIAG DBG HANG          TEST ONLY: SBEMU sends one "!" line, then
+                                 stops the PC (interrupts off) - the line
+                                 must be the last one in the log. Reset after.
+
+COST: off (no /DBG) = nothing. Level 1 = measured on a Pentium II 450 (see
+HANDOFF/README news). Level 2 and 3 are for hunting a bug, not for playing.

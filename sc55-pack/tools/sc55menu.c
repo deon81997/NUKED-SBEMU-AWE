@@ -24,6 +24,7 @@
 #include "tui.h"
 #include "safewr.h"
 #include "mpuport.h"
+#include "dbg.h"
 #include "sbemuchk.h"
 #include "crit24.h"
 #include <stdarg.h>
@@ -74,6 +75,7 @@ static void ui_log(const char* fmt, ...)
     k = snprintf(d, 12, "%7.1f ", (double)uclock() / UCLOCKS_PER_SEC);
     if (k < 0 || k > 11) k = 0;
     vsnprintf(d + k, sizeof g_ulog[0] - (size_t)k, fmt, ap); va_end(ap);
+    if (g_dbg_level) dbg_log("%s", d + k);         /* beta.127: /DBG serial link */
 }
 
 /* ---------------------------------------------------------------- helpers */
@@ -1173,6 +1175,7 @@ static void crash_handler(int sig)
     snprintf(path, sizeof path, "%s\\CRASH.TXT", g_home[0] ? g_home : ".");
     f = fopen(path, "w");
     if (f) { crash_write(f, sig); fclose(f); }
+    if (g_dbg_level) dbg_err("crashed (signal %d), CRASH.TXT written", sig);
     crash_write(stdout, sig);
     printf("\nThe menu crashed. %s %s - please send it. Type MENU to start it again.\n", f ? "Written to" : "Could not write", path);
     fflush(stdout);
@@ -1191,6 +1194,7 @@ int main(int argc, char** argv)
     int c, firstrun, m3_start_r = 1;
     char* s; const char* v;
     int status_only = 0;
+    dbg_tool_init(&argc, argv, "MENU");                 /* beta.127: /DBG:COM1 or SBEMU's link: what the user does */
     if (argc > 1 && !strcasecmp(argv[argc - 1], "/STATUS")) { status_only = 1; argc--; }   /* SC55MENU [home] /STATUS: the SBEMU line, no menu */
     if (argc > 1) snprintf(g_home, sizeof g_home, "%s", argv[1]);
     else

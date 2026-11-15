@@ -16,6 +16,7 @@
 #include <dos.h>
 #include <unistd.h>
 #include "mpuport.h"
+#include "dbg.h"
 #include "toolui.h"
 #include "doctor.h"
 #include "sbemuchk.h"
@@ -299,6 +300,44 @@ static void spdif_show(const char* t)
     printf("  raw: %s\n", strstr(t, "IOCFG=") ? strstr(t, "IOCFG=") : t);
 }
 
+/* beta.127: SBDIAG DBG [DUMP|HANG|LEVEL n|LOG text] - SBEMU's serial debug link (/DBG:COM1[,baud][,level]) */
+static int dbg_cmd(int argc, char** argv)
+{
+    char t[160]; int id = dbg_sbemu_amis(), lvl;
+    const char* a = argc > 2 ? argv[2] : "";
+    if (!id) { printf("DBG: SBEMU is not loaded.\n"); return 2; }
+    lvl = dbg_sbemu_query(id, t, sizeof t);
+    if (!t[0]) { printf("DBG: SBEMU is too old for the serial debug link (beta.127+).\n"); return 2; }
+    if (!*a) { printf("DBG: %s\n", t); return lvl ? 0 : 1; }
+    if (!stricmp(a, "LEVEL") && argc > 3)
+    {
+        if (!strstr(t, "BASE=")) { printf("DBG: off - start SBEMU with /DBG:COM1 (or COM2[,baud][,level]).\n"); return 1; }
+        lvl = dbg_sbemu_cmd(id, 4, atoi(argv[3])); printf("DBG: level %d\n", lvl); return 0;
+    }
+    if (!lvl) { printf("DBG: off - start SBEMU with /DBG:COM1 (or COM2[,baud][,level]).\n"); return 1; }
+    if (!stricmp(a, "DUMP"))
+    {
+        if (lvl != 3) { printf("DBG: the capture needs level 3 (SBDIAG DBG LEVEL 3, or /DBG:COM1,3).\n"); return 1; }
+        dbg_sbemu_cmd(id, 2, 0); printf("DBG: SBEMU sends its port capture now (also Ctrl+Alt+F10 in a game).\n"); return 0;
+    }
+    if (!stricmp(a, "HANG"))
+    {
+        printf("DBG: forced hang test - SBEMU sends one line, then this PC stops (interrupts off). Reset it afterwards.\n");
+        fflush(stdout); dbg_sbemu_cmd(id, 3, 0);
+        for (;;) {}                                                  /* SBEMU stops the PC at its next sound interrupt */
+    }
+    if (!stricmp(a, "LOG") && argc > 3)
+    {
+        char b[200]; int i, n = snprintf(b, sizeof b, "SBDIAG");
+        for (i = 3; i < argc && n < (int)sizeof b - 2; i++) n += snprintf(b + n, sizeof b - (size_t)n, " %s", argv[i]);
+        g_dbg_amis = id; g_dbg_level = lvl; strcpy(g_dbg_tag, "SBDIAG");
+        dbg_err("%s", b + 7);
+        return 0;
+    }
+    printf("SBDIAG DBG [DUMP|HANG|LEVEL 0-3|LOG text]\n");
+    return 2;
+}
+
 static int spdif_cmd(int argc, char** argv)
 {
     char t[256]; unsigned long m = 0xFF;
@@ -360,12 +399,15 @@ static int tone_cmd(int argc, char** argv)
 int main(int argc, char** argv)
 {
     unsigned long d[F_COUNT];
-    const char* cmd = argc > 1 ? argv[1] : "";
+    const char* cmd;
     double cps, secs, isr_ms, ren_ms, virq_ms, audio_ms, load, hz = 0, period_ms = 0, lost = 0, expect = 0, lostpct = 0, rawpct = 0, replayed = 0;
     double trapcost, traps, trap_pct, isr_share;
     int reasons = 0;
 
+    dbg_tool_init(&argc, argv, "SBDIAG");                            /* beta.127: /DBG:COM1 or SBEMU's link */
+    cmd = argc > 1 ? argv[1] : "";
     if (cmd[0] == '/' || cmd[0] == '-') ++cmd;
+    if (g_dbg_level && stricmp(cmd, "DBG")) dbg_log("run %s", cmd[0] ? cmd : "(report)");
     if (!stricmp(cmd, "DOCTOR") || !stricmp(cmd, "FLUSH"))
     {   /* SBEMU writes its flight recorder (SBTRACE.TXT) now (MPU command A9h), then BUGREP's summary */
         int p = mpu_from_blaster(getenv("BLASTER"));                /* SBEMU writes P<port> to BLASTER */
@@ -386,7 +428,8 @@ int main(int argc, char** argv)
                "SBDIAG KEYS [CLEAR]  every key SBEMU typed (USB keyboard, pads, repeats) and why\n"
                "SBDIAG SOAK [min]  idle test (default 30 min): nothing touched must type no key (KEYSOAK.TXT)\n"
                "SBDIAG SPDIF [0|1|ONLY]  Audigy S/PDIF: show / switch (0 analog, 1 analog + S/PDIF, ONLY S/PDIF)\n"
-               "SBDIAG TONE [s]  1 kHz test tone left, right, both (OPL3 through SBEMU and the card)\n");
+               "SBDIAG TONE [s]  1 kHz test tone left, right, both (OPL3 through SBEMU and the card)\n"
+               "SBDIAG DBG [DUMP|HANG|LEVEL n|LOG text]  serial debug link (SBEMU /DBG:COM1[,baud][,level])\n");
         return 0;
     }
     if (!stricmp(cmd, "MIDICAP")) return midicap(argc > 2 ? argv[2] : NULL);
@@ -394,6 +437,7 @@ int main(int argc, char** argv)
     if (!stricmp(cmd, "KEYS")) return keys_cmd(argc, argv);
     if (!stricmp(cmd, "SOAK")) return soak_cmd(argc, argv);
     if (!stricmp(cmd, "SPDIF")) return spdif_cmd(argc, argv);
+    if (!stricmp(cmd, "DBG")) return dbg_cmd(argc, argv);
     if (!stricmp(cmd, "TONE")) return tone_cmd(argc, argv);
     g_muon = sbemu_musb(&g_mu) && g_mu.out > 0;
     if (!stricmp(cmd, "USB"))

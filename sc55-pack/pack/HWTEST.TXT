@@ -1,6 +1,16 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.126)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.127)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.127 serial debug link (P5PE-VM COM1, D810 via the D/Port's COM1),
+    see C:\SC55\DBGLOG.TXT: null-modem cable + USB-serial adapter to the main
+    PC, there  python DBGLOG.PY COM3  (your COM). On the DOS PC  SC55 /DBG:COM1
+    -> first line "SB I Serial debug link: COM1 (3F8), 115200 baud, level 1",
+    then one "SB S ..." line per second. Play Duke 3D 2 minutes; then
+    SBDIAG DBG LEVEL 3, play 30 s, Ctrl+Alt+F10 -> "capture: last 4096" and T
+    lines. Finally SBDIAG DBG HANG (the PC stops): the log's last line must be
+    "SB ! forced hang test ...". Send the dbg-*.log file. Also once SC55JEM
+    /DBG:COM1:2 for a minute (F lines; is the game still smooth?).
 
 [ ] beta.125 no random keys (P5PE-VM and D810): plug in the 360 pad, a USB
     keyboard and a USB mouse, start SC55 as usual, then C:\SC55> SBDIAG SOAK 30

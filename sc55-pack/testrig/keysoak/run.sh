@@ -7,6 +7,7 @@
 # EXE_DIR (default ../../output) lets you run an older SBEMU (beta.123: only BIOS keys are counted).
 # One rig at a time: common/run.sh links /tmp/testrig-run-latest (the control key goes to the newest VM).
 # JEMM=1: JEMMEX + QPIEMU (ports 60h/64h trapped). Needs store-dos71 (/home/claude/vms/dos71/msdos71.img) and /tmp/rel (an unzipped release for HDPMI32I).
+# SBOPTS: SBEMU options (default /JOY:1; AWE line: SBOPTS="/JOY:1 /AWE:620").
 set -u
 H=$(cd "$(dirname "$0")" && pwd); R=$(cd "$H/../.." && pwd); MIN=${1:-30}; X=${2:-$R/output}
 W=/tmp/keysoak; rm -rf $W; mkdir -p $W; cd $W
@@ -20,7 +21,7 @@ fi
 P=$((4700 + RANDOM % 200))
 pkill -f "fakepad.py $P" 2>/dev/null; python3 $R/testrig/fakepad.py $P $H/idle.txt & FP=$!; sleep 0.5
 # the second SOAK (1 min, a key typed in it) must FAIL: its KEYSOAK.TXT replaces the first, so keep the first
-printf "@ECHO OFF\r\nSET SBEMULOG=C:\\SBLOG.TXT\r\n$JL"'C:\\HDPMI32I.EXE -r -x > NUL\r\nC:\\SBEMU.EXE /JOY:1 > C:\\SB.TXT\r\nC:\\SBDIAG.EXE SOAK %s > NUL\r\nCOPY C:\\KEYSOAK.TXT C:\\SOAK1.TXT > NUL\r\nC:\\SBDIAG.EXE KEYS CLEAR > NUL\r\nECHO KEYNOW> COM1\r\nC:\\SBDIAG.EXE SOAK 1 > NUL\r\nC:\\SBDIAG.EXE KEYS > C:\\KEYS.TXT\r\nTYPE C:\\SB.TXT > C:\\RESULT.LOG\r\nTYPE C:\\KEYSOAK.TXT >> C:\\RESULT.LOG\r\nTYPE C:\\KEYS.TXT >> C:\\RESULT.LOG\r\nTYPE C:\\SOAK1.TXT >> C:\\RESULT.LOG\r\n' "$MIN" > T.BAT
+printf "@ECHO OFF\r\nSET SBEMULOG=C:\\SBLOG.TXT\r\n$JL"'C:\\HDPMI32I.EXE -r -x > NUL\r\nC:\\SBEMU.EXE '"${SBOPTS:-/JOY:1}"' > C:\\SB.TXT\r\nC:\\SBDIAG.EXE SOAK %s > NUL\r\nCOPY C:\\KEYSOAK.TXT C:\\SOAK1.TXT > NUL\r\nC:\\SBDIAG.EXE KEYS CLEAR > NUL\r\nECHO KEYNOW> COM1\r\nC:\\SBDIAG.EXE SOAK 1 > NUL\r\nC:\\SBDIAG.EXE KEYS > C:\\KEYS.TXT\r\nTYPE C:\\SB.TXT > C:\\RESULT.LOG\r\nTYPE C:\\KEYSOAK.TXT >> C:\\RESULT.LOG\r\nTYPE C:\\KEYS.TXT >> C:\\RESULT.LOG\r\nTYPE C:\\SOAK1.TXT >> C:\\RESULT.LOG\r\n' "$MIN" > T.BAT
 rm -f /tmp/testrig-run-latest
 ( # host side: wait for KEYNOW on COM1, then type one key (QEMU sends it to the USB keyboard, the newest one)
   for i in $(seq 1 $((MIN * 60 + 400))); do sleep 1; grep -q KEYNOW /tmp/testrig-run-latest/com1.txt 2>/dev/null && break; done

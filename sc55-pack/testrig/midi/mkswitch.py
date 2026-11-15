@@ -31,3 +31,12 @@ a += song(400)
 os.makedirs(sys.argv[1], exist_ok=True)
 for name, t in (('SWA', a), ('SWB', song(400)), ('SWC', song(400)), ('SWD', song(400))):
     open(os.path.join(sys.argv[1], name + '.TXT'), 'w').write(' '.join(t + ['W2000']) + '\r\n')
+# SWS (hotkey case, added beta.126-awe.1: switch.sh used it but nothing made it): ~60 s of steady song, an event every
+# 20 ms, so Ctrl+Alt+F11 at rig time 45/58/71/84 s always meets MPU-401 writes (the switch waits for the next one)
+sw = []
+for e in song(3000): sw += [e] if e[0] == 'D' else []
+out = []
+for i, e in enumerate(sw):
+    out.append(e)
+    if i % 3 == 2: out.append('W20')
+open(os.path.join(sys.argv[1], 'SWS.TXT'), 'w').write(' '.join(out) + '\r\n')

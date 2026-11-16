@@ -29,6 +29,8 @@ static double run(int ms)
     }
     return cnt ? sqrt(e / cnt) : 0;
 }
+/* sample start of the last voice started */
+static uint32_t voice_addr(void) { AwemStats t; awem_stats(&t); return t.last_addr; }
 /* zero crossings per second of the left channel over ms (rough pitch) */
 static double zc(int ms)
 {
@@ -42,7 +44,7 @@ int main(int argc, char** argv)
     AwemBank* b;
     AwemStats st;
     int p, k, silent = 0;
-    if (argc < 2) { printf("usage: awemidtest ROM [GM.SBK GS.SBK MT.SBK]\n"); return 2; }
+    if (argc < 2) { printf("usage: awemidtest ROM [GM.SBK GS.SBK MT.SBK [SF2 SMALL.SBK]]\n"); return 2; }
     if (emu8k_init(8192) || emu8k_load_rom(argv[1])) { printf("FAIL: engine/ROM\n"); return 1; }
     emu8k_set_fx(0);
     b = awem_bank_builtin();
@@ -144,6 +146,108 @@ int main(int argc, char** argv)
             }
             awem_bank_free(sb);
         }
+    }
+    /* G: bank manager: SF2 + SBK as user banks 1/2, bank select CC0/CC32, RAM full, replace, single presets,
+       drum kit, RAM size cut, DOS box clobbering the RAM (argv[5] = SF2, argv[6] = small SBK) */
+    if (argc >= 7) {
+        char err[160] = "";
+        uint32_t u1, u2, used;
+        int rc, p2 = 0;
+        awem_ram_set(8192u * 512u);
+        CHECK(awem_ram_used() == 0 && awem_ram_free() == 8192u * 512u, "RAM empty at start: used %u", awem_ram_used());
+        rc = awem_ubank_load(1, argv[5], err, sizeof err);
+        CHECK(rc == 0 && awem_ubank(1), "bank 1 SF2: %s", err);
+        rc = awem_ubank_load(2, argv[6], err, sizeof err);
+        CHECK(rc == 0 && awem_ubank(2), "bank 2 SBK: %s", err);
+        u1 = awem_bank_ram_used(awem_ubank(1)); u2 = awem_bank_ram_used(awem_ubank(2));
+        awem_bank_preset(awem_ubank(2), 0, NULL, &p2);   /* the small bank has 12 programs: test with its first */
+        CHECK(awem_ram_used() == u1 + u2 && u1 > 0 && u2 > 0, "RAM used %u != %u + %u", awem_ram_used(), u1, u2);
+        printf("bank manager: bank 1 = %s (%u KB), bank 2 = %s (%u KB), %u KB used, %u KB free\n", awem_bank_name(awem_ubank(1)),
+               u1 / 512, awem_bank_name(awem_ubank(2)), u2 / 512, awem_ram_used() / 512, awem_ram_free() / 512);
+        {   /* bank select: CC0 1 -> bank 1's RAM, CC0 2 -> bank 2's, CC0 0 + CC32 2 -> bank 2, 0/0 -> ROM, 5 (empty) -> ROM */
+            static const struct { int msb, lsb; uint32_t lo, hi; const char* what; } t[] = {
+                {1, 0, 0, 1, "CC0 1"}, {2, 0, 1, 2, "CC0 2"}, {0, 2, 1, 2, "CC32 2"}, {0, 0, 9, 9, "bank 0"}, {5, 0, 9, 9, "empty bank 5"} };
+            int i;
+            for (i = 0; i < 5; i++) {
+                uint32_t lo = t[i].lo == 9 ? 0 : EMU8K_RAM_START + (t[i].lo ? u1 : 0);
+                uint32_t hi = t[i].lo == 9 ? EMU8K_RAM_START : EMU8K_RAM_START + (t[i].hi == 1 ? u1 : u1 + u2);
+                uint32_t addr;
+                double r;
+                msg(0xB0, 0, t[i].msb); msg(0xB0, 32, t[i].lsb); msg(0xC0, p2, 0); msg(0x90, 60, 100); r = run(150);
+                addr = voice_addr();
+                msg(0x80, 60, 0); msg(0xB0, 120, 0); run(30);
+                CHECK(r > 50 && addr >= lo && addr < hi, "%s: rms %.1f, playing at %06X (want %06X-%06X)", t[i].what, r, addr, lo, hi);
+                printf("bank select %s: plays at %06X (rms %.0f)\n", t[i].what, addr, r);
+            }
+        }
+        {   /* drum channel, CC0 1: bank 1's drum kit (SF2 preset bank 128) */
+            uint32_t addr; double r;
+            msg(0xB9, 0, 1); msg(0xC9, 0, 0); msg(0x99, 38, 100); r = run(100); addr = voice_addr();
+            msg(0x89, 38, 0); msg(0xB9, 120, 0); msg(0xB9, 0, 0); run(30);
+            CHECK(r > 20 && addr >= EMU8K_RAM_START && addr < EMU8K_RAM_START + u1, "drum kit bank 1: rms %.1f at %06X", r, addr);
+            printf("drum channel CC0 1: bank 1's kit at %06X\n", addr);
+        }
+        /* RAM full: the whole stand-in GM SBK (5.6 MB) does not fit beside them - refused, nothing changes */
+        used = awem_ram_used();
+        rc = awem_ubank_load(3, argv[2], err, sizeof err);
+        CHECK(rc != 0 && !awem_ubank(3) && awem_ram_used() == used && strstr(err, "needs") && strstr(err, "free"),
+              "RAM full: rc %d, used %u -> %u, '%s'", rc, used, awem_ram_used(), err);
+        printf("RAM full: \"%s\"\n", err);
+        /* replace bank 1 (SF2) with the small SBK: room now for the big one as bank 3 */
+        rc = awem_ubank_load(1, argv[6], err, sizeof err);
+        CHECK(rc == 0 && awem_ram_used() == 2 * u2, "replace bank 1: rc %d used %u", rc, awem_ram_used());
+        rc = awem_ubank_load(3, argv[2], err, sizeof err);
+        CHECK(rc == 0 && awem_ubank(3), "bank 3 after the replace: %s", err);
+        {
+            uint32_t addr; double r;
+            msg(0xB0, 0, 3); msg(0xB0, 32, 0); msg(0xC0, 0, 0); msg(0x90, 60, 100); r = run(150); addr = voice_addr();
+            msg(0x80, 60, 0); msg(0xB0, 120, 0); run(30);
+            CHECK(r > 50 && addr >= EMU8K_RAM_START + 2 * u2, "bank 3: rms %.1f at %06X", r, addr);
+            printf("replaced bank 1, bank 3 = whole SBK (%u KB): plays at %06X, %u KB used\n",
+                   awem_bank_ram_used(awem_ubank(3)) / 512, addr, awem_ram_used() / 512);
+        }
+        awem_ubank_remove(3);
+        CHECK(!awem_ubank(3) && awem_ram_used() == 2 * u2, "remove bank 3: used %u", awem_ram_used());
+        /* single preset: bank 0 program 0 replaced with the SF2's piano; only its samples take RAM */
+        used = awem_ram_used();
+        rc = awem_preset_load(0, 0, argv[5], 0, 0, err, sizeof err);
+        CHECK(rc == 0 && awem_preset_count() == 1, "single preset: %s", err);
+        {
+            uint32_t addr, pu = awem_ram_used() - used; double r;
+            msg(0xB0, 0, 0); msg(0xC0, 0, 0); msg(0x90, 60, 100); r = run(150); addr = voice_addr();
+            msg(0x80, 60, 0); msg(0xB0, 120, 0); run(30);
+            CHECK(r > 50 && addr >= EMU8K_RAM_START + used && pu > 0 && pu < u1 / 4, "single preset: rms %.1f at %06X, %u words", r, addr, pu);
+            printf("single preset bank 0 / program 0 <- SF2 piano: %u KB RAM, plays at %06X\n", pu / 512, addr);
+            msg(0xC0, 1, 0); msg(0x90, 60, 100); run(150); addr = voice_addr(); msg(0x80, 60, 0); msg(0xB0, 120, 0); run(30);
+            CHECK(addr < EMU8K_RAM_START, "program 1 stays on the ROM: %06X", addr);
+        }
+        awem_preset_remove(0, 0);
+        CHECK(awem_preset_count() == 0 && awem_ram_used() == used, "single preset removed: used %u", awem_ram_used());
+        /* RAM size cut to 512 KB: both banks left out, bank select falls back to the ROM; back to 8 MB: back */
+        awem_ram_set(512u * 512u);
+        {
+            uint32_t addr; double r;
+            msg(0xB0, 0, 1); msg(0xC0, 0, 0); msg(0x90, 60, 100); r = run(150); addr = voice_addr();
+            msg(0x80, 60, 0); msg(0xB0, 120, 0); run(30);
+            CHECK(!awem_bank_loaded(awem_ubank(1)) && r > 50 && addr < EMU8K_RAM_START, "RAM 512 KB: loaded %d, rms %.1f at %06X",
+                  awem_bank_loaded(awem_ubank(1)), r, addr);
+        }
+        awem_ram_set(8192u * 512u);
+        CHECK(awem_bank_loaded(awem_ubank(1)) && awem_bank_loaded(awem_ubank(2)), "RAM 8 MB again: banks back");
+        /* a DOS box takes the chip and writes its own samples over the RAM: banks come back with the chip */
+        {
+            uint32_t k, addr; double r;
+            awem_release();
+            for (k = 0; k < 2 * u2; k++) emu8k_ram_write(EMU8K_RAM_START + k, 0);
+            awem_reclaim();
+            msg(0xB0, 0, 2); msg(0xC0, p2, 0); msg(0x90, 60, 100); r = run(150); addr = voice_addr();
+            msg(0x80, 60, 0); msg(0xB0, 120, 0); msg(0xB0, 0, 0); run(30);
+            CHECK(r > 50 && addr >= EMU8K_RAM_START + u2, "after a DOS box: bank 2 rms %.1f at %06X", r, addr);
+            printf("DOS box wrote over the sample RAM; banks back after: bank 2 rms %.0f\n", r);
+        }
+        awem_user_clear();
+        CHECK(awem_ram_used() == 0 && !awem_ubank(1) && !awem_ubank(2), "clear: used %u", awem_ram_used());
+        printf("bank manager: PASS checks done, cleared\n");
     }
     awem_stats(&st);
     printf("total: %u bytes, %u notes, %u stolen, %u without a sound\n", st.bytes, st.notes, st.stolen, st.missing);

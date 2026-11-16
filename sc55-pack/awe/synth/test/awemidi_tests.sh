@@ -7,12 +7,13 @@ T=$(cd "$(dirname "$0")" && pwd); S=$T/..; R=$(cd "$S/../../testrig/awe" && pwd)
 SF=/usr/share/sounds/sf2/TimGM6mb.sf2; MID=$S/../../upstream/Nuked-SC55/test/integration/avmidi; fail=0
 mkdir -p "$W"
 for k in gm gs mt32; do python3 "$R/sf2sbk.py" "$SF" "$W/b_$k.dat" $k > /dev/null || exit 1; done
+python3 "$R/sf2sbk.py" "$SF" "$W/b_small.dat" gm 12 > /dev/null || exit 1      # bank manager: 12 presets, 748 KB
 cc -std=c99 -O2 -Wall -Wextra -Werror -I"$S" "$T/awemidtest.c" "$S/awemidi.c" "$S/emu8k.c" "$S/emu8k_rom.c" -lm -o "$W/awemidtest" || exit 1
 cc -std=c99 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all -I"$S" "$T/awemidtest.c" "$S/awemidi.c" "$S/emu8k.c" \
    "$S/emu8k_rom.c" -lm -o "$W/awemidtest_asan" || exit 1
 cc -std=c99 -O2 -I"$S" "$T/awemid.c" "$S/awemidi.c" "$S/emu8k.c" "$S/emu8k_rom.c" -lm -o "$W/awemid" || exit 1
-"$W/awemidtest" "$1" "$W/b_gm.dat" "$W/b_gs.dat" "$W/b_mt32.dat" | grep -v '^  ' | tee "$W/unit.txt" | tail -n 1 | grep -q PASS || fail=1
-"$W/awemidtest_asan" "$1" "$W/b_gm.dat" "$W/b_gs.dat" "$W/b_mt32.dat" > "$W/asan.txt" 2>&1 || { echo "FAIL asan"; tail -n 3 "$W/asan.txt"; fail=1; }
+"$W/awemidtest" "$1" "$W/b_gm.dat" "$W/b_gs.dat" "$W/b_mt32.dat" "$SF" "$W/b_small.dat" | grep -v '^  ' | tee "$W/unit.txt" | tail -n 1 | grep -q PASS || fail=1
+"$W/awemidtest_asan" "$1" "$W/b_gm.dat" "$W/b_gs.dat" "$W/b_mt32.dat" "$SF" "$W/b_small.dat" > "$W/asan.txt" 2>&1 || { echo "FAIL asan"; tail -n 3 "$W/asan.txt"; fail=1; }
 cat "$W/unit.txt"
 for f in 02 07 15 17; do
   fluidsynth -ni -g 0.5 -r 44100 -F "$W/fs_$f.wav" "$SF" "$MID/$f.mid" > /dev/null 2>&1

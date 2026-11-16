@@ -225,15 +225,18 @@ typedef struct {
     int16_t rate_offset, tune, scaleTuning;
     int8_t root, fixkey, fixvel, pan;            /* pan -1 = none, 0-127 */
     uint8_t attenuation, amplitude, exclass, keylo, keyhi, vello, velhi;
+    uint8_t ram;                                 /* addresses are words into the bank's own RAM block */
     Parm parm;
 } Zone;
-typedef struct { uint16_t bank, prog; int nz; Zone* z; char name[21]; } Preset;
+typedef struct { uint16_t bank, prog; int nz; Zone* z; char name[21]; const struct AwemBank* owner; } Preset;
 struct AwemBank {
     char name[64];
     int npresets;
     Preset* p;
-    uint16_t* ram;          /* RAM sample words to upload at RAM start (NULL = ROM only) */
+    uint16_t* ram;          /* RAM sample words (NULL = ROM only), uploaded at RAM start + ram_base */
     uint32_t ram_words, skipped;
+    uint32_t ram_base;      /* where the RAM layout put it (words from RAM start) */
+    int loaded;             /* 1 = its RAM samples are in the sample RAM (layout found room) */
 };
 const char* awem_bank_name(const AwemBank* b) { return b ? b->name : ""; }
 int awem_bank_presets(const AwemBank* b) { return b ? b->npresets : 0; }
@@ -622,7 +625,8 @@ AwemBank* awem_bank_load(const char* path, uint32_t ram_words, char* err, int er
                     sp = &smp[sid];
                     if (!sp->rom && sp->end + (uint32_t)sp->loopshot > b->ram_words) { b->skipped++; continue; }
                     memset(&z, 0, sizeof z);
-                    zone_from_tbl(v1, &ct, sp, sp->rom ? 0 : EMU8K_RAM_START, &z);
+                    zone_from_tbl(v1, &ct, sp, 0, &z);
+                    z.ram = !sp->rom;
                     if (z.keylo > z.keyhi || z.vello > z.velhi) continue;
                     if (pr->nz == (int)cap) {
                         Zone* nz2 = (Zone*)realloc(pr->z, (cap *= 2) * sizeof(Zone));
@@ -635,6 +639,8 @@ AwemBank* awem_bank_load(const char* path, uint32_t ram_words, char* err, int er
         }
     }
     qsort(b->p, (size_t)b->npresets, sizeof(Preset), preset_order);
+    for (i = 0; i < (uint32_t)b->npresets; i++) b->p[i].owner = b;
+    b->loaded = 1;
     free(smp); free(d);
     return b;
 out:
@@ -690,7 +696,9 @@ AwemBank* awem_bank_builtin(void)
                            t.set[G_coarseTune] = t.set[G_fineTune] = 1; }
             zone_from_tbl(0, &t, &sp, 0, z);
         }
+        pr->owner = b;
     }
+    b->loaded = 1;
     return b;
 }
 
@@ -811,6 +819,18 @@ static struct {
     AwemStats stats;
 } S;
 
+/* user banks 1-127 and single-preset replacements (Creative's bank manager), sample RAM layout */
+#define AWEM_MAXOVR 256
+typedef struct { int slot, prog; AwemBank* b; } Ovr;      /* slot 0-127 = bank select, 128 = drum kit */
+static struct {
+    AwemBank* u[128];           /* [1..127] */
+    Ovr ovr[AWEM_MAXOVR];
+    int novr;
+    uint32_t ram_size;          /* words of sample RAM */
+    int ram_set;                /* 0 = not told yet: no limit */
+    uint32_t ram_used;
+} U;
+
 static const unsigned char pan_volumes[256] = {
 0x00,0x03,0x06,0x09,0x0c,0x0f,0x12,0x14,0x17,0x1a,0x1d,0x20,0x22,0x25,0x28,0x2a,0x2d,0x30,0x32,0x35,0x37,0x3a,0x3c,0x3f,0x41,0x44,0x46,0x49,0x4b,0x4d,0x50,0x52,
 0x54,0x57,0x59,0x5b,0x5d,0x60,0x62,0x64,0x66,0x68,0x6a,0x6c,0x6f,0x71,0x73,0x75,0x77,0x79,0x7b,0x7c,0x7e,0x80,0x82,0x84,0x86,0x88,0x89,0x8b,0x8d,0x8f,0x90,0x92,
@@ -862,6 +882,7 @@ static const unsigned char sf_vol_table[128] = {
 #define CC_VOL 7
 #define CC_PAN 10
 #define CC_EXPR 11
+#define CC_BANK_LSB 32
 #define CC_DATA_LSB 38
 #define CC_SUSTAIN 64
 #define CC_REVERB 91
@@ -1067,10 +1088,32 @@ static const Preset* find_preset_in(const AwemBank* b, int bank, int prog)
     }
     return NULL;
 }
+static const Preset* find_ovr(int slot, int prog)
+{
+    int i;
+    for (i = 0; i < U.novr; i++)
+        if (U.ovr[i].slot == slot && U.ovr[i].prog == prog && U.ovr[i].b->loaded && U.ovr[i].b->npresets) return &U.ovr[i].b->p[0];
+    return NULL;
+}
+/* user bank select: CC0, or CC32 when CC0 = 0 (sequencers that send only the LSB) */
+static int chan_ubank(const Chan* c) { return c->cc[CC_BANK] ? c->cc[CC_BANK] : c->cc[CC_BANK_LSB]; }
+static const Preset* find_user(const Chan* c)
+{
+    int ub = chan_ubank(c), i;
+    const AwemBank* b;
+    const Preset* p;
+    if (c->drum) { if ((p = find_ovr(128, c->prog)) != NULL) return p; }
+    else if ((p = find_ovr(ub, c->prog)) != NULL) return p;
+    if (ub < 1 || ub > 127 || !(b = U.u[ub]) || !b->loaded) return NULL;
+    if (c->drum) return find_preset_in(b, 128, c->prog);
+    if ((p = find_preset_in(b, 0, c->prog)) != NULL) return p;
+    for (i = 0; i < b->npresets; i++) if (b->p[i].bank < 128 && b->p[i].prog == c->prog && b->p[i].nz) return &b->p[i];
+    return NULL;
+}
 static const Preset* find_preset(int bank, int prog)
 {
     int i;
-    for (i = 0; i < S.nbanks; i++) { const Preset* p = find_preset_in(S.banks[i], bank, prog); if (p) return p; }
+    for (i = 0; i < S.nbanks; i++) { const Preset* p = S.banks[i]->loaded ? find_preset_in(S.banks[i], bank, prog) : NULL; if (p) return p; }
     if (is_drum_bank(bank)) { for (i = 0; i < S.nbanks; i++) { const Preset* p = find_preset_in(S.banks[i], 128, 0); if (p) return p; } }
     else if (bank) { for (i = 0; i < S.nbanks; i++) { const Preset* p = find_preset_in(S.banks[i], 0, prog); if (p) return p; } }
     return NULL;
@@ -1098,7 +1141,8 @@ static void note_on(int ch, int key, int vel)
     Voice* started[16];
     S.stats.notes++;
     if (S.released) { S.stats.released_notes++; return; }
-    pr = find_preset(chan_bank(c), c->prog);
+    pr = find_user(c);
+    if (!pr) pr = find_preset(chan_bank(c), c->prog);
     if (!pr) { S.stats.missing++; return; }
     for (i = 0; i < pr->nz; i++) {
         const Zone* z = &pr->z[i];
@@ -1122,6 +1166,11 @@ static void note_on(int ch, int key, int vel)
         vp->chan = ch; vp->key = key; vp->note = key;
         vp->vel = z->fixvel >= 0 ? z->fixvel : vel;
         vp->reg = *z;
+        if (z->ram) {   /* the bank's place in the sample RAM */
+            uint32_t a = EMU8K_RAM_START + pr->owner->ram_base;
+            vp->reg.start += a; vp->reg.end += a; vp->reg.loopstart += a; vp->reg.loopend += a;
+        }
+        S.stats.last_addr = vp->reg.start;
         setup_voice(vp);
         start_voice(vp);
         vp->state = ST_STANDBY;   /* not triggered yet */
@@ -1318,15 +1367,34 @@ void awem_set_fx(int reverb, int chorus)
     apply_fx();
 }
 
+/* RAM layout: the GM/GS/MT-32 banks first, then user banks 1-127, then single presets; one that does not fit
+   any more (the RAM size went down) is left out (loaded = 0) */
+static void layout(void)
+{
+    uint32_t pos = 0;
+    int i;
+#define PLACE(b) do { if (!(b)->ram_words) (b)->loaded = 1; \
+        else if (!U.ram_set || pos + (b)->ram_words <= U.ram_size) { (b)->ram_base = pos; pos += (b)->ram_words; (b)->loaded = 1; } \
+        else (b)->loaded = 0; } while (0)
+    for (i = 0; i < S.nbanks; i++) { int j, dup = 0; for (j = 0; j < i; j++) dup |= S.banks[j] == S.banks[i]; if (!dup) PLACE(S.banks[i]); }
+    for (i = 1; i < 128; i++) if (U.u[i]) PLACE(U.u[i]);
+    for (i = 0; i < U.novr; i++) PLACE(U.ovr[i].b);
+#undef PLACE
+    U.ram_used = pos;
+}
+static void upload_bank(const AwemBank* b)
+{
+    uint32_t k;
+    if (!b->ram || !b->loaded) return;
+    for (k = 0; k < b->ram_words; k++) emu8k_ram_write(EMU8K_RAM_START + b->ram_base + k, b->ram[k]);
+}
 static void upload_ram(void)
 {
     int i;
-    for (i = 0; i < S.nbanks; i++) {
-        const AwemBank* b = S.banks[i];
-        uint32_t k;
-        if (!b->ram) continue;
-        for (k = 0; k < b->ram_words; k++) emu8k_ram_write(EMU8K_RAM_START + k, b->ram[k]);
-    }
+    layout();
+    for (i = 0; i < S.nbanks; i++) upload_bank(S.banks[i]);
+    for (i = 1; i < 128; i++) if (U.u[i]) upload_bank(U.u[i]);
+    for (i = 0; i < U.novr; i++) upload_bank(U.ovr[i].b);
 }
 
 static void chip_start(void)
@@ -1412,4 +1480,172 @@ static void init_state(void)
     init_done = 1;
     S.reverb = 4; S.chorus = 2; S.gs_reverb = S.gs_chorus = -1; S.master = 127;
     for (i = 0; i < 16; i++) reset_chan(i);
+}
+
+/* ======================================================================================================== */
+/* bank manager: user banks 1-127, single presets, sample RAM (host-neutral: Windows helper and DOS SBEMU)  */
+/* ======================================================================================================== */
+const char* awem_bank_preset(const AwemBank* b, int i, int* bank, int* prog)
+{
+    if (!b || i < 0 || i >= b->npresets) return NULL;
+    if (bank) *bank = b->p[i].bank;
+    if (prog) *prog = b->p[i].prog;
+    return b->p[i].name;
+}
+int awem_bank_loaded(const AwemBank* b) { return b && b->loaded; }
+
+static void relocate(void)          /* voices off, new layout, RAM written again (not while a DOS box has the chip) */
+{
+    all_off(-1, 1);
+    if (!S.released) upload_ram(); else layout();
+}
+void awem_ram_set(uint32_t words) { U.ram_size = words; U.ram_set = 1; relocate(); }
+uint32_t awem_ram_total(void) { return U.ram_size; }
+uint32_t awem_ram_used(void) { layout(); return U.ram_used; }
+uint32_t awem_ram_free(void) { uint32_t u = awem_ram_used(); return U.ram_size > u ? U.ram_size - u : 0; }
+
+/* RAM the layout would need with `b` in place of `old` (old may be NULL) */
+static int fits(const AwemBank* b, const AwemBank* old, char* err, int errlen)
+{
+    uint32_t used, need = b->ram_words, have;
+    layout();
+    used = U.ram_used - (old && old->loaded ? old->ram_words : 0);
+    have = U.ram_size > used ? U.ram_size - used : 0;
+    if (!U.ram_set || need <= have) return 1;
+    if (err && errlen > 0)
+        snprintf(err, (size_t)errlen, "%s needs %lu KB of sample RAM, %lu KB free of %lu KB (/AWERAM)", b->name,
+                 (unsigned long)((need + 511) / 512), (unsigned long)(have / 512), (unsigned long)(U.ram_size / 512));
+    return 0;
+}
+static void set_err(char* err, int errlen, const char* m) { if (err && errlen > 0) { strncpy(err, m, (size_t)errlen - 1); err[errlen - 1] = 0; } }
+static AwemBank* load_full(const char* path, char* err, int errlen)
+{
+    AwemBank* b = awem_bank_load(path, 0xFFFFFFFFu, err, errlen);   /* no RAM cut: fits() says if there is room */
+    if (b && !b->npresets) { set_err(err, errlen, "the bank has no presets"); awem_bank_free(b); b = NULL; }
+    return b;
+}
+
+int awem_ubank_put(int slot, AwemBank* b, char* err, int errlen)
+{
+    if (slot < 1 || slot > 127 || !b) { set_err(err, errlen, "user banks are 1-127"); return -1; }
+    if (!fits(b, U.u[slot], err, errlen)) return -1;
+    awem_bank_free(U.u[slot]);
+    U.u[slot] = b;
+    relocate();
+    return 0;
+}
+int awem_ubank_load(int slot, const char* path, char* err, int errlen)
+{
+    AwemBank* b;
+    if (slot < 1 || slot > 127) { set_err(err, errlen, "user banks are 1-127"); return -1; }
+    if (!(b = load_full(path, err, errlen))) return -1;
+    if (awem_ubank_put(slot, b, err, errlen)) { awem_bank_free(b); return -1; }
+    return 0;
+}
+void awem_ubank_remove(int slot)
+{
+    if (slot < 1 || slot > 127 || !U.u[slot]) return;
+    all_off(-1, 1);
+    awem_bank_free(U.u[slot]);
+    U.u[slot] = NULL;
+    relocate();
+}
+const AwemBank* awem_ubank(int slot) { return slot >= 1 && slot <= 127 ? U.u[slot] : NULL; }
+
+/* a bank holding only preset i of src, with only the RAM words its zones use */
+static AwemBank* extract(const AwemBank* src, int i)
+{
+    const Preset* sp = &src->p[i];
+    AwemBank* b = (AwemBank*)calloc(1, sizeof *b);
+    uint32_t lo = 0xFFFFFFFFu, hi = 0;
+    int j;
+    if (!b) return NULL;
+    snprintf(b->name, sizeof b->name, "%s", sp->name);
+    b->p = (Preset*)calloc(1, sizeof(Preset));
+    if (!b->p) { free(b); return NULL; }
+    b->npresets = 1;
+    b->p[0] = *sp;
+    b->p[0].owner = b;
+    b->p[0].z = (Zone*)malloc((size_t)(sp->nz ? sp->nz : 1) * sizeof(Zone));
+    if (!b->p[0].z) { awem_bank_free(b); return NULL; }
+    memcpy(b->p[0].z, sp->z, (size_t)sp->nz * sizeof(Zone));
+    for (j = 0; j < sp->nz; j++) {
+        const Zone* z = &sp->z[j];
+        uint32_t e;
+        if (!z->ram) continue;
+        if (z->start < lo) lo = z->start;
+        if (z->loopstart < lo) lo = z->loopstart;
+        e = z->end; if (z->loopend > e) e = z->loopend;
+        e += 48;
+        if (e > hi) hi = e;
+    }
+    if (hi > src->ram_words) hi = src->ram_words;
+    if (lo < hi && src->ram) {
+        b->ram_words = hi - lo;
+        b->ram = (uint16_t*)malloc(b->ram_words * 2);
+        if (!b->ram) { awem_bank_free(b); return NULL; }
+        memcpy(b->ram, src->ram + lo, b->ram_words * 2);
+        for (j = 0; j < sp->nz; j++) {
+            Zone* z = &b->p[0].z[j];
+            if (!z->ram) continue;
+            z->start -= lo; z->end -= lo; z->loopstart -= lo; z->loopend -= lo;
+        }
+    }
+    b->loaded = 1;
+    return b;
+}
+static int ovr_find(int slot, int prog) { int i; for (i = 0; i < U.novr; i++) if (U.ovr[i].slot == slot && U.ovr[i].prog == prog) return i; return -1; }
+
+int awem_preset_put(int slot, int prog, const AwemBank* src, int src_bank, int src_prog, char* err, int errlen)
+{
+    int i, k;
+    AwemBank* b;
+    if (slot < 0 || slot > 128 || prog < 0 || prog > 127 || !src) { set_err(err, errlen, "bank 0-127 (128 = drum kits), program 0-127"); return -1; }
+    for (i = 0; i < src->npresets; i++)
+        if ((src_bank < 0 || src->p[i].bank == src_bank) && (src_prog < 0 || src->p[i].prog == src_prog) && src->p[i].nz) break;
+    if (i == src->npresets) { set_err(err, errlen, "that preset is not in the file"); return -1; }
+    if (!(b = extract(src, i))) { set_err(err, errlen, "out of memory"); return -1; }
+    k = ovr_find(slot, prog);
+    if (k < 0 && U.novr == AWEM_MAXOVR) { set_err(err, errlen, "too many single presets"); awem_bank_free(b); return -1; }
+    if (!fits(b, k >= 0 ? U.ovr[k].b : NULL, err, errlen)) { awem_bank_free(b); return -1; }
+    if (k >= 0) awem_bank_free(U.ovr[k].b);
+    else { k = U.novr++; U.ovr[k].slot = slot; U.ovr[k].prog = prog; }
+    U.ovr[k].b = b;
+    relocate();
+    return 0;
+}
+int awem_preset_load(int slot, int prog, const char* path, int src_bank, int src_prog, char* err, int errlen)
+{
+    AwemBank* src = load_full(path, err, errlen);
+    int rc;
+    if (!src) return -1;
+    rc = awem_preset_put(slot, prog, src, src_bank, src_prog, err, errlen);
+    awem_bank_free(src);
+    return rc;
+}
+void awem_preset_remove(int slot, int prog)
+{
+    int k = ovr_find(slot, prog);
+    if (k < 0) return;
+    all_off(-1, 1);
+    awem_bank_free(U.ovr[k].b);
+    U.ovr[k] = U.ovr[--U.novr];
+    relocate();
+}
+int awem_preset_count(void) { return U.novr; }
+const AwemBank* awem_preset_get(int i, int* slot, int* prog)
+{
+    if (i < 0 || i >= U.novr) return NULL;
+    if (slot) *slot = U.ovr[i].slot;
+    if (prog) *prog = U.ovr[i].prog;
+    return U.ovr[i].b;
+}
+void awem_user_clear(void)
+{
+    int i;
+    all_off(-1, 1);
+    for (i = 1; i < 128; i++) { awem_bank_free(U.u[i]); U.u[i] = NULL; }
+    for (i = 0; i < U.novr; i++) awem_bank_free(U.ovr[i].b);
+    U.novr = 0;
+    relocate();
 }

@@ -54,9 +54,36 @@ int  awem_released(void);
 /* take the chip back: chip start again (RAM samples uploaded again), effects, channels keep their state */
 void awem_reclaim(void);
 
+/* ---- bank manager (like Creative's AWE bank manager, no Creative tools): bank 0 = the GM/GS/MT-32 banks above,
+   user banks 1-127 picked by bank select (CC0, or CC32 when CC0 = 0), single presets replaced per bank/program.
+   Every bank's RAM samples get their own place in the sample RAM (GM/GS/MT-32 banks first, then user banks, then
+   single presets); a bank that does not fit is refused with a message (err) and nothing changes.
+   A user bank answers program p with its preset bank 0 / program p, else any melodic preset with program p, else
+   bank 0 plays as before; on the drum channel bank select N picks user bank N's drum kit (preset bank 128).
+   Call from the render thread or with it locked; load files (awem_bank_load) outside the lock. */
+void        awem_ram_set(uint32_t words);       /* sample RAM size (/AWERAM KB x 512); a bank that no longer fits is left out */
+uint32_t    awem_ram_total(void);
+uint32_t    awem_ram_used(void);
+uint32_t    awem_ram_free(void);
+int         awem_ubank_load(int slot, const char* path, char* err, int errlen);  /* add or replace user bank 1-127: 0 = ok */
+int         awem_ubank_put(int slot, AwemBank* b, char* err, int errlen);      /* same with a loaded bank: taken on success */
+void        awem_ubank_remove(int slot);
+const AwemBank* awem_ubank(int slot);           /* NULL = empty */
+/* replace one preset: bank select slot 0-127 (128 = drum kit) + program, with src's preset src_bank/src_prog
+   (-1 = any; the first that matches); only that preset's RAM samples are kept */
+int         awem_preset_load(int slot, int prog, const char* path, int src_bank, int src_prog, char* err, int errlen);
+int         awem_preset_put(int slot, int prog, const AwemBank* src, int src_bank, int src_prog, char* err, int errlen);
+void        awem_preset_remove(int slot, int prog);
+int         awem_preset_count(void);
+const AwemBank* awem_preset_get(int i, int* slot, int* prog);
+void        awem_user_clear(void);              /* all user banks and single presets out */
+const char* awem_bank_preset(const AwemBank* b, int i, int* bank, int* prog);   /* preset i: name, NULL past the end */
+int         awem_bank_loaded(const AwemBank* b);   /* 0 = left out (RAM full after a size change) */
+
 typedef struct {
     uint32_t bytes, notes, voices_max, stolen, active, released_notes; /* stolen = sounding voices taken */
     uint32_t missing;                                                   /* note-ons with no preset/zone   */
+    uint32_t last_addr;                                                 /* sample start of the last voice */
 } AwemStats;
 void awem_stats(AwemStats* s);
 

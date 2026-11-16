@@ -83,7 +83,7 @@ static Field F[NF] = {
     { "Type",            "/T",       { "1", "2", "3", "4", "5", "6" }, 6, 4, 4, "1/2/3 = Sound Blaster, 4/5 = Pro, 6 = SB16.", {0}, 0 },
     { "MPU-401 port",    "/P",       { "330", "300", "310", "320", "332", "334" }, 6, 0, 0, "Where games find General MIDI. 330 is the usual one.", {0}, "MIDI" },
     { "MIDI synth",      0,          { "sc55", "sf", "mt32", "cm32l", "usb", "awe" }, 6, 0, 0, "SC-55 / MT-32 / CM-32L / AWE32 need their ROMs in ROMS; a SoundFont is lightest; USB: a real synth on a USB MIDI cable.", {0}, 0 },
-    { "MPU-401 also plays", 0,       { "sc55", "sf", "mt32", "cm32l", "usb", "off" }, 6, 0, 0, "With the AWE32: what plays the General MIDI that games send to the MPU-401 (like a Sound Canvas on an AWE32). Off = AWE only (/AWEMPU:0).", {0}, 0 },
+    { "MPU-401 also plays", 0,       { "sc55", "sf", "mt32", "cm32l", "usb", "off", "awegm", "awegs", "awemt" }, 9, 0, 0, "With the AWE32: what plays the MIDI games send to the MPU-401 - a Sound Canvas etc. on its MIDI port, or the AWE32 itself (as AWEUTIL /EM, your SYNTHGM/GS/MT.SBK in ROMS). Off = AWE only.", {0}, 0 },
     { "SC-55 options",   0,          { "" }, 1, 0, 0, "ROM set, volume, reverb/chorus, note limit, speed control. Enter opens.", {0}, 0 },
     { "SoundFont options", 0,        { "" }, 1, 0, 0, "SoundFont file, voices, reverb, chorus. Enter opens.", {0}, 0 },
     { "Sample rate",     "/K",       { "22050", "32000", "44100", "48000" }, 4, 0, 0, "Output rate. Higher = clearer but heavier: 22050 Hz with the SC-55.", {0}, "Output" },
@@ -206,6 +206,8 @@ static void set_labels(void)
     F[F_AWEMPU].labels[0] = "SC-55 emulation (ROMs)"; F[F_AWEMPU].labels[1] = "SoundFont (.sf2 file)";
     F[F_AWEMPU].labels[2] = "MT-32 emulation (ROMs)"; F[F_AWEMPU].labels[3] = "CM-32L emulation (ROMs)";
     F[F_AWEMPU].labels[4] = "USB MIDI device"; F[F_AWEMPU].labels[5] = "off (AWE32 only)";
+    F[F_AWEMPU].labels[6] = "AWE32 itself, GM (SYNTHGM.SBK)"; F[F_AWEMPU].labels[7] = "AWE32 itself, GS (SYNTHGS.SBK)";
+    F[F_AWEMPU].labels[8] = "AWE32 itself, MT-32 (SYNTHMT.SBK)";
     F[F_SF].labels[0] = 0;
     { static const char* g[8] = { "100% (default)", "50%", "75%", "125%", "150%", "200%", "300%", "400%" }; for (i = 0; i < 8; i++) F[F_SCGAIN].labels[i] = g[i]; }
     onoff(F_SCFX, "On (accurate)", "Off (faster, dry sound)");
@@ -273,7 +275,7 @@ static void build_line(char* out)
         if (is_sc_field(i) && !using_sc55() && !(i == F_SCGAIN && !using_sf())) continue; /* SC-55 settings only with the SC-55 (its gain also sets the MT-32's) */
         if (i == F_MPU && awe_on())                      /* AWE32: EMU8000 at 620h, SB16; the MPU-401 keeps its synth */
         {
-            sprintf(t, "%s/AWE:620%s%s", out[0] ? " " : "", mpu_synth() == 5 ? " /AWEMPU:0" : "", g_awefx0 ? " /AWEFX:0" : "");
+            sprintf(t, "%s/AWE:620%s%s", out[0] ? " " : "", mpu_synth() == 5 ? " /AWEMPU:0" : mpu_synth() == 6 ? " /AWEMPU:GM" : mpu_synth() == 7 ? " /AWEMPU:GS" : mpu_synth() == 8 ? " /AWEMPU:MT32" : "", g_awefx0 ? " /AWEFX:0" : "");
             strcat(out, t);
         }
         if (i == F_MPU && mpu_synth() == 4)              /* USB MIDI device: SBEMU's USB host sends the MPU-401's MIDI */
@@ -322,9 +324,13 @@ static void parse_tokens(char* s)
         if (!strcasecmp(tok, "/MUSB:1") && !g_awempu0) set_mpu_synth(4);
         if (!strncasecmp(tok, "/AWE:", 5) && strcmp(tok + 5, "0") && !awe_on())
         {   /* what was read so far was the MPU-401's synth */
-            F[F_AWEMPU].cur = g_awempu0 ? 5 : F[F_SYNTH].cur; F[F_SYNTH].cur = 5;
+            if (!g_awempu0) F[F_AWEMPU].cur = F[F_SYNTH].cur;
+            F[F_SYNTH].cur = 5;
         }
         if (!strcasecmp(tok, "/AWEMPU:0")) { g_awempu0 = 1; F[F_AWEMPU].cur = 5; }
+        if (!strcasecmp(tok, "/AWEMPU:GM")) { g_awempu0 = 1; F[F_AWEMPU].cur = 6; }   /* beta.130-awe.6: the EMU8000 plays it */
+        if (!strcasecmp(tok, "/AWEMPU:GS")) { g_awempu0 = 1; F[F_AWEMPU].cur = 7; }
+        if (!strcasecmp(tok, "/AWEMPU:MT32")) { g_awempu0 = 1; F[F_AWEMPU].cur = 8; }
         if (!strcasecmp(tok, "/AWEFX:0")) g_awefx0 = 1;
         if (!strncasecmp(tok, "/VSF:", 5))
         {
@@ -867,6 +873,7 @@ static void draw_row(int i, int sel)
 static const char* warning(void)
 {
     if (awe_on() && mpu_synth() == 5) return "AWE32 only: MIDI sent to the MPU-401 port plays nothing (MIDPLAY, General MIDI games).";
+    if (awe_on() && mpu_synth() >= 6) return "MPU-401 on the AWE32 (AWEUTIL /EM): your SYNTHGM/GS/MT.SBK + AWE32.RAW in ROMS; a game's own AWE32 driver wins.";
     if (mpu_synth() == 4)
     {   /* beta.121: what the running SBEMU sees now (AMIS 05h), else how to get there (AWE32 + USB MIDI too) */
         static char w[200]; static int asked; static SBMUSB m; static int ok;
@@ -877,7 +884,7 @@ static const char* warning(void)
     if (awe_on()) return "AWE32 + MPU-401 synth: AWE32 games use 620h, General MIDI games port 330 (SC-55 etc.). AWE32.RAW in ROMS.";
     if (F[F_SYNTH].cur == 5) return "AWE32: put AWE32.RAW (1 MB EMU8000 ROM) into ROMS; BLASTER gets E620, the SB type is 16.";
     if (F[F_SYNTH].cur == 2 || F[F_SYNTH].cur == 3) return "MT-32 games: choose \"Roland MT-32 / LAPC-I\" in the game's setup, not General MIDI.";
-    if (!using_sf() && F[F_RATE].cur >= 2) return "Heavy: the SC-55 at 44.1/48 kHz is too much for most laptops. Use 22050 Hz.";
+    if (mpu_synth() <= 3 && !using_sf() && F[F_RATE].cur >= 2) return "Heavy: the SC-55 at 44.1/48 kHz is too much for most laptops. Use 22050 Hz.";
     if (!using_sf() && F[F_ROMSET].cur && strstr(F[F_ROMSET].vals[F[F_ROMSET].cur], "mk2")) return "Note: the SC-55mkII ROM set is heavier than the original SC-55.";
     if (F[F_AHEAD].cur == 1) return "Render-ahead is off: long sound interrupts can slow games' music.";
     return "";

@@ -384,7 +384,7 @@ static void build_menu(void)
     /* Settings */
     snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT", g_home);
     add(C_SETTINGS, "Sound Blaster & MIDI", "The main settings screen: Sound Blaster port, IRQ, DMA and type, the MPU-401 port, the MIDI"
-        " synth (SC-55, MT-32, CM-32L or a SoundFont), and the sample rate. Saved to SBOPTS.TXT. If SBEMU is already loaded, restart the PC so the new"
+        " synth (SC-55, MT-32, CM-32L, a SoundFont, or the AWE32 - which can also play the MPU-401 itself with your SYNTHGM/GS/MT.SBK), and the sample rate. Saved to SBOPTS.TXT. If SBEMU is already loaded, restart the PC so the new"
         " settings are used.", IT_BAT, c, 0, 0, NULL);
     snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /TUNE", g_home);
     add(C_SETTINGS, "Automatic setup", "Measures how much CPU the SC-55 needs on this PC and picks the best-sounding ROM set, reverb/chorus,"
@@ -559,7 +559,9 @@ static void draw_status(void)
     {   /* AWE32, and what its MPU-401 plays (beta.121-awe.2: the SC-55 etc. stay on unless /AWEMPU:0) */
         /* beta.126-awe.1: the MPU-401 side follows a live /MOUT switch (AMIS 05h), the AWE32 stays at 620h */
         int usb = g_running && g_musb_ok ? g_musb.out > 0 : !strcmp(opt_val("/MUSB", "0"), "1");
-        const char* w = !strcmp(opt_val("/AWEMPU", "1"), "0") ? NULL : usb ? "USB MIDI"
+        const char* am = opt_val("/AWEMPU", "1");   /* beta.130-awe.6: GM/GS/MT32 = the EMU8000 plays the MPU-401 too */
+        const char* w = !strcmp(am, "0") ? NULL : usb ? "USB MIDI"
+                      : !strcasecmp(am, "GM") ? "own GM" : !strcasecmp(am, "GS") ? "own GS" : !strcasecmp(am, "MT32") ? "own MT32"
                       : (mt[0] && strcmp(mt, "0") && strcasecmp(mt, "OFF")) ? (!strcasecmp(mt, "CM32L") ? "CM-32L" : "MT-32")
                       : sf[0] ? "SF" : "SC-55";
         if (w) tui_printf(61, 3, 0x07, "AWE32 + %s", w); else tui_printf(61, 3, 0x07, "AWE32 (no MPU)");

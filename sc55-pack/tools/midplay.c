@@ -2735,8 +2735,8 @@ int main(int argc, char** argv)
         }
         if (awe_only == 2 || !mpu_detect())
         {
-            if (awe_only) puts("no answer.\nAWE32 mode without MPU-401: turn on SC-55 for 330h in SETTINGS\n"
-                        "(MIDI synth: AWE32 / AWE64, \"MPU-401 also plays\": SC-55), then run SC55.BAT again.");
+            if (awe_only) puts("no answer.\nAWE32 mode without MPU-401 synth: in SETTINGS set \"MPU-401 also plays\" to\n"
+                        "\"AWE32 itself, GM\" (your SYNTHGM.SBK, as AWEUTIL /EM:GM) or SC-55 etc., then run SC55.BAT again.");
             else puts("no answer.\nIs SBEMU loaded (SC55.BAT) with its MPU-401 on? Run SC55.BAT first, in the same DOS session.");
             return 1;
         }

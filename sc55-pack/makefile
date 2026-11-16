@@ -191,7 +191,7 @@ SRC := $(LINUX_DRIVERS_SRC) $(CARDS_SRC) $(SBEMU_SRC)
 NUKEDOPL_OBJ := output/third_party/nuked-opl3-fast/opl3.o
 # AWE32 EMU8000 synth (awe/synth): only runs with /AWE; built for P6 (CMOV) like the SC-55, own flags, no -flto/-ffast-math
 AWE_CFLAGS := -std=gnu99 -O2 -march=pentium2 -mtune=pentium-m -fomit-frame-pointer -DNDEBUG
-AWE_OBJS := output/awe/synth/emu8k.o output/awe/synth/emu8k_rom.o
+AWE_OBJS := output/awe/synth/emu8k.o output/awe/synth/emu8k_rom.o output/awe/synth/awemidi.o
 OBJS := $(patsubst %.cpp,output/%.o,$(patsubst %.c,output/%.o,$(SRC))) $(SC55_OBJS) $(NUKEDOPL_OBJ) $(AWE_OBJS)
 # no per-file header tracking: rebuild every object when any project header changes
 # (a stale object built against an older opl3.h corrupted memory in beta.50 testing)
@@ -208,7 +208,7 @@ $(TARGET): $(OBJS) output/packver.o
 	$(SILENTCMD)$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Nuked-OPL3-fast (VOPL3): compiled without -ffast-math, bit-exact by design
-$(AWE_OBJS): output/%.o: %.c awe/synth/emu8k.h
+$(AWE_OBJS): output/%.o: %.c awe/synth/emu8k.h awe/synth/awemidi.h awe/synth/awegm.h
 	@mkdir -p $(dir $@)
 	$(SILENTMSG) "CC\t$@\n"
 	$(SILENTCMD)$(CC) $(AWE_CFLAGS) -c $< -o $@

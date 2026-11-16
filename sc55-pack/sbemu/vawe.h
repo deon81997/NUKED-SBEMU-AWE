@@ -22,6 +22,17 @@ int  VAWE_Base(void);
 void VAWE_GetIODT(QEMM_IODT* iodt);
 /* adds the EMU8000 output to pcm (stereo int16, frames), volume 0..256 (256 = unity) */
 void VAWE_MixInto(int16_t* pcm, int frames, int rate, int vol);
+/* /AWEMPU:GM|GS|MT32 (beta.130-awe.6): the MPU-401 plays on the EMU8000 (awe/synth/awemidi.c). After VAWE_Init:
+   mode 0 GM, 1 GS, 2 MT-32; banks found by content in dir (Creative's SYNTHGM/GS/MT.SBK), else NUKED's GM map.
+   desc gets what is used. 0 = ok. */
+int  VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int desclen);
+int  VAWE_MidiOn(void);
+const char* VAWE_MidiKind(int mode);
+void VAWE_MidiSetBase(int base);
+/* the MPU-401 port handler (data + command port) in front of the player */
+uint32_t VAWE_MPU(uint32_t port, uint32_t val, uint32_t out);
+/* a program's own AWE driver took the chip (releases), MIDI took it back (reclaims), released now */
+void VAWE_MidiStats(uint32_t* releases, uint32_t* reclaims, int* released);
 /* trapped accesses since start (diagnostics) */
 uint32_t VAWE_Accesses(void);
 

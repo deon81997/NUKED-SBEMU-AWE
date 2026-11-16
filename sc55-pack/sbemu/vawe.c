@@ -19,10 +19,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include "vawe.h"
 #include "../awe/synth/emu8k.h"
+#include "../awe/synth/awemidi.h"
+#include "vdiag.h"
 
 static int      VAWE_On;
 static int      VAWE_BasePort;
@@ -144,14 +147,165 @@ void VAWE_SetFx(int on) { emu8k_set_fx(on); }   /* reverb + chorus; works before
 int VAWE_Base(void) { return VAWE_BasePort; }
 uint32_t VAWE_Accesses(void) { return VAWE_Count; }
 
+/* ---- /AWEMPU:GM|GS|MT32: the MPU-401 plays on the EMU8000 (beta.130-awe.6) ---------------------------------------
+ * As AWEUTIL /EM:GM on a real AWE32 (which needs the card's NMI for the MPU-401 port, so SBEMU does it itself):
+ * the game's MPU-401 bytes go to awe/synth/awemidi.c's player (Creative's SYNTHGM/GS/MT.SBK found by content in the
+ * ROM folder, else NUKED's own GM map over the ROM). A game's own AWE driver wins: its first EMU8000 access
+ * releases the chip (awem_release); it is taken back (awem_reclaim: chip start, RAM samples uploaded again) when
+ * MIDI notes come in after VAWEM_IDLE_S seconds without any EMU8000 access - a game playing AWE music sends no
+ * MPU-401 bytes, so its samples are never overwritten while it runs. Everything runs with interrupts off (trap,
+ * VAWE_MixInto). */
+#define VAWEM_IDLE_S 3
+static int VAWEM_On, VAWEM_Rate = 44100;
+static uint32_t VAWEM_SeenCnt, VAWEM_IdleFrames, VAWEM_Releases, VAWEM_Reclaims;
+static int VAWEM_Base, VAWEM_Ack;
+static AwemBank* VAWEM_Banks[4];
+static int VAWEM_NBanks;
+
+static void VAWEM_Watch(int frames, int rate)
+{
+    VAWEM_Rate = rate;
+    if(VAWE_Count != VAWEM_SeenCnt)
+    {   /* a program touched the EMU8000 since the last interrupt: it is its chip now */
+        VAWEM_SeenCnt = VAWE_Count;
+        VAWEM_IdleFrames = 0;
+        if(!awem_released()) { awem_release(); ++VAWEM_Releases; }
+    }
+    else if(VAWEM_IdleFrames < 0x40000000u) VAWEM_IdleFrames += (uint32_t)frames;
+}
+
+/* a whole quick look: RIFF....sfbk */
+static int VAWEM_IsSbk(const char* p)
+{
+    unsigned char h[12];
+    FILE* f = fopen(p, "rb");
+    int ok = 0;
+    if(!f) return 0;
+    ok = fread(h, 1, 12, f) == 12 && !memcmp(h, "RIFF", 4) && !memcmp(h + 8, "sfbk", 4);
+    fclose(f);
+    return ok;
+}
+
+static const char* const VAWEM_Kinds[3] = { "GM", "GS", "MT-32" };
+
+int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int desclen)
+{
+    char best[3][260]; int bestrc[3] = { 0, 0, 0 }, n = 0, found = 0, files = 0;
+    DIR* d;
+    struct dirent* e;
+    if(!VAWE_On || mode < 0 || mode > 2) return -1;
+    if(!dir || !dir[0]) dir = "ROMS";
+    if((d = opendir(dir)) != NULL)
+    {   /* Creative's banks by content: SoundFont 1 that plays from the GM ROM; GS/MT-32 told by the presets */
+        while((e = readdir(d)) != NULL && files < 2000)
+        {
+            char p[260], nm[64], u[16]; int kind = -1, rc, k;
+            if(e->d_name[0] == '.') continue;
+            ++files;
+            snprintf(p, sizeof p, "%s\\%s", dir, e->d_name);
+            if(!VAWEM_IsSbk(p)) continue;
+            rc = awem_probe(p, &kind, nm, sizeof nm);
+            if(rc != 1 && rc != 2) continue;
+            ++found;
+            if(kind < 0)
+            {   /* the presets did not tell: the file name, else GM */
+                for(k = 0; k < 15 && e->d_name[k]; ++k) u[k] = (char)toupper((unsigned char)e->d_name[k]);
+                u[k] = 0;
+                kind = strstr(u, "MT") ? AWEM_MT32 : strstr(u, "GS") ? AWEM_GS : AWEM_GM;
+            }
+            if(!bestrc[kind] || (rc == 1 && bestrc[kind] != 1)) { snprintf(best[kind], sizeof best[kind], "%s", p); bestrc[kind] = rc; }
+        }
+        closedir(d);
+    }
+    VAWEM_NBanks = 0;
+    {
+        int want[2] = { mode, mode != AWEM_GM ? AWEM_GM : -1 }, i, len = 0;
+        desc[0] = 0;
+        for(i = 0; i < 2; ++i)
+        {
+            char err[96] = "";
+            AwemBank* b;
+            if(want[i] < 0 || !bestrc[want[i]]) continue;
+            b = awem_bank_load(best[want[i]], (uint32_t)ram_kb * 512u, err, sizeof err);
+            if(!b) { len += snprintf(desc + len, desclen > len ? desclen - len : 0, "%s%s: %s", len ? ", " : "", best[want[i]], err); continue; }
+            VAWEM_Banks[VAWEM_NBanks++] = b;
+            len += snprintf(desc + len, desclen > len ? desclen - len : 0, "%s%s (%s)", len ? " + " : "", best[want[i]], awem_bank_name(b));
+            if(awem_bank_skipped(b))
+                len += snprintf(desc + len, desclen > len ? desclen - len : 0, " - %d sounds left out, /AWERAM too small", awem_bank_skipped(b));
+        }
+        if(!VAWEM_NBanks)
+        {
+            AwemBank* b = awem_bank_builtin();
+            if(!b) return -1;
+            VAWEM_Banks[VAWEM_NBanks++] = b;
+            len += snprintf(desc + len, desclen > len ? desclen - len : 0, "%sNUKED's own GM map (no SYNTH%s.SBK in %s)",
+                len ? ", " : "", mode == AWEM_GS ? "GS" : mode == AWEM_MT32 ? "MT" : "GM", dir);
+        }
+    }
+    (void)found;
+    awem_set_banks(VAWEM_Banks, VAWEM_NBanks, mode);
+    awem_start();
+    awem_reset();
+    VAWEM_SeenCnt = VAWE_Count;
+    VAWEM_IdleFrames = 0;
+    VAWEM_On = 1;
+    return 0;
+}
+int VAWE_MidiOn(void) { return VAWEM_On; }
+const char* VAWE_MidiKind(int mode) { return mode >= 0 && mode < 3 ? VAWEM_Kinds[mode] : "?"; }
+void VAWE_MidiStats(uint32_t* releases, uint32_t* reclaims, int* released)
+{
+    *releases = VAWEM_Releases; *reclaims = VAWEM_Reclaims; *released = VAWEM_On && awem_released();
+}
+
+/* the MPU-401 in front of it (UART mode, as VMPU's): command port ACKs, data bytes to the player */
+void VAWE_MidiSetBase(int base) { VAWEM_Base = base; }
+uint32_t VAWE_MPU(uint32_t port, uint32_t val, uint32_t out)
+{
+    if((int)port == VAWEM_Base + 1)
+    {
+        if(out)
+        {
+            if(DIAG_ResetFlush((uint8_t)val)) { VAWEM_Ack = 1; return val; }
+            if(DIAG_Command((uint8_t)val)) return val;     /* SBDIAG side channel (A6-A8h) */
+            VAWEM_Ack = 1;                                 /* every command is ACKed (FFh reset, 3Fh UART) */
+            return val;
+        }
+        return (val & ~0xffu) | 0x3F | (VAWEM_Ack ? 0 : 0x80);   /* DSR clear while an ACK waits; never busy */
+    }
+    if(out)
+    {
+        uint8_t b = (uint8_t)val;
+        DIAG_Midi(0);
+        if(VAWEM_On)
+        {
+            if(awem_released() && (b & 0xF0) == 0x90 && VAWEM_IdleFrames >= (uint32_t)VAWEM_Rate * VAWEM_IDLE_S)
+            {   /* notes again, and no program has used the EMU8000 for a while: take it back */
+                awem_reclaim(); ++VAWEM_Reclaims;
+                VAWEM_SeenCnt = VAWE_Count;
+            }
+            awem_byte(b);
+        }
+        return val;
+    }
+    {
+        uint8_t b;
+        if(DIAG_ReadByte(&b)) return (val & ~0xffu) | b;
+    }
+    VAWEM_Ack = 0;
+    return (val & ~0xffu) | 0xFE;
+}
+
 void VAWE_MixInto(int16_t* pcm, int frames, int rate, int vol)
 {
     static int16_t buf[512 * 2];
     if(!VAWE_On) return;
+    if(VAWEM_On) VAWEM_Watch(frames, rate);
     while(frames > 0)
     {
         int n = frames > 512 ? 512 : frames;
         emu8k_render(buf, n, rate);
+        if(VAWEM_On) awem_advance(n);
         if(vol > 0)
             for(int i = 0; i < n * 2; ++i)
             {

@@ -82,6 +82,7 @@ static BOOL MAIN_TSRed;
 #if SBEMU_VMPU 
 
 #define VMPU_ENABLED (MAIN_Options[OPT_VMPU_VOICES].value)
+#define MAIN_AWEMIDI (MAIN_Options[OPT_AWE].value && MAIN_Options[OPT_AWEMPU].value >= 2)   /* /AWEMPU:GM|GS|MT32 */
 
 #if MAIN_VMPU_HDPMI_MEMFIX
 
@@ -1202,7 +1203,7 @@ struct MAIN_OPT
     "/AWE", "AWE32/AWE64 EMU8000 wavetable at this port (620, 640, 660 or 680; 0=off). SB type 16, adds E620 to BLASTER; the MPU-401 synth stays (/AWEMPU)", 0, 0,
     "/AWERAM", "AWE sample RAM in KB (0-28672; AWE32 = 512, AWE64 Gold = 4096)", 512, MAIN_SETCMD_BASE10,
     "/AWEROM", "AWE ROM: a 1 MB EMU8000 ROM dump, or a folder searched by content (default: ROMS, then AWE)", (uintptr_t)"", MAIN_SETCMD_STR,
-    "/AWEMPU", "With /AWE the MPU-401 keeps its synth (SC-55, SoundFont, MT-32, USB MIDI), like an AWE32 with a Sound Canvas on its MIDI port. 0 = AWE only, MPU silent", 1, MAIN_SETCMD_BASE10,
+    "/AWEMPU", "With /AWE: 1 = the MPU-401 keeps its synth (SC-55, SoundFont, MT-32, USB MIDI), like an AWE32 with a Sound Canvas on its MIDI port; GM, GS or MT32 = the MPU-401 plays on the EMU8000 (as AWEUTIL /EM:GM, with your SYNTHGM/GS/MT.SBK from the ROM folder); 0 = AWE only, MPU silent", 1, MAIN_SETCMD_BASE10,
     "/AWEFX", "With /AWE the EMU8000's reverb and chorus (as the game or AWEUTIL sets them; 0 = off, dry, a little less CPU). Changes at once when SBEMU runs again", 1, MAIN_SETCMD_BASE10,
     NULL, NULL, 0,
 };
@@ -1984,6 +1985,14 @@ int main(int argc, char* argv[])
                 {
                     int base = (MAIN_Options[j].setcmd&MAIN_SETCMD_BASE10) ? 10 : 16;
                     MAIN_Options[j].value = arglen == len ? 1 : strtol(&argv[i][len], NULL, base);
+                    if(j == OPT_AWEMPU && arglen > len)   /* /AWEMPU:GM|GS|MT32 = 2|3|4 (beta.130-awe.6) */
+                    {
+                        const char* v = &argv[i][len];
+                        if(!stricmp(v, "GM")) MAIN_Options[j].value = 2;
+                        else if(!stricmp(v, "GS")) MAIN_Options[j].value = 3;
+                        else if(!stricmp(v, "MT32") || !stricmp(v, "MT-32") || !stricmp(v, "MT")) MAIN_Options[j].value = 4;
+                        else if(isalpha((unsigned char)v[0])) MAIN_Options[j].value = -1;   /* refused below */
+                    }
                 }
                 MAIN_Options[j].setcmd |= MAIN_SETCMD_SET;
                 break;
@@ -2187,8 +2196,13 @@ int main(int argc, char* argv[])
             if(MAIN_Options[OPT_TYPE].setcmd & MAIN_SETCMD_SET) printf("AWE32 needs a Sound Blaster 16: /T%d changed to /T6.\n", (int)MAIN_Options[OPT_TYPE].value);
             MAIN_Options[OPT_TYPE].value = 6;
         }
+        if(MAIN_Options[OPT_AWEMPU].value < 0 || MAIN_Options[OPT_AWEMPU].value > 4)
+        {
+            MAIN_CPrintf(RED, "Error: Invalid /AWEMPU (1, GM, GS, MT32 or 0).\n");
+            return 1;
+        }
 #if SBEMU_VMPU
-        if(!MAIN_Options[OPT_AWEMPU].value)  //awe.1 behaviour: AWE only, the MPU-401 has no synth behind it
+        if(!MAIN_Options[OPT_AWEMPU].value || MAIN_AWEMIDI)  //AWE only, or the EMU8000 plays the MPU-401: no SC-55/SF/MT-32 behind it
         {
             MAIN_Options[OPT_VMPU_VOICES].value = 0;
             MAIN_Options[OPT_VMPU_VOICES].setcmd |= MAIN_SETCMD_SET;   //no SC-55 / SoundFont / MT-32 auto-load either
@@ -2427,7 +2441,7 @@ int main(int argc, char* argv[])
     {   /* the output at start: /MOUT, else /MUSB:1 = USB, else the emulated synth (USB when there is none) */
         int want = MAIN_Options[OPT_MUSB].value ? 1 : 0;
         if(MAIN_Options[OPT_MOUT].setcmd & MAIN_SETCMD_SET) { int m = MAIN_ParseOut((const char*)MAIN_Options[OPT_MOUT].value); if(m >= 0 && m < 0xFE) want = m; }
-        MAIN_UsbOut = MAIN_MUSB && (want > 0 || !VMPU_ENABLED);
+        MAIN_UsbOut = MAIN_MUSB && (want > 0 || !(VMPU_ENABLED || MAIN_AWEMIDI));
         if(MAIN_UsbOut && want > 1) USBPAD_MidiTarget(want - 1);
     }
     if(MAIN_Options[OPT_MIDICAP].value && !MAIN_Cap)
@@ -2437,7 +2451,7 @@ int main(int argc, char* argv[])
         MAIN_Print_Enabled_Newline(MAIN_Cap != NULL);
     }
     if(MAIN_Options[OPT_MPUADDR].value && 
-        (MAIN_Options[OPT_MPUCOMPORT].value || VMPU_ENABLED || (MAIN_MUSB && (MAIN_Options[OPT_MUSB].value || (MAIN_Options[OPT_MOUT].setcmd & MAIN_SETCMD_SET))))
+        (MAIN_Options[OPT_MPUCOMPORT].value || VMPU_ENABLED || MAIN_AWEMIDI || (MAIN_MUSB && (MAIN_Options[OPT_MUSB].value || (MAIN_Options[OPT_MOUT].setcmd & MAIN_SETCMD_SET))))
     )
     {
 #if SBEMU_VMPU
@@ -2516,6 +2530,13 @@ int main(int argc, char* argv[])
             #endif
         }
 #endif
+        if(MAIN_AWEMIDI)
+        {   /* beta.130-awe.6: the EMU8000 plays the MPU-401 (its banks are loaded with the AWE32 below) */
+            MAIN_SynthMPU = &VAWE_MPU;
+            VAWE_MidiSetBase(MAIN_Options[OPT_MPUADDR].value);
+            MAIN_SynthOK = TRUE;
+            snprintf(MAIN_SynthName, sizeof MAIN_SynthName, "AWE32 %s", VAWE_MidiKind((int)MAIN_Options[OPT_AWEMPU].value - 2));
+        }
         if(!MAIN_SynthOK && MAIN_MUSB) MAIN_UsbOut = 1;   /* no emulated synth that plays: USB MIDI has it */
         MAIN_MPUIODT[0].handler = &MAIN_MPU_Route; MAIN_MPUIODT[1].handler = &MAIN_MPU_Route;
         for(int i = 0; i < countof(MAIN_MPUIODT); ++i) MAIN_MPUIODT[i].port = MAIN_Options[OPT_MPUADDR].value+i; MAIN_MpuBase = MAIN_Options[OPT_MPUADDR].value; MAIN_MPU_Wrap();
@@ -2571,6 +2592,22 @@ int main(int argc, char* argv[])
             MAIN_Options[OPT_AWEFX].value ? "" : ", no reverb/chorus (/AWEFX:0)",
             romok ? romname : "not found (put AWE32.RAW / AWEROM.BIN into ROMS; games that load their own samples still play)");
         MAIN_Print_Enabled_Newline(true);
+        if(MAIN_AWEMIDI)
+        {   /* /AWEMPU:GM|GS|MT32: Creative's banks from the ROM folder (where the AWE ROM was found) */
+            char dir[160], desc[400]; char* bs;
+            const int mode = (int)MAIN_Options[OPT_AWEMPU].value - 2;
+            snprintf(dir, sizeof dir, "%s", romok ? romname : "ROMS");
+            if(romok && (bs = strrchr(dir, '\\')) != NULL) *bs = 0; else if(romok) snprintf(dir, sizeof dir, ".");
+            MAIN_Step("AWE32 MIDI banks (SBK scan)");
+            if(VAWE_MidiStart(mode, (int)MAIN_Options[OPT_AWERAM].value, dir, desc, sizeof desc) == 0)
+            {
+                MAIN_CPrintf(LIGHTGRAY, "  MPU-401 %x plays on the AWE32 (%s, /AWEMPU): ", MAIN_Options[OPT_MPUADDR].value, VAWE_MidiKind(mode));
+                MAIN_CPrintf(LIGHTBLUE, "%s\n", desc);
+                if(!romok) MAIN_CPrintf(YELLOW, "  No AWE ROM: Creative's GM sounds are in it - the MPU-401 stays silent.\n");
+                MAIN_CPrintf(LIGHTGRAY, "  A game's own AWE32 driver takes the chip; MIDI gets it back %d s after it stops.\n", 3);
+            }
+            else { MAIN_SynthOK = FALSE; MAIN_CPrintf(YELLOW, "  MPU-401 on the AWE32: not enough memory for the banks.\n"); }
+        }
         if(!MAIN_Options[OPT_AWEMPU].value)
             MAIN_CPrintf(LIGHTGRAY, "  MPU-401 %x: no emulated synth with the AWE32 (/AWEMPU:0)%s\n", MAIN_Options[OPT_MPUADDR].value,
                 MAIN_UsbOut ? "; its MIDI goes to the USB MIDI device" : "");
@@ -3746,7 +3783,7 @@ static void MAIN_TSR_Interrupt()
             extern int VMPU_Kind(void);
             /* SYNTH= what plays the MPU-401's MIDI; AWE= the EMU8000 port (beta.121-awe.2; MIDPLAY warns on SYNTH=NONE) */
             /* beta.126-awe.1: the live output (MUXED beta.123 /MOUT switch: the synth stays loaded while USB plays) */
-            const char* syn = MAIN_UsbOut ? "USB" : VMPU_ENABLED ? (VMPU_Kind() == 2 ? "MT32" : VMPU_Kind() == 1 ? "SF" : "SC55")
+            const char* syn = MAIN_UsbOut ? "USB" : MAIN_AWEMIDI && VAWE_MidiOn() ? "AWE" : VMPU_ENABLED ? (VMPU_Kind() == 2 ? "MT32" : VMPU_Kind() == 1 ? "SF" : "SC55")
                             : mpu401_aui.mpu401 ? "HW" : "NONE";
             int n = snprintf(t, sizeof t, "VER=%s MODE=%s%s%s MPU=%X TRAP=%s%s%s SB=%X SYNTH=%s AWE=%X",
                 MAIN_SBEMU_VER, MAIN_Options[OPT_RM].value ? "RM" : "", MAIN_Options[OPT_RM].value && MAIN_Options[OPT_PM].value ? "+" : "",

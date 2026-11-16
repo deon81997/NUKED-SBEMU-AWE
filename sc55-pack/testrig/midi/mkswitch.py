@@ -40,3 +40,25 @@ for i, e in enumerate(sw):
     out.append(e)
     if i % 3 == 2: out.append('W20')
 open(os.path.join(sys.argv[1], 'SWS.TXT'), 'w').write(' '.join(out) + '\r\n')
+# beta.128 loudcheck: SWQ = a quiet GS set-up (volume 15-40, expression 20-50, pan, bank, program, bend range 2-12,
+# part-level DT1s sent again and again + SC-55 display SysEx, which the replay must not let fill its 2 KB), then
+# SWL = ~80 s in QEMU (trapped I/O ~40 bytes/s) of held notes and chords on every channel, so Ctrl+Alt+F11 lands mid-note and mid-message.
+Q = random.Random(128)
+q = ['CFF', 'A', 'C3F', 'A'] + [D(x) for x in roland([0x40, 0x00, 0x7F], [0x00])] + ['W60']
+for ch in range(16):
+    q += [D(x) for x in [0xB0 | ch, 0, Q.randrange(2), 32, 0, 0xC0 | ch, Q.randrange(128), 0xB0 | ch, 7, Q.randrange(15, 41),
+                         10, Q.randrange(128), 11, Q.randrange(20, 51), 101, 0, 100, 0, 6, Q.randrange(2, 13), 38, 0, 101, 127, 100, 127]]
+for rep in range(4):
+    for part in range(16):
+        q += [D(x) for x in roland([0x40, 0x10 | part, 0x19], [Q.randrange(40, 100)])]                       # part level
+    q += [D(x) for x in [0xF0, 0x41, 0x10, 0x45, 0x12, 0x10, 0x00, 0x00] + [0x20] * 32 + [0x10, 0xF7]] + ['W5']  # display
+open(os.path.join(sys.argv[1], 'SWQ.TXT'), 'w').write(' '.join(q + ['W200']) + '\r\n')
+l, on = [], {}
+for i in range(2400):
+    ch = Q.randrange(16); n = Q.randrange(36, 84)
+    if (ch, n) in on: l += [D(0x80 | ch), D(n), D(64)]; del on[(ch, n)]
+    else: l += [D(0x90 | ch), D(n), D(Q.randrange(60, 128))]; on[(ch, n)] = 1
+    if Q.random() < 0.05: l += [D(0xB0 | ch), D(1), D(Q.randrange(128))]
+    l.append('W%d' % Q.choice([5, 10, 20, 40]))
+for ch, n in on: l += [D(0x80 | ch), D(n), D(64)]
+open(os.path.join(sys.argv[1], 'SWL.TXT'), 'w').write(' '.join(l + ['W500']) + '\r\n')

@@ -53,6 +53,7 @@ def model(writes, slots=None):
     for port, v in writes:
         if port == 2:
             check(); cur = v; rep = [] if v else None; snap = progs(allm) if v else None; continue
+        if port == 4: continue                  # beta.128: SBEMU's own byte to the emulated synth (loudcheck.py)
         if port == 3:
             if cur: slots.setdefault(cur, []).append(v)
             if rep is not None: rep.append(v)

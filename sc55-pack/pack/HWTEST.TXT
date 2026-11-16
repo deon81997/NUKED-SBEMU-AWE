@@ -1,6 +1,38 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.127)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130 stuck right arrow in Duke 3D (D810, built-in keyboard; cable
+    as for beta.127 below). Main PC:  python DBGLOG.PY COM3 -k K -k E!
+    DOS PC:  SC55 /DBG:COM1:2  then Duke 3D, 15 minutes, lots of turning with
+    the arrows held, Ctrl (fire) and Alt (strafe) in the middle, two arrows at
+    once. Expected: no key stays held. The live lines are "K T E0 4D make" /
+    "K T E0 4D break" (T = Duke read it through SBEMU's trap). If a key sticks:
+    note the time, let go of everything, wait 3 s, send the dbg-*.log: the
+    last K lines show whether a break never came (keyboard/EC), came without
+    its E0 (prefix lost), or SBEMU handled it ("L" or "U" lines).
+    Control run: SC55 /DBG:COM1:2 /KEYTRAP:0 (old way) - same play; does it
+    stick again (and how soon)? Also once: Ctrl+Alt+F12 in Duke (front panel
+    on/off) and Ctrl+Alt+F11 (MIDI output) still work -> "K hotkey" lines.
+
+[ ] beta.129 quiet MIDI output switch (D810 or P5PE-VM, Uno + SC-55):
+    SC55 (emulated SC-55), MIDPLAY a GS song with quiet parts (or any song,
+    master volume low on the SC-55). While it plays press Ctrl+Alt+F11 ten
+    times, about 3 s apart (synth <-> USB 1). Each switch: no loud blast or
+    burst, the old output goes quiet at once, the new one comes in at the
+    song's level with the right instruments within ~0.1 s; MIDPLAY does not
+    redraw or react (its log has no "key 018B"). Then the same in Duke 3D.
+    Afterwards SBDIAG USB > C:\SC55\MOUT1.TXT (dropped must be 0).
+
+[ ] beta.128 USB MIDI hitches, D810 + M-Audio Uno + Duke 3D + DBGLOG.PY:
+    serial cable as for beta.127, on the main PC  python DBGLOG.PY COM3
+    (your COM). SETTINGS > MIDI synth = USB MIDI device, then  SC55 /DBG:COM1
+    and Duke 3D (music on, sound effects on) for 5 minutes. Each time you
+    hear a hitch, write down the time DBGLOG shows right then (and whether
+    the game also stuttered). Then the same 2 minutes with SETTINGS = the
+    emulated SC-55: hitches there too? Send the dbg-*.log and your times.
+    What it tells: the "S usbmidi" line of each hitch second (lat, wait,
+    gap, nak, retry) and igap= on the line above it - see DBGLOG.TXT.
 
 [ ] beta.127 serial debug link (P5PE-VM COM1, D810 via the D/Port's COM1),
     see C:\SC55\DBGLOG.TXT: null-modem cable + USB-serial adapter to the main

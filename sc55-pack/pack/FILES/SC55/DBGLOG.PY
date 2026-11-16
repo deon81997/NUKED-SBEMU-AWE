@@ -14,7 +14,8 @@ line, with the host's time, to a log file. Windows and Linux, Python 3 + pyseria
   python3 DBGLOG.PY socket://localhost:4555 an emulator's serial port (QEMU -serial tcp::4555,server,nowait)
 
 Line format from the DOS PC: "<seconds.ms> <source> <kind> <text>"; source SB (SBEMU), MENU, MIDPLAY, GAMETEST, SBDIAG;
-kind E error, ! fatal, I event, S stats once a second, F per-frame summary (level 2), T capture record (level 3).
+kind E error, ! fatal, I event, S stats once a second, F per-frame summary (level 2), K keyboard byte
+(level 2: T read by the game through the trap, L looked at by SBEMU, I injected, U taken back), T capture record (level 3).
 The log file: "<host date time.ms>  <line>", default dbg-YYYYMMDD-HHMMSS.log next to this script (-o to choose).
 Ctrl+C stops. If the DOS PC freezes, the last line in the file is the last thing it said.
 """
@@ -26,7 +27,7 @@ import sys
 import time
 
 KINDS = "E!ISFT"
-COLOR = {"E": "\033[91m", "!": "\033[97;41m", "S": "\033[36m", "F": "\033[90m", "T": "\033[90m", "I": ""}
+COLOR = {"E": "\033[91m", "!": "\033[97;41m", "S": "\033[36m", "F": "\033[90m", "T": "\033[90m", "K": "\033[33m", "I": ""}
 
 
 def kind_of(line):

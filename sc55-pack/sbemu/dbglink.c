@@ -9,6 +9,7 @@
 #include "vdiag.h"
 #include "sbemu.h"
 #include "vdma.h"
+#include "usbpad.h"
 #include "dpmi/dpmi.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -20,7 +21,7 @@ volatile int DBGL_On;
 static DbgPort P;
 static int  L_Com;
 static uint32_t L_Tick0;
-static uint64_t L_T0, L_Cps, L_StatT, L_IsrCyc, L_IsrMax, L_LastIsr;
+static uint64_t L_T0, L_Cps, L_StatT, L_IsrCyc, L_IsrMax, L_LastIsr, L_IGap;
 static uint32_t L_Isrs, L_Traps, L_Midi, L_Drop, L_Virq, L_Ack, L_Under, L_UnderLast, L_UnderInit, L_LostShown;
 static uint32_t F_Cls[6], F_Virq, F_Ack;           /* level 2: this frame */
 static char L_LastEv[64]; static uint32_t L_EvRep; static uint64_t L_EvT;
@@ -195,6 +196,8 @@ void DBGL_Isr(uint64_t cyc)
     if (Cap_Dumping) cap_send();
     if (!L_Cps) L_Cps = DIAG_CyclesPerSec();
     t = DIAG_Tsc();
+    if (L_LastIsr && t - L_LastIsr > L_IGap) L_IGap = t - L_LastIsr;   /* beta.128: longest time without a sound interrupt */
+    L_LastIsr = t;
     if (L_Cps && t - L_StatT >= L_Cps)
     {
         char pn[9]; uint64_t el = t - L_StatT; unsigned load = el ? (unsigned)(L_IsrCyc * 1000u / el) : 0;
@@ -202,18 +205,27 @@ void DBGL_Isr(uint64_t cyc)
         {
             ev_flush_rep();
             prog_name(pn);
-            DBGL_Line(0, 'S', "prog=%s load=%u.%u%% isr=%lu max=%luus virq=%lu ack=%lu traps=%lu midi=%lu drop=%lu under=%lu sb=%s%lu/%d/%d lost=%lu",
+            DBGL_Line(0, 'S', "prog=%s load=%u.%u%% isr=%lu max=%luus virq=%lu ack=%lu traps=%lu midi=%lu drop=%lu under=%lu sb=%s%lu/%d/%d lost=%lu igap=%luus",
                 pn, load / 10, load % 10, (unsigned long)L_Isrs, (unsigned long)(L_IsrMax * 1000000u / L_Cps), (unsigned long)L_Virq,
                 (unsigned long)L_Ack, (unsigned long)L_Traps, (unsigned long)L_Midi, (unsigned long)L_Drop, (unsigned long)L_Under,
                 SBEMU_HasStarted() ? "" : "idle:", (unsigned long)SBEMU_GetSampleRate(), SBEMU_GetBits(), SBEMU_GetChannels(),
-                (unsigned long)(P.lost - L_LostShown));
+                (unsigned long)(P.lost - L_LostShown), (unsigned long)(L_IGap * 1000000u / L_Cps));
             L_LostShown = P.lost;
+            {   /* beta.128: USB MIDI OUT (/MUSB): queue now/max, latency avg/max, longest wait to a transfer, transfers,
+                 * packets, pacing holds, polls that found the transfer still busy (NAK), full USB poll time avg/max */
+                USBPAD_MidiTimeT u;
+                USBPAD_MidiTiming(&u, 1);
+                if (u.tx || u.qmax || u.nak || u.retry)
+                    DBGL_Line(0, 'S', "usbmidi tx=%lu bytes=%lu bmax=%lu q=%lu/%lu lat=%lu/%luus wait=%luus gap=%luus paced=%lu nak=%lu retry=%lu poll=%lu/%luus",
+                        (unsigned long)u.tx, (unsigned long)u.pk * 4, (unsigned long)u.bmax, (unsigned long)u.qnow, (unsigned long)u.qmax,
+                        (unsigned long)u.lat_avg, (unsigned long)u.lat_max, (unsigned long)u.wait_max, (unsigned long)u.gap_max,
+                        (unsigned long)u.paced, (unsigned long)u.nak, (unsigned long)u.retry, (unsigned long)u.poll_avg, (unsigned long)u.poll_max);
+            }
         }
-        L_StatT = t; L_IsrCyc = L_IsrMax = 0; L_Isrs = L_Traps = L_Midi = L_Drop = L_Virq = L_Ack = 0;
+        L_StatT = t; L_IsrCyc = L_IsrMax = L_IGap = 0; L_Isrs = L_Traps = L_Midi = L_Drop = L_Virq = L_Ack = 0;
         if (L_UnderInit) { L_UnderLast += L_Under; L_Under = 0; }
     }
     dbg_pump(&P);
-    (void)L_LastIsr;
 }
 void DBGL_Pump(void) { if (DBGL_On) { if (Cap_Dumping) cap_send(); dbg_pump(&P); } }
 

@@ -69,12 +69,28 @@ LINES:  <seconds since SBEMU started> <source> <kind> <text>
   kind    E error (SBEMU waits until it has left the cable before going on)
           ! fatal  I event  S stats  F per-frame (level 2)
           T capture record: T <microseconds> <i|o> <port> <value>
+          K keyboard (level 2, beta.130): K <how> [E0 ]<scan> make|break
+            how: T = the game read it (through SBEMU's port 60h trap),
+            L = SBEMU looked at port 60h itself (no trap: DOS prompt,
+            real-mode programs), I = SBEMU typed it (USB keyboard / pad),
+            U = SBEMU took back a byte of its own nobody read. Hotkeys:
+            "K hotkey Ctrl+Alt+F11". Stuck key hunt: -k K (see HWTEST).
   S line: prog = program running, load = SBEMU's share of the CPU, isr =
           sound interrupts/s, max = longest one, virq/ack = Sound Blaster
           IRQs given to the game / acknowledged by it, traps = port accesses
           SBEMU caught, midi = MIDI bytes, drop = MIDI bytes lost, under =
           sound buffer underruns, sb = rate/bits/channels, lost = link lines
           that did not fit (level 2 at low baud).
+          igap = longest time without a sound interrupt that second (about
+          3 ms on the D810; much longer = the PC stopped for a moment).
+  S usbmidi line (beta.128, only with a USB MIDI cable in use), per second:
+          tx = USB transfers sent, bytes = USB MIDI bytes (4 per message),
+          bmax = most bytes in one transfer, q = messages queued now/most,
+          lat = game wrote it -> the cable took it, average/longest,
+          wait = longest wait before its transfer started, gap = longest
+          time between two transfers while MIDI waited, paced = holds to
+          31250 baud, nak = polls that found the cable still busy, retry =
+          transfers lost/redone, poll = SBEMU's USB poll time avg/longest.
 
 DBGLOG.PY FILTERS (the log file still gets every line):
   -k E!       only errors and fatal lines     -k S   only stats

@@ -630,6 +630,11 @@ CONTENTS
                            DMA/IRQ, 3 + port capture sent on Ctrl+Alt+F10.
                            In batch files use ':' (SC55 /DBG:COM1:2).
                            Cables and setup: C:\SC55\DBGLOG.TXT
+     /KEYTRAP:0            old hotkey watcher (beta.130 default 1: SBEMU
+                           sees Ctrl+Alt+F10/F11/F12 through a port 60h trap
+                           and no longer reads the keyboard itself, which
+                           could steal a key byte from the game - stuck
+                           arrows in Duke 3D). Level 2 /DBG shows K lines.
      /VMPU[:0]             virtual MPU-401 on (SC-55 or SoundFont); /VMPU=0
                            turns it off. Also switched on by /VSCROM, /VSCSET
                            or /VSF.
@@ -1338,7 +1343,10 @@ CONTENTS
      The old output's notes stop; the new one first gets the last GM/GS
      reset and SysEx, then every channel's bank, instrument, controllers,
      pitch bend range and pitch bend, so a song keeps playing with the
-     right instruments. The emulated synth uses no CPU while USB has the
+     right instruments. Since beta.128 the new output is silent until then,
+     gets ~60 ms after the reset (a real SC-55 needs it) and the volume and
+     expression last, so it never comes in loud. MIDPLAY ignores the key
+     (games see it as Alt+F11, which they do not use). The emulated synth uses no CPU while USB has the
      music. Without ROMs or a SoundFont there is only USB to switch to.
    - Where to see it: MENU's status panel (device, on / plug in / out /
      error), MENU > Tests > "USB MIDI test (MPUTEST /USB)", SETTINGS (MIDI

@@ -2599,7 +2599,14 @@ static int g_mouse_key;
 static int get_input(void)
 {
     static uint64_t next_mouse;
-    if (key_pressed()) return key_read();
+    dbg_poll();                                                    /* beta.128: /DBG lines stalled in the ring (never pumped) */
+    if (key_pressed())
+    {   /* SBEMU's Ctrl+Alt+F10 / F11 / F12 (debug capture, MIDI output switch, overlay) are not MIDPLAY's keys: the BIOS
+         * gives them as Alt+F10 / F11 / F12 (Ctrl+... on some BIOSes); before beta.128 each one forced a full redraw */
+        int k = key_read();
+        if (k == 0x171 || k == 0x18B || k == 0x18C || k == 0x167 || k == 0x189 || k == 0x18A) { ui_log("SBEMU hotkey %04X ignored", k); return 0; }
+        return k;
+    }
     if (g_ui && !mp3_on && now_us() >= next_mouse)
     {   /* INT 33h is a mode switch: ~30 times a second is plenty */
         int ox = tui_mx, oy = tui_my;

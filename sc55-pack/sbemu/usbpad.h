@@ -122,6 +122,20 @@ typedef struct
     uint32_t sent, dropped, errors, in, queued, busy, busytmo, paced;
     int target;                            /* beta.123: the slot new MIDI goes to (0..) */
 } USBPAD_MidiInfoT;
+/* beta.128: USB MIDI OUT timing for /DBG and SBDIAG USB (since the last call with reset): queue depth, how long a packet
+ * waited from the game's MPU-401 write to its OUT transfer being seen done, transfers, pacing holds, USB poll time */
+typedef struct
+{
+    uint32_t qnow, qmax;                   /* packets queued now / most since reset */
+    uint32_t tx, pk, paced, nak;           /* OUT transfers done, packets in them, pacing holds, polls that found it still busy */
+    uint32_t lat_avg, lat_max;             /* us: MPU-401 write -> OUT transfer seen done (oldest packet of each transfer) */
+    uint32_t wait_max;                     /* us: MPU-401 write -> its OUT transfer started */
+    uint32_t bmax;                         /* most MIDI bytes (USB packets x 4) in one OUT transfer */
+    uint32_t gap_max;                      /* us: longest time between two OUT transfer starts while MIDI was waiting */
+    uint32_t retry;                        /* OUT transfers lost / taken back / stalled (errors) */
+    uint32_t poll_avg, poll_max, polls;    /* us: one full USB poll (SBEMU's sound interrupt) while a MIDI device is in use */
+} USBPAD_MidiTimeT;
+void USBPAD_MidiTiming(USBPAD_MidiTimeT* t, int reset);
 void USBPAD_MidiInfo(USBPAD_MidiInfoT* m);   /* the target slot's device + all counters */
 /* beta.123: several USB MIDI devices ("slots", kept across unplug / plug-in) */
 int  USBPAD_MidiSlots(void);               /* how many slots */

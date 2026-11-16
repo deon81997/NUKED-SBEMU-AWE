@@ -66,8 +66,12 @@ def main():
            'ehci': ['-device', 'usb-ehci,id=u'], 'xhci': ['-device', 'qemu-xhci,id=u']}[hc]
     sock = W + '/mon.sock'
     args = ['qemu-system-i386', '-machine', 'pc', '-cpu', 'pentium3', '-m', mem, '-drive', 'file=%s/c.img,format=raw,if=ide' % W,
-            '-display', 'none', '-monitor', 'unix:%s,server,nowait' % sock, '-audiodev', 'none,id=snd,timer-period=2000', '-device', 'AC97,audiodev=snd'] + ctl + \
+            '-display', 'none', '-monitor', 'unix:%s,server,nowait' % sock, '-audiodev', 'none,id=snd,timer-period=' + os.environ.get('RIGTP', '2000'), '-device', 'AC97,audiodev=snd'] + ctl + \
            ['-chardev', 'socket,id=midi,host=127.0.0.1,port=%d,reconnect=1' % port, '-device', 'usb-redir,chardev=midi,id=midi,bus=u.0']
+    if os.environ.get('RIGSERIAL'):         # beta.128: COM1 -> TCP server port RIGSERIAL (SBEMU /DBG -> DBGLOG.PY socket://)
+        args += ['-chardev', 'socket,id=c1,host=127.0.0.1,port=%s,server=on,wait=off' % os.environ['RIGSERIAL'], '-serial', 'chardev:c1']
+    if os.environ.get('RIGCPU'): args[args.index('pentium3')] = os.environ['RIGCPU']
+    if os.environ.get('RIGKVM'): args += ['-accel', 'kvm']
     if '--pad' in sys.argv:                 # an Xbox 360 pad next to it (testrig/fakepad.py, A held from 2 s)
         open(W + '/pad.txt', 'w').write('2 buttons=1000 lx=12000\n')
         pp = subprocess.Popen([sys.executable, os.path.join(TR, 'fakepad.py'), str(port + 50), W + '/pad.txt']); time.sleep(0.5)
@@ -77,6 +81,7 @@ def main():
         e2 = dict(env); e2['FAKEMIDI_PID'] = '0151'; e2['FAKEMIDI_NAME'] = 'Second MIDI Cable'
         fm2 = subprocess.Popen([sys.executable, os.path.join(TR, 'fakemidi.py'), str(port + 60), flog.replace('.log', '-2.log')], env=e2); time.sleep(0.5)
         args += ['-chardev', 'socket,id=midi2b,host=127.0.0.1,port=%d,reconnect=1' % (port + 60), '-device', 'usb-redir,chardev=midi2b,id=midi2b,bus=u.0']
+    if os.environ.get('RIGCOM1FILE'): args += ['-serial', 'file:' + os.environ['RIGCOM1FILE']]   # beta.129: COM1 -> file (/DBG lines)
     keys = [x.split(':', 1) for x in sys.argv[sys.argv.index('--keys') + 1].split(',')] if '--keys' in sys.argv else []
     if keys: args += ['-global', 'i8042.kbd-throttle=on']     # beta.123: --keys T:qemu-key,... (e.g. 40:ctrl-alt-f11)
     q = subprocess.Popen(args, stdout=open(W + '/qemu.log', 'w'), stderr=subprocess.STDOUT)

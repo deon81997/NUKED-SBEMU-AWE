@@ -274,7 +274,8 @@ typedef struct
     int opend; uint32_t ofn;            /* oslow OHCI: ED skipped at frame ofn, new TD goes in 2 frames later */
     int kind, gseq;                     /* PK_*; Xbox One: sequence number of the packets sent */
     int out, olen, busy, needclr;       /* USB MIDI OUT pipe: q->ep is an OUT endpoint, olen bytes in obuf in flight */
-    uint64_t ostart; int otmo, ostall, ofirst;   /* MIDI OUT watchdog (beta.114): transfer start, timeouts / stalls in a row */
+    uint64_t ostart; int otmo, ostall, ofirst;
+    uint32_t ostamp;                              /* beta.128: enqueue time (TSC low) of the transfer's oldest packet */   /* MIDI OUT watchdog (beta.114): transfer start, timeouts / stalls in a row */
     uint64_t otime; int otok;                     /* MIDI OUT pacing (beta.121): wire bytes allowed now, when last refilled */
     volatile uint32_t* td;              /* its IN TD(s): UHCI 1, OHCI 2, EHCI 2 (used in turn) */
     uint8_t *ibuf, *obuf;
@@ -2387,13 +2388,18 @@ static void slot_last(int sl, const char* why)
 }
 #define midi_last(why) slot_last(MidiTarget, why)
 static struct { uint8_t rs, need, n, d[2], sx[3], sxn, insx; } Mp;   /* MidiByte's parser */
+/* beta.128: USB MIDI timing (USBPAD_MidiTiming): every packet's enqueue time (TSC low 32 bits, < 2 s apart) */
+static uint32_t MStamp[MFIFO];
+static struct { uint32_t qmax, tx, pk, nak, latn, wait_max, polls, paced0, bmax, gap_max, err0, lastst; uint64_t lat_sum, lat_max, poll_sum, poll_max; } Mt;
 static void midi_put(uint32_t pk)
 {
     unsigned h = MHead;
     if (MidiPipe < 0) return;                       /* nobody to send to: dropped (no stale notes on a later plug-in) */
     if (h - MTail >= MFIFO) { if (!MidiDrop++) midi_last("queue full: MIDI dropped (the game did not wait for the MPU-401's busy bit)"); return; }
     MFifo[h & (MFIFO - 1)] = pk | (uint32_t)MidiTarget << 4;   /* the slot it is for, in the cable number */
+    MStamp[h & (MFIFO - 1)] = (uint32_t)tsc();
     MHead = h + 1;
+    if (h + 1 - MTail > Mt.qmax) Mt.qmax = h + 1 - MTail;
 }
 static uint32_t mpk(int cin, int a, int b, int c) { return (uint32_t)cin | (uint32_t)a << 8 | (uint32_t)b << 16 | (uint32_t)c << 24; }
 void USBPAD_MidiByte(uint8_t b)
@@ -2453,17 +2459,18 @@ static void mout_poll(int k);
  * interrupts off still gets through. The game waits as long as the queue moves; 1 s without any progress and it is
  * let through (a device that stopped taking MIDI cannot hang the game: the bytes are dropped then). */
 #define MBUSY_ROOM 96
+static uint64_t MidiLastPump;
 int USBPAD_MidiBusy(void)
 {
-    static uint64_t since, lastpump; static unsigned seen;
+    static uint64_t since; static unsigned seen;
     uint64_t t;
     midi_skipdead();
     if (MidiPipe < 0 || MFIFO - (int)(MHead - MTail) >= MBUSY_ROOM) { since = 0; return 0; }
     t = tsc();
-    if (Inited && !Busy && t - lastpump > us2c(200))
+    if (Inited && !Busy && t - MidiLastPump > us2c(200))
     {
         int hk = Md[(MFifo[MTail & (MFIFO - 1)] >> 4) & (MIDIDEVS - 1)].pipe;   /* the device the head of the queue is for */
-        lastpump = t;
+        MidiLastPump = t;
         if (hk >= 0 && HC[P[hk].hc].type != T_XHCI) { Busy = 1; Light = 1; Pump = 1; mout_poll(hk); Pump = 0; Busy = 0; }
         if (MidiPipe < 0 || MFIFO - (int)(MHead - MTail) >= MBUSY_ROOM) { since = 0; return 0; }
     }
@@ -2471,6 +2478,20 @@ int USBPAD_MidiBusy(void)
     else if (seen != MTail) { since = t; seen = MTail; }            /* the cable takes MIDI: keep the game waiting */
     if (t - since > us2c(1000000)) { if (!MidiBusyTmo++) midi_last("no progress for 1 s (device not taking MIDI): game let through"); return 0; }
     return 1;
+}
+void USBPAD_MidiTiming(USBPAD_MidiTimeT* t, int reset)
+{
+    uint64_t c = Cps ? Cps : 1;
+    t->qnow = MidiPipe < 0 ? 0 : MHead - MTail; t->qmax = Mt.qmax;
+    t->tx = Mt.tx; t->pk = Mt.pk; t->paced = MidiPaced - Mt.paced0; t->nak = Mt.nak;
+    t->lat_avg = Mt.latn ? (uint32_t)(Mt.lat_sum / Mt.latn * 1000000 / c) : 0;
+    t->lat_max = (uint32_t)(Mt.lat_max * 1000000 / c);
+    t->wait_max = (uint32_t)((uint64_t)Mt.wait_max * 1000000 / c);
+    t->bmax = Mt.bmax; t->gap_max = (uint32_t)((uint64_t)Mt.gap_max * 1000000 / c); t->retry = MidiErr - Mt.err0;
+    t->polls = Mt.polls;
+    t->poll_avg = Mt.polls ? (uint32_t)(Mt.poll_sum / Mt.polls * 1000000 / c) : 0;
+    t->poll_max = (uint32_t)(Mt.poll_max * 1000000 / c);
+    if (reset) { uint32_t p = MidiPaced, ls = Mt.lastst; memset(&Mt, 0, sizeof Mt); Mt.paced0 = p; Mt.err0 = MidiErr; Mt.lastst = ls; Mt.qmax = t->qnow; }
 }
 void USBPAD_MidiInfo(USBPAD_MidiInfoT* m)
 {
@@ -2863,7 +2884,9 @@ static void mout_poll(int k)
         }
         else r = poll_in(k);
         if (r == 0)
-        {   /* beta.122: the timeout is checked only after the transfer was looked at - a poll that came late (the
+        {   /* beta.128: counted (the device NAKs while its 31250-baud UART is full, or the poll came before the frame) */
+            ++Mt.nak;
+            /* beta.122: the timeout is checked only after the transfer was looked at - a poll that came late (the
              * game polling the MPU-401 trap) no longer takes a finished transfer for a NAK (xHCI dropped the device) */
             if (tsc() - q->ostart <= us2c(MOUT_TMO)) return;
             /* not taken (NAK) for too long; the light poll (game port reads) leaves it to the next full poll */
@@ -2885,6 +2908,8 @@ static void mout_poll(int k)
         }
         else if (r > 0)
         {
+            uint64_t l = (uint32_t)((uint32_t)tsc() - q->ostamp);
+            Mt.tx++; Mt.pk += (unsigned)q->olen / 4; Mt.latn++; Mt.lat_sum += l; if (l > Mt.lat_max) Mt.lat_max = l;
             MidiSent += (unsigned)q->olen / 4; q->otmo = 0; q->ostall = 0;
             if (q->ofirst == 1) { q->ofirst = 2; mlog("first OUT transfer done: the device takes MIDI"); }
         }
@@ -2938,6 +2963,14 @@ static void mout_poll(int k)
         q->obuf[i * 4] = (uint8_t)(pk & 0x0F); q->obuf[i * 4 + 1] = (uint8_t)(pk >> 8);   /* cable 0 */
         q->obuf[i * 4 + 2] = (uint8_t)(pk >> 16); q->obuf[i * 4 + 3] = (uint8_t)(pk >> 24);
         if (MidiTap) MidiTap(pk);
+    }
+    q->ostamp = MStamp[t & (MFIFO - 1)];
+    {   /* gap: this transfer's oldest packet was already queued when the previous transfer started = held a whole gap */
+        uint32_t now = (uint32_t)tsc(), w = now - q->ostamp;
+        if (w > Mt.wait_max) Mt.wait_max = w;
+        if (Mt.lastst && (int32_t)(q->ostamp - Mt.lastst) < 0 && now - Mt.lastst > Mt.gap_max) Mt.gap_max = now - Mt.lastst;
+        Mt.lastst = now | 1;
+        if (n * 4 > Mt.bmax) Mt.bmax = n * 4;
     }
     MTail = t + n;
     q->olen = (int)n * 4;
@@ -3968,7 +4001,13 @@ void USBPAD_Poll(void)
     if (Busy) { light_during_disk(); return; }
     Busy = 1;
     Light = 0;
-    step();
+    if (MidiPipe >= 0)
+    {   /* beta.128: how long the full poll takes in SBEMU's sound interrupt while a USB MIDI device is in use */
+        uint64_t t0 = tsc(), d;
+        step();
+        d = tsc() - t0; Mt.polls++; Mt.poll_sum += d; if (d > Mt.poll_max) Mt.poll_max = d;
+    }
+    else step();
     Busy = 0;
 }
 

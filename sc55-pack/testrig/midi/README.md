@@ -1,5 +1,14 @@
 # USB MIDI test rig
 
+## beta.129: no loud events on a switch (loudcheck.py)
+- `switch.sh loud` (MPUPLAY SWQ = quiet GS set-up with repeated part-level DT1s + SC-55 display SysEx, SWL = notes;
+  `mkswitch.py /tmp/scr`) and `switch.sh midplay` (MIDPLAY /DBG:COM1 /Q:90 on genmid.py's song; rig.py env RIGCOM1FILE=file
+  = QEMU COM1 to a file): 6 x Ctrl+Alt+F11, then `loudcheck.py CAPTURE`: rebuilds what the emulated synth (game bytes +
+  capture port 4) and each USB slot got, models each output (deaf 150 bytes after a replayed reset, like a real SC-55)
+  and checks every note-on after a switch against the game's own state (program, bank, CC7/10/11, bend range), the old
+  output (nothing held, no open SysEx) and the reset gap (>= 150 F8). midplay also wants no "key 018B" in MIDPLAY's log.
+  beta.127 EXEs: loud FAIL (reset gaps 0), midplay FAIL (4647 loud events, MIDPLAY got 018B); beta.129 both PASS.
+
 ## beta.123: MIDI output switch without a restart
 - `switch.sh rerun|mout|hotkey` (S=/tmp/scr: `mkswitch.py /tmp/scr` + MPUPLAY.EXE + TimGM6mb as TIM.SF2): the emulated
   synth is the SoundFont; `rerun` = SBEMU @OPT0 (/MUSB:0) -> SBEMU @OPT1 (/MUSB:1) again -> back -> again (the user's

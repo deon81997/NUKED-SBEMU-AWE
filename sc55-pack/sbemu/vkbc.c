@@ -23,6 +23,7 @@
 #include "untrapio.h"
 #include "dpmi/dpmi.h"
 #include "trace.h"
+#include "vdiag.h"
 #include <stdio.h>
 
 static uint64_t Cps;
@@ -88,6 +89,7 @@ static int Flight, FlightSeen, FlightAux, MsNoKbc;
 static uint8_t FlightB;
 static uint64_t RealHold;          /* a real key's E0 / E1 prefix was read: our bytes wait for the rest of it */
 static uint64_t FlightT;
+static int Ours, OursPre;         /* beta.130: the byte waiting in the controller is one SBEMU put in (only those may be taken back) */
 
 static void kbc_put(int aux, uint8_t b)
 {
@@ -95,6 +97,8 @@ static void kbc_put(int aux, uint8_t b)
     UntrappedIO_OUT(0x64, aux ? 0xD3 : 0xD2);
     for (n = 0; n < 2000 && (UntrappedIO_IN(0x64) & 2); ++n) {}
     UntrappedIO_OUT(0x60, b);
+    if (!aux) { DIAG_KeyLine('I', b, OursPre, "injected"); OursPre = (b == 0xE0 || b == 0xE1) ? b : 0; }
+    Ours = !aux;
     Flight = 1; FlightSeen = 0; FlightT = tsc(); FlightAux = aux; FlightB = b;
 }
 
@@ -232,6 +236,9 @@ static uint64_t ObfSince;
 static uint32_t Unstuck;
 uint32_t VKBC_Unstuck(void) { return Unstuck; }
 
+/* beta.130: IRQ 1 requested and not yet taken (8259 IRR): the program's INT 9 is about to read the byte */
+static int irq1_pending(void) { UntrappedIO_OUT(0x20, 0x0A); return (UntrappedIO_IN(0x20) & 2) != 0; }
+
 /* one byte into the controller if it is idle; mouse answers first */
 static void inject(void)
 {
@@ -252,19 +259,25 @@ static void inject(void)
         else { MDx = MDy = MDw = 0; MDirty = 0; }                      /* no driver listening: drop it */
     }
     st = (uint8_t)UntrappedIO_IN(0x64);
-    if ((st & 0x21) == 0x01)                                        /* keyboard byte waiting */
+    /* beta.130: only a byte SBEMU put in itself is taken back. Until beta.127 any keyboard byte seen waiting at two
+     * sound interrupts 50 ms apart was read here - with keys repeating (a held arrow) that could be a fresh real
+     * key whose IRQ 1 was still to come: the game lost it (a lost E0 = a stuck key) and got it back later, out of
+     * order. A real key byte is the program's, however long it waits. */
+    if ((st & 0x21) == 0x01 && Ours)                                /* our keyboard byte waiting */
     {
         if (!ObfSince) ObfSince = t;
-        else if (t - ObfSince > ms2c(50) && t >= Hold + ms2c(200))   /* not an answer a program asked for and reads slowly */
+        else if (t - ObfSince > ms2c(50) && t >= Hold + ms2c(200) && !irq1_pending())   /* not an answer a program asked for and reads slowly */
         {
             uint8_t b = (uint8_t)UntrappedIO_IN(0x60);
+            Ours = 0;
+            DIAG_KeyLine('U', b, 0, "unread - taken back, put in again");
             int n = (Kt + KQN - 1) % KQN;
             if (n != Kh) { uint8_t s0 = Src; Kt = n; Kq[Kt] = b; Src = KS_AGAIN; klog(b); Src = s0; }
             ObfSince = 0; Flight = 0; ++Unstuck;
             st = (uint8_t)UntrappedIO_IN(0x64);
         }
     }
-    else ObfSince = 0;
+    else { ObfSince = 0; if (!(st & 1)) Ours = 0; }
     if (!in_flight(st, t) && (st & 3) == 0)
     {
         int ha, hk;
@@ -451,6 +464,7 @@ uint32_t VKBC_IOHandler(uint32_t port, uint32_t val, uint32_t out)
         /* beta.125: a real key's E0 / E1 prefix: none of our bytes in front of the rest of it (E0 <ours> = a wrong key) */
         if ((st & 0x21) == 0x01 && !(Flight && !FlightAux && b == FlightB))
             RealHold = (b == 0xE0 || b == 0xE1) ? tsc() + ms2c(30) : 0;
+        if ((st & 0x21) == 0x01) { Ours = 0; DIAG_KeyFeed(b); }     /* beta.130: the hotkey watcher sees what the program reads */
         return b;
     }
 }
@@ -461,7 +475,7 @@ void VKBC_Init(uint64_t cps, int mouse)
     Kh = Kt = Ah = At = 0;
     memset(KPrev, 0, sizeof(KPrev));
     memset(Held, 0, sizeof(Held));
-    Rep = 0; PadRep = 0; ObfSince = 0; Unstuck = 0; MsNoKbc = 0; MsMisroute = 0; RealHold = 0;
+    Rep = 0; PadRep = 0; ObfSince = 0; Unstuck = 0; Ours = 0; OursPre = 0; MsNoKbc = 0; MsMisroute = 0; RealHold = 0;
     MsOn = mouse; MsSeen = 0; BiosLin = 0; AuxNext = 0; MsArg = 0; MsWrap = 0; MsId = 0;
     ms_defaults();
     MDx = MDy = MDw = MB = MDirty = 0;

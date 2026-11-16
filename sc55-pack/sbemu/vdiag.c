@@ -603,24 +603,81 @@ static void ovl_13h_mt32(void)
 /* Ctrl and Alt held: seen on port 60h, or (beta.123) in the BIOS shift flags - a quick Ctrl+Alt+key can put all three
  * scan codes on the port between two of our looks, but the BIOS's INT 9 (DOS, most games) has kept count */
 static int ovl_ctrlalt(void) { uint8_t f = DPMI_LoadB(0x417); return (O_Ctrl || (f & 4)) && (O_Alt || (f & 8)); }
+
+/* beta.130: the hotkey watcher no longer reads port 60h itself while a program owns the keyboard. Until beta.127 it
+ * read the status (64h) and, with no byte waiting, the data port (60h) at every sound interrupt; a key byte that
+ * arrived between those two reads was taken from the controller by SBEMU: IRQ 1 dropped before the game's INT 9 ran
+ * (real 8259: spurious IRQ 7) or the game read the next byte. A lost E0 turns the right arrow's E0 CD release into
+ * keypad 6's, so in Duke 3D (Build keyhandler) "turn right" stays held and pressing Right again does not free it
+ * (D810, user; QEMU rig testrig/dukekey with the gap widened: KEYTEST_GAP_US). Now every byte the program reads
+ * through SBEMU's port 60h trap (protected mode: HDPMI; with /USBMS also JEMM/QEMM) is handed to the watcher
+ * (DIAG_KeyFeed); the old look runs only when no trap exists or no program read port 60h through it for 30 s
+ * (real-mode programs / the DOS prompt without JEMM). */
+#define KF_N 32
+static volatile uint8_t KF[KF_N]; static volatile unsigned KF_H, KF_T;
+static int K_Trap, K_Pre, K_LookPre;              /* trap installed; E0/E1 before (fed bytes, looked bytes) */
+static uint64_t K_TrapT;                          /* last byte a program read through the trap */
+static uint32_t K_Fed, K_Looked;
+void DIAG_KeyTrap(int on) { K_Trap = on; K_TrapT = 0; }
+void DIAG_KeyStats(uint32_t* fed, uint32_t* looked) { *fed = K_Fed; *looked = K_Looked; }
+/* the scan code text for /DBG K lines: "E0 4D make" */
+void DIAG_KeyLine(char src, uint8_t b, int pre, const char* what)
+{
+    if (DBGL_On < 2) return;
+    if (b == 0xE0 || b == 0xE1) return;            /* shown with the byte after it */
+    DBGL_Line(0, 'K', "%c %s%02X %s%s%s", src, pre == 0xE0 ? "E0 " : pre == 0xE1 ? "E1 " : "", b & 0x7F,
+        (b & 0x80) ? "break" : "make", what ? " " : "", what ? what : "");
+}
+/* from the port 60h trap (any context): a keyboard byte the program just read */
+void DIAG_KeyFeed(uint8_t b)
+{
+    unsigned h = KF_H;
+    if (h - KF_T < KF_N) { KF[h % KF_N] = b; KF_H = h + 1; }
+    K_TrapT = DIAG_Tsc(); ++K_Fed;
+}
+static void key_byte(uint8_t b, int pre)
+{
+    const char* hk = 0;
+    if (pre == 0xE0 && ((b & 0x7F) == 0x2A || (b & 0x7F) == 0x36)) return;   /* fake shifts around E0 keys */
+    if ((b & 0x7F) == 0x1D) O_Ctrl = !(b & 0x80);
+    else if ((b & 0x7F) == 0x38) O_Alt = !(b & 0x80);
+    else if (b == 0x57 && ovl_ctrlalt()) { hk = "hotkey Ctrl+Alt+F11"; if (T_Hotkey) T_Hotkey(); }      /* Ctrl+Alt+F11: MIDI output */
+    else if (b == 0x44 && ovl_ctrlalt() && DBGL_On == 3) { hk = "hotkey Ctrl+Alt+F10"; DBGL_Trigger(); DIAG_Toast("DBG: sending capture", 1); }  /* Ctrl+Alt+F10 */
+    else if (b == 0x58 && ovl_ctrlalt())
+    {
+        hk = "hotkey Ctrl+Alt+F12";
+        if (O_On && O_Kind == 1 && ovl_kind() == 1) ovl_text_save(1);   /* hide: put the text back */
+        O_On = !O_On; O_Kind = 0;
+    }
+    if (hk && DBGL_On >= 2) DBGL_Line(0, 'K', "%s", hk);
+}
 static void ovl_tick(void)
 {
-    uint8_t st = UntrappedIO_IN(0x64), b;
+    uint8_t st, b;
     uint64_t t;
-    if (!(st & 1) && !(st & 0x20))
+    while (KF_T != KF_H)
+    {   /* bytes the program read through the trap: nothing taken from the controller */
+        b = KF[KF_T % KF_N]; KF_T = KF_T + 1;
+        DIAG_KeyLine('T', b, K_Pre, 0);
+        if (b != 0xE0 && b != 0xE1) key_byte(b, K_Pre);
+        K_Pre = (b == 0xE0 || b == 0xE1) ? b : 0;
+        O_Last = b;
+    }
+    if (!K_Trap || !K_TrapT || DIAG_Tsc() - K_TrapT > D_CpsI * 30)
     {
-        b = UntrappedIO_IN(0x60);
-        if (b != O_Last)
+        st = UntrappedIO_IN(0x64);
+        if (!(st & 1) && !(st & 0x20))
         {
-            O_Last = b;
-            if (b == 0x1D) O_Ctrl = 1; else if (b == 0x9D) O_Ctrl = 0;
-            else if (b == 0x38) O_Alt = 1; else if (b == 0xB8) O_Alt = 0;
-            else if (b == 0x57 && ovl_ctrlalt()) { if (T_Hotkey) T_Hotkey(); }      /* Ctrl+Alt+F11: MIDI output */
-            else if (b == 0x44 && ovl_ctrlalt() && DBGL_On == 3) { DBGL_Trigger(); DIAG_Toast("DBG: sending capture", 1); }  /* Ctrl+Alt+F10 */
-            else if (b == 0x58 && ovl_ctrlalt())
+#ifdef KTEST_GAP_US   /* test builds only: widen the gap between the status look and the data read (race repro) */
+            { uint64_t g = DIAG_Tsc(); while (DIAG_Tsc() - g < D_CpsI / 1000000ULL * KTEST_GAP_US) {} }
+#endif
+            b = UntrappedIO_IN(0x60);
+            if (b != O_Last)
             {
-                if (O_On && O_Kind == 1 && ovl_kind() == 1) ovl_text_save(1);   /* hide: put the text back */
-                O_On = !O_On; O_Kind = 0;
+                O_Last = b; ++K_Looked;
+                DIAG_KeyLine('L', b, K_LookPre, 0);
+                if (b != 0xE0 && b != 0xE1) key_byte(b, K_LookPre);
+                K_LookPre = (b == 0xE0 || b == 0xE1) ? b : 0;
             }
         }
     }

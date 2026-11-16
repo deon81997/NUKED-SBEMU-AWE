@@ -23,6 +23,10 @@ void DIAG_Midi(int dropped);               /* every MIDI byte the game sends */
 void DIAG_Fifo(int fill_frames, uint32_t underrun_frames_total); /* render-ahead FIFO state after each interrupt */
 void DIAG_SetSynthInfo(int gov_level, int fx_on, int voices);
 void DIAG_SetHotkey(void (*fn)(void));       /* beta.123: Ctrl+Alt+F11 calls fn (from the sound interrupt) */
+void DIAG_KeyTrap(int on);                  /* beta.128: port 60h reads come through SBEMU's trap (DIAG_KeyFeed) */
+void DIAG_KeyFeed(uint8_t b);               /* a keyboard byte a program read through the trap (any context) */
+void DIAG_KeyLine(char src, uint8_t b, int pre, const char* what);   /* /DBG level 2 K line */
+void DIAG_KeyStats(uint32_t* fed, uint32_t* looked);
 void DIAG_Toast(const char* msg, int beeps); /* a 2 s note top left (text / 13h) + 1-3 beeps */
 uint64_t DIAG_Tsc(void);
 uint64_t DIAG_CyclesPerSec(void);

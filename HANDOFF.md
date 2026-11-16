@@ -1,3 +1,16 @@
+## Docs + store (2026-11-15, AWE docs session): README synced to MUXED (NUKED-SBEMU) beta.130 layout, wiki, AWE ROM
+- README.md rebuilt from NUKED-SBEMU's README (tool tables with icons, Test lab, drivers, thanks) + AWE parts: header art,
+  5 AWE news entries on top (127-awe.1 .. 119-awe.2), MUXED news <= beta.127 under Older news (128-130 not in this line),
+  AWE section with the ROM source, AWE rows in features / tools (testrig/awe) / drivers (awe/synth, vawe.c) / thanks /
+  "Stuff you bring yourself". Downloads + issues link to this repo; links use NUKED-SBEMU (renamed from -MUXED).
+- AWE ROM: 86Box roms repo sound/creative/awe32.raw (1048576 bytes, AWE-DUMP layout "M1MG" at byte 6, sha1 6ac3c131)
+  is accepted as-is by VAWE_IsRom (1 MB or 1 MB+2, content check) - no rename. SBEMU prints it as ROMS\awe32.raw.
+- Wiki (sources in priavte wiki/, posted from the browser): AWE ROM on AWE32 page / FAQ / Quick Start / Troubleshooting,
+  EMU8000 credits, download button, "private line" -> public repo link. NUKED-SBEMU: README + wiki Home link this edition.
+- priavte store-personal: FILES/ROMS/AWE32.RAW added. 86Box duke.sh (P2B-LS PII-400, HIMEM) with only that file in ROMS:
+  "ROM: ROMS\awe32.raw: enabled", AWE music -41..-57 dBFS, 327 int/s 0.09 ms, 0.0% ticks lost, AWE 2%. No code, no release.
+- Test downloads: /tmp/dl/awe/awe32.raw (raw.githubusercontent 86Box/roms), 86Box src @0935207 (github) built in /home/claude/86box.
+
 ## beta.127-awe.1 (2026-11-15, AWE session): MUXED beta.127 (serial debug link /DBG) merged into the AWE line
 - main = beta.126-awe.1 + MUXED v1.0.0-beta.126-usb..v1.0.0-beta.127-usb (c0630cf) as a 3-way patch, branch awe-beta127.
   Conflicts only in makefile VERSION, midplay.c includes (sbemuchk.h + dbg.h), README news, HANDOFF. main.c, hdpmipt.c,

@@ -1,3 +1,25 @@
+## beta.130-awe.1 (2026-11-16, AWE session): MUXED beta.128-130 merged into the AWE line
+- main = beta.127-awe.1 + MUXED v1.0.0-beta.127-usb..v1.0.0-beta.130-usb (2985070) as a 3-way patch (branch awe-beta130).
+  Brings usbmidi/igap /DBG stats (128), clean Ctrl+Alt+F11 switch without loud blast + MIDPLAY ignores hotkeys (129),
+  port-60h key trap /KEYTRAP + /DBG K lines (130). No new F_SYNTH / VMPU_ENABLED uses in the diff (grepped all of it).
+- Conflicts: makefile VERSION, testrig/midi/mkswitch.py (kept AWE's SWS + MUXED's SWQ/SWL), switch.sh (MUXED cases + SBX
+  hook on loud/midplay/hotkey), README (AWE layout kept: awe.1 entry on top, 119-awe.2 moved to Older news by date, MUXED
+  128-130 at the top of Older news, 2 feature bullets), HANDOFF (ours). main.c, vkbc.c, vdiag.c, usbpad.c merged cleanly.
+- AWE-only fix: the /KEYTRAP PM trap is a new HDPMI slot (AWE + pad: 15 of 16, was 14). It is installed after the AWE32
+  traps; if no slot is left it no longer counts as a failed trap in the AWE "HDPMI port traps" line (no red warning),
+  the line says the hotkeys read port 60h the old way (main.c keyNoSlot). With /USBMS the KBC 60h trap is reused (no slot).
+- Tests: duke.sh HIMEM (LOG=1) old/new: 326/324 int/s 0.10 ms, AWE 2%, lost 1.7/1.8% (LOG=1 cost), "15 of 16";
+  cmp.py main.wav 25-75 s B-A -0.1 dB, same bands. dukekey HOTKEY=1 SBARGS=/AWE:620: PASS 0 stuck, 1975 K lines.
+  perf.sh PII-450 old/new: /AWE idle 0.04 ms 1% both; SC-55 + AWELOAD 1.96 ms 67%, SC-55 302/301%, AWE 7% both.
+  SC55LOG 0.47x, 22591 frames/s both. Not rerun: midi gamecap/switch, sata, menustat, keysoak (no AWE-specific change).
+- Release: NUKED-SB-EMU-1.0.0-beta.130-awe.1-usb.zip (rezip.py from 127-awe.1, no new files), tag v1.0.0-beta.130-awe.1-usb.
+- Wiki: priavte wiki/src Switch-Reference /KEYTRAP row (out/awe + out/mux regenerated; see posting note in HANDOFF below).
+- Rig setup: testrig/rufus = `git clone --depth 1 https://github.com/pbatard/rufus` (perf.sh/sc55log.sh need it; not in
+  this repo, in .git/info/exclude). Test downloads: /tmp/dl/djgpp, /tmp/dl/roms (store-86box-roms), /tmp/dl/timgm6mb
+  (apt timgm6mb-soundfont), 86Box 0935207 built in /home/claude/86box/86box.
+- Hardware to retest (P5PE-VM / D810 with AWE32): Duke 3D AWE music + arrows (no stuck key), Ctrl+Alt+F11 with /AWE
+  (AWE plays on, MPU moves, no blast), SC55 /AWE line shows "HDPMI port traps: N of 16 used" in grey.
+
 ## Docs + store (2026-11-15, AWE docs session): README synced to MUXED (NUKED-SBEMU) beta.130 layout, wiki, AWE ROM
 - README.md rebuilt from NUKED-SBEMU's README (tool tables with icons, Test lab, drivers, thanks) + AWE parts: header art,
   5 AWE news entries on top (127-awe.1 .. 119-awe.2), MUXED news <= beta.127 under Older news (128-130 not in this line),

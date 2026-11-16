@@ -2937,8 +2937,14 @@ int main(int argc, char* argv[])
     }
     else if(MAIN_Options[OPT_MUSB].value)
         MAIN_CPrintf(YELLOW, "USB MIDI (/MUSB) needs SBEMU's USB (/JOY:1): off.\n");
+    int keyNoSlot = 0;  /* AWE line (beta.130-awe.1): the optional /KEYTRAP slot comes last, after the AWE32 traps; if
+                           HDPMI's 16 slots are full it falls back to the old watcher and is not reported as a failed trap */
     if(MAIN_Options[OPT_KEYTRAP].value && enablePM && !MAIN_KBC_PM60)
+    {
+        int f0 = 0, f1 = 0; HDPMIPT_TrapCount(&f0);
         MAIN_KEY_PM = HDPMIPT_Install_IOPortTrap(0x60, 0x60, MAIN_KBC_IODT, 1, &MAIN_KEY_IOPT_PM);
+        HDPMIPT_TrapCount(&f1); keyNoSlot = f1 > f0;
+    }
     DIAG_KeyTrap(MAIN_Options[OPT_KEYTRAP].value && (MAIN_KEY_PM || MAIN_KBC_PM60));
     MAIN_D("Hotkey watcher: %s (/KEYTRAP:%d, pm trap %d, kbc traps rm %d pm %d)\n", (MAIN_KEY_PM || MAIN_KBC_PM60) && MAIN_Options[OPT_KEYTRAP].value
         ? "port 60h trap (looks itself only after 30 s without a trapped read)" : "looks at port 60h itself", MAIN_Options[OPT_KEYTRAP].value, MAIN_KEY_PM, MAIN_KBC_RM, MAIN_KBC_PM60);
@@ -2946,7 +2952,9 @@ int main(int argc, char* argv[])
     if(MAIN_Options[OPT_AWE].value && enablePM)
     {   //HDPMI has 16 trap slots; /AWE uses 3 of them (see MAIN_DMAPAGE_Install)
         int failed = 0, n = HDPMIPT_TrapCount(&failed);
-        MAIN_CPrintf(failed ? RED : LIGHTGRAY, "HDPMI port traps: %d of 16 used%s\n", n, failed ? ", some did not fit (try /JOY:0 or /USBMS:0)" : "");
+        failed -= keyNoSlot;
+        MAIN_CPrintf(failed ? RED : LIGHTGRAY, "HDPMI port traps: %d of 16 used%s%s\n", n, failed ? ", some did not fit (try /JOY:0 or /USBMS:0)" : "",
+            keyNoSlot ? " (no slot left for /KEYTRAP: hotkeys read port 60h the old way)" : "");
     }
 
     MAIN_LogCommit();

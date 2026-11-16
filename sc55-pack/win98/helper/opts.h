@@ -5,6 +5,7 @@
 #pragma once
 #include <string>
 
+enum { AWEMPU_GM = 2, AWEMPU_GS = 3, AWEMPU_MT32 = 4 };   // /AWEMPU:GM|GS|MT32 (same names as DOS SBEMU)
 struct Options {
     // Sound Blaster
     int sb_port   = 0x220;   // /A
@@ -37,7 +38,7 @@ struct Options {
     // AWE32 (AWE line): EMU8000 in DOS boxes, the same switches as DOS SBEMU
     int awe       = 0;       // /AWE: 620/640/660/680, 0 = off (SB type 16, BLASTER E620)
     int aweram    = 512;     // /AWERAM KB 0-28672 (AWE32 = 512)
-    int awempu    = 1;       // /AWEMPU: 1 = the MPU-401 keeps its synth (SC-55 ...), 0 = MPU silent
+    int awempu    = 1;       // /AWEMPU: 1 = the MPU-401 keeps its synth (SC-55 ...), GM/GS/MT32 = AWE32 MIDI Synth (AWEMPU_*), 0 = MPU silent
     std::string awerom;      // /AWEROM file or folder, "" = the ROM folder (by content)
     int awefx     = 1;       // /AWEFX: EMU8000 reverb + chorus, 0 = dry
     std::string sf;          // /VSF SoundFont file

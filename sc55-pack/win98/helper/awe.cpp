@@ -62,6 +62,16 @@ void awe_apply(const SC55W_AWEEV& e)
 }
 
 static bool m_started;
+static std::string m_ini;               // SC55W.INI (bank manager writes at once)
+static bool m_dos_awe;                  // /AWE + /AWEMPU:GM|GS|MT32: DOS boxes' MPU-401 -> this synth
+static int m_dos_mode = -1;             // bank the DOS box's MPU-401 asked for (-1 = Settings' bank)
+static DWORD m_dos_last;
+static std::string m_upath[128];        // user bank files as loaded
+static std::vector<AwePresetCfg> m_ppath;   // single presets as loaded
+static AweMidiCfg mcfg;
+static bool want_engine() { return mcfg.on || m_dos_awe; }
+static void apply_banks();
+static void ram_sync();
 void awe_render(int16_t* out, int frames, int rate)
 {
     emu8k_render(out, frames, rate);
@@ -140,6 +150,7 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
     if (!cs_init) { InitializeCriticalSection(&cs); cs_init = true; }
     if (!ev_w32) ev_w32 = CreateEventA(NULL, FALSE, FALSE, NULL);
     stop_thread();
+    m_dos_awe = o.awe && o.awempu >= AWEMPU_GM;
     const bool need = o.awe || awe_midi_cfg().on;     // the DOS boxes' AWE32 and/or the AWE32 MIDI Synth
     bool same = B && o.aweram == built.aweram && o.awerom == built.awerom && romdir == built_romdir;
     if (!need) free_block();
@@ -187,6 +198,12 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
         }
     }
     info.port = o.awe;
+    if (B && info.on) {          // /AWEMPU:GM etc. may need the synth started (or no longer)
+        awe_lock();
+        if (want_engine() && !m_started) apply_banks();
+        else if (!want_engine() && m_started) { awem_release(); m_started = false; }
+        awe_unlock();
+    }
     if (B && info.on && o.awe) {
         B->ev_head = B->ev_tail = 0;
         B->snap_ev = 0;
@@ -211,7 +228,6 @@ void awe_attached(unsigned long st)
 
 // ======================================================================================================
 // "AWE32 MIDI Synth"
-static AweMidiCfg mcfg;
 static AwemBank *mbank[3], *mbuiltin;
 static uint32_t mbank_ram;               // sample RAM words the banks were loaded for
 static AweMidiInfo minfo;
@@ -229,6 +245,28 @@ void awe_midi_load_cfg(const std::string& ini, AweMidiCfg& c)
     c.bank = !lstrcmpiA(b, "GS") ? 1 : (!lstrcmpiA(b, "MT32") || !lstrcmpiA(b, "MT-32")) ? 2 : 0;
     c.reverb = GetPrivateProfileIntA("AWE32 MIDI", "Reverb", 4, ini.c_str()) & 7;
     c.chorus = GetPrivateProfileIntA("AWE32 MIDI", "Chorus", 2, ini.c_str()) & 7;
+    m_ini = ini;
+    std::vector<char> sec(32768);
+    DWORD n = GetPrivateProfileSectionA("AWE32 MIDI", sec.data(), (DWORD)sec.size(), ini.c_str());
+    for (const char* q = sec.data(); q < sec.data() + n && *q; q += strlen(q) + 1) {
+        const char* eq = strchr(q, '=');
+        char* e;
+        if (!eq) continue;
+        if (!_strnicmp(q, "Bank", 4) && q[4] >= '0' && q[4] <= '9') {          // BankN=file (no sscanf: Win98 MSVCRT)
+            long a = strtol(q + 4, &e, 10);
+            if (e == eq && a >= 1 && a <= 127) c.ubank[a] = eq + 1;
+        } else if (!_strnicmp(q, "Preset", 6) && q[6] >= '0' && q[6] <= '9') { // PresetS_P=src_bank,src_prog,file
+            long a = strtol(q + 6, &e, 10), b, sb, sp;
+            if (*e != '_') continue;
+            b = strtol(e + 1, &e, 10);
+            if (e != eq) continue;
+            sb = strtol(eq + 1, &e, 10);
+            if (*e != ',') continue;
+            sp = strtol(e + 1, &e, 10);
+            if (*e != ',' || a < 0 || a > 128 || b < 0 || b > 127) continue;
+            c.presets.push_back({(int)a, (int)b, (int)sb, (int)sp, e + 1});
+        }
+    }
 }
 void awe_midi_save_cfg(const std::string& ini, const AweMidiCfg& c)
 {
@@ -320,7 +358,7 @@ std::string awe_midi_scan(const std::string& root, const std::string& romdir)
 static void apply_banks()            // locked; engine up
 {
     AwemBank* list[4];
-    int n = 0, mode = mcfg.bank;
+    int n = 0, mode = m_dos_mode >= 0 ? m_dos_mode : mcfg.bank;
     if (mbank[mode]) list[n++] = mbank[mode];
     if (mode != 0 && mbank[0]) list[n++] = mbank[0];
     minfo.builtin = n == 0;
@@ -331,6 +369,7 @@ static void apply_banks()            // locked; engine up
         minfo.using_ += list[i] == mbuiltin ? std::string("NUKED's own GM map") : std::string(awem_bank_name(list[i]));
         for (int k = 0; k < 3; k++) if (list[i] == mbank[k]) minfo.using_ += std::string(" (") + kSbk[k] + ")";
     }
+    ram_sync();                       // the user banks' room (layout)
     awem_set_banks(list, n, mode);
     if (!m_started) { awem_start(); awem_reset(); m_started = true; }
     awem_set_fx(mcfg.reverb, mcfg.chorus);
@@ -352,6 +391,9 @@ static void load_banks(const std::string& romdir, uint32_t ram_words, AwemBank* 
     }
 }
 static std::string m_romdir;
+static void sync_users(const AweMidiCfg& c);
+static void ram_sync()
+{ static uint32_t cur = 0xFFFFFFFFu; if (cur != mbank_ram) { cur = mbank_ram; awem_ram_set(cur); } }   // locked
 void awe_midi_config(const AweMidiCfg& c, const std::string& romdir, int ram_kb)
 {
     uint32_t ram = (uint32_t)(info.on ? info.ram_kb : ram_kb) * 512u;
@@ -364,15 +406,16 @@ void awe_midi_config(const AweMidiCfg& c, const std::string& romdir, int ram_kb)
     m_romdir = romdir;
     mcfg = c;
     minfo.note = note;
-    if (info.on && mcfg.on) apply_banks();
-    else if (m_started && !mcfg.on) { awem_release(); m_started = false; }
+    if (info.on && want_engine()) apply_banks();
+    else if (m_started && !want_engine()) { awem_release(); m_started = false; }
     awe_unlock();
+    sync_users(c);
 }
 static void midi_engine_up()         // locked: a new engine (emu8k_init_mem done, ROM loaded)
 {
     m_started = false;
     m_seen_rw = 0; m_vm_gone = 0;
-    if (!mcfg.on) return;
+    if (!want_engine()) return;
     uint32_t ram = (uint32_t)info.ram_kb * 512u;
     if (ram != mbank_ram && !m_romdir.empty()) {   // reload for the new sample RAM size
         AwemBank* nb[3];
@@ -403,17 +446,161 @@ void awe_midi_poll(bool dos_wrote)
         awem_reclaim();
         m_takebacks++;
     }
+    if (m_dos_mode >= 0 && now - m_dos_last > 10000) { int was = m_dos_mode; m_dos_mode = -1; if (was != mcfg.bank) apply_banks(); }
+}
+void awe_midi_dos_byte(uint8_t b, int bank)
+{
+    if (!m_started) return;
+    m_dos_last = GetTickCount();
+    if (bank != m_dos_mode) { int was = m_dos_mode < 0 ? mcfg.bank : m_dos_mode; m_dos_mode = bank; if (bank != was) apply_banks(); }
+    awem_byte(b);
 }
 std::string awe_midi_stats()
 {
     AwemStats s;
-    char b[300];
+    char b[480];
     awe_lock();
     if (!m_started) { awe_unlock(); return ""; }
     awem_stats(&s);
-    snprintf(b, sizeof b, "AWE32 MIDI Synth: %u bytes, %u notes, %u voices at most, %u stolen, %u without a sound, %u while a DOS box had "
-             "the EMU8000 (DOS took it %u times, back %u)%s", s.bytes, s.notes, s.voices_max, s.stolen, s.missing, s.released_notes,
-             m_takeovers, m_takebacks, awem_released() ? ", DOS box has it now" : "");
+    snprintf(b, sizeof b, "AWE32 MIDI Synth: %u bytes, %u notes (%u from user banks), %u voices at most, %u stolen, %u without a sound, %u while a DOS box had "
+             "the EMU8000 (DOS took it %u times, back %u)%s; sample RAM %u of %u KB used%s", s.bytes, s.notes, s.user_notes, s.voices_max, s.stolen, s.missing, s.released_notes,
+             m_takeovers, m_takebacks, awem_released() ? ", DOS box has it now" : "", (awem_ram_used() + 511) / 512, awem_ram_total() / 512,
+             m_dos_mode >= 0 ? (m_dos_mode == 1 ? ", DOS MPU-401: GS" : m_dos_mode == 2 ? ", DOS MPU-401: MT-32" : ", DOS MPU-401: GM") : "");
     awe_unlock();
     return b;
+}
+
+// ======================================================================================================
+// bank manager: user banks 1-127 and single presets (awemidi.c keeps them and their sample RAM); files are
+// read outside the lock, the RAM layout + upload happen locked. SC55W.INI [AWE32 MIDI] BankN= / PresetS_P=.
+static void users_info()             // locked
+{
+    for (int i = 1; i < 128; i++) {
+        const AwemBank* b = awem_ubank(i);
+        if (b) { minfo.uname[i] = awem_bank_name(b); minfo.ukb[i] = (awem_bank_ram_used(b) + 511) / 512;
+                 if (!awem_bank_loaded(b)) minfo.uerr[i] = "left out: the sample RAM is too small now"; }
+        else { minfo.uname[i].clear(); minfo.ukb[i] = 0; }
+    }
+    minfo.prow.clear();
+    for (int i = 0; i < awem_preset_count(); i++) {
+        int sl, pg;
+        const AwemBank* b = awem_preset_get(i, &sl, &pg);
+        std::string file;
+        for (const auto& x : m_ppath) if (x.slot == sl && x.prog == pg) { size_t k = x.path.find_last_of("\\/"); file = k == std::string::npos ? x.path : x.path.substr(k + 1); }
+        char t[200];
+        if (sl == 128) snprintf(t, sizeof t, "Drum kit %d: %s <- %s (%u KB)%s", pg, awem_bank_name(b), file.c_str(), (awem_bank_ram_used(b) + 511) / 512, awem_bank_loaded(b) ? "" : " - left out, RAM full");
+        else snprintf(t, sizeof t, "Bank %d program %d: %s <- %s (%u KB)%s", sl, pg, awem_bank_name(b), file.c_str(), (awem_bank_ram_used(b) + 511) / 512, awem_bank_loaded(b) ? "" : " - left out, RAM full");
+        minfo.prow.push_back(t);
+    }
+    minfo.ram_kb = awem_ram_total() / 512;
+    minfo.used_kb = (awem_ram_used() + 511) / 512;
+}
+static std::string put_bank(int slot, const std::string& path)    // not locked
+{
+    char err[200] = "";
+    AwemBank* b = awem_bank_load(path.c_str(), 0xFFFFFFFFu, err, sizeof err);
+    if (b && !awem_bank_presets(b)) { awem_bank_free(b); b = NULL; snprintf(err, sizeof err, "no presets in the file"); }
+    awe_lock();
+    ram_sync();
+    int rc = b ? awem_ubank_put(slot, b, err, sizeof err) : -1;
+    if (rc && b) awem_bank_free(b);
+    minfo.uerr[slot] = rc ? err : "";
+    if (!rc) m_upath[slot] = path;
+    users_info();
+    awe_unlock();
+    return rc ? std::string(err) : std::string();
+}
+static std::string put_preset(const AwePresetCfg& p)                // not locked
+{
+    char err[200] = "";
+    AwemBank* src = awem_bank_load(p.path.c_str(), 0xFFFFFFFFu, err, sizeof err);
+    awe_lock();
+    ram_sync();
+    int rc = src ? awem_preset_put(p.slot, p.prog, src, p.src_bank, p.src_prog, err, sizeof err) : -1;
+    if (!rc) {
+        bool f = false;
+        for (auto& x : m_ppath) if (x.slot == p.slot && x.prog == p.prog) { x = p; f = true; }
+        if (!f) m_ppath.push_back(p);
+    }
+    users_info();
+    awe_unlock();
+    awem_bank_free(src);
+    return rc ? std::string(err) : std::string();
+}
+static void sync_users(const AweMidiCfg& c)    // not locked: load what changed (start: all of them)
+{
+    std::string log;
+    for (int i = 1; i < 128; i++) {
+        if (c.ubank[i] == m_upath[i] && (c.ubank[i].empty() || minfo.uerr[i].empty())) continue;
+        if (c.ubank[i].empty()) { awe_lock(); awem_ubank_remove(i); m_upath[i].clear(); minfo.uerr[i].clear(); users_info(); awe_unlock(); continue; }
+        std::string e = put_bank(i, c.ubank[i]);
+        char t[64]; snprintf(t, sizeof t, "bank %d: ", i);
+        log += t + (e.empty() ? minfo.uname[i] : e) + ". ";
+    }
+    for (const auto& p : c.presets) {
+        bool have = false;
+        for (const auto& x : m_ppath) have |= x.slot == p.slot && x.prog == p.prog && x.path == p.path && x.src_bank == p.src_bank && x.src_prog == p.src_prog;
+        if (have) continue;
+        std::string e = put_preset(p);
+        if (!e.empty()) { char t[64]; snprintf(t, sizeof t, "preset %d/%d: ", p.slot, p.prog); log += t + e + ". "; }
+    }
+    awe_lock(); users_info(); awe_unlock();
+    if (!log.empty()) {
+        char t[96]; snprintf(t, sizeof t, " Sample RAM %u of %u KB used.", minfo.used_kb, minfo.ram_kb);
+        awe_lock(); minfo.note += "User banks: " + log + t; awe_unlock();
+    }
+}
+static void ini_put(const char* key, const std::string& v) { if (!m_ini.empty()) WritePrivateProfileStringA("AWE32 MIDI", key, v.empty() ? NULL : v.c_str(), m_ini.c_str()); }
+std::string awe_bank_set(int slot, const std::string& path)
+{
+    if (slot < 1 || slot > 127) return "user banks are 1-127 (bank 0 = the GM/GS/MT-32 bank)";
+    std::string e = put_bank(slot, path);
+    if (e.empty()) { mcfg.ubank[slot] = path; char k[16]; snprintf(k, sizeof k, "Bank%d", slot); ini_put(k, path); }
+    return e;
+}
+void awe_bank_remove(int slot)
+{
+    if (slot < 1 || slot > 127) return;
+    awe_lock(); awem_ubank_remove(slot); m_upath[slot].clear(); minfo.uerr[slot].clear(); users_info(); awe_unlock();
+    mcfg.ubank[slot].clear();
+    char k[16]; snprintf(k, sizeof k, "Bank%d", slot); ini_put(k, "");
+}
+std::string awe_preset_set(int slot, int prog, const std::string& path, int src_bank, int src_prog)
+{
+    AwePresetCfg p{slot, prog, src_bank, src_prog, path};
+    std::string e = put_preset(p);
+    if (!e.empty()) return e;
+    bool f = false;
+    for (auto& x : mcfg.presets) if (x.slot == slot && x.prog == prog) { x = p; f = true; }
+    if (!f) mcfg.presets.push_back(p);
+    char k[32], v[300];
+    snprintf(k, sizeof k, "Preset%d_%d", slot, prog); snprintf(v, sizeof v, "%d,%d,%s", src_bank, src_prog, path.c_str());
+    ini_put(k, v);
+    return "";
+}
+void awe_preset_remove(int slot, int prog)
+{
+    awe_lock();
+    awem_preset_remove(slot, prog);
+    for (size_t i = 0; i < m_ppath.size(); i++) if (m_ppath[i].slot == slot && m_ppath[i].prog == prog) { m_ppath.erase(m_ppath.begin() + i); break; }
+    users_info();
+    awe_unlock();
+    for (size_t i = 0; i < mcfg.presets.size(); i++) if (mcfg.presets[i].slot == slot && mcfg.presets[i].prog == prog) { mcfg.presets.erase(mcfg.presets.begin() + i); break; }
+    char k[32]; snprintf(k, sizeof k, "Preset%d_%d", slot, prog); ini_put(k, "");
+}
+std::string awe_file_presets(const std::string& path, std::vector<std::string>& names, std::vector<int>& bank, std::vector<int>& prog)
+{
+    char err[200] = "";
+    names.clear(); bank.clear(); prog.clear();
+    AwemBank* b = awem_bank_load(path.c_str(), 0, err, sizeof err);     // no RAM: names only
+    if (!b) return err;
+    int bk, pg;
+    const char* nm;
+    for (int i = 0; (nm = awem_bank_preset(b, i, &bk, &pg)) != NULL; i++) {
+        char t[64];
+        snprintf(t, sizeof t, "%s %d:%d %s", bk == 128 ? "drums" : "bank", bk, pg, nm);
+        names.push_back(t); bank.push_back(bk); prog.push_back(pg);
+    }
+    awem_bank_free(b);
+    return names.empty() ? "no presets in the file" : "";
 }

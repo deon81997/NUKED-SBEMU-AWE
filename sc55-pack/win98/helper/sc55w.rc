@@ -3,12 +3,12 @@
 
 IDI_APP ICON "sc55w.ico"
 
-IDD_SETTINGS DIALOGEX 0, 0, 402, 254
+IDD_SETTINGS DIALOGEX 0, 0, 402, 334
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
 CAPTION "NUKED SB-EMU for Windows 98 - Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "", IDC_TABS, "SysTabControl32", WS_TABSTOP | WS_CLIPSIBLINGS, 4, 3, 394, 196
+    CONTROL         "", IDC_TABS, "SysTabControl32", WS_TABSTOP | WS_CLIPSIBLINGS, 4, 3, 394, 276
     GROUPBOX        "Sound Blaster (DOS)", -1, 7, 22, 128, 100
     LTEXT           "Port", -1, 13, 35, 48, 8
     COMBOBOX        IDC_PORT, 60, 33, 70, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -81,11 +81,11 @@ BEGIN
     LTEXT           "Levels in %, speed in 0.1 Hz", -1, 281, 182, 112, 8
 
     AUTOCHECKBOX    "Start with Windows", IDC_AUTOSTART, 7, 188, 128, 10
-    LTEXT           "", IDC_PREVIEW, 7, 203, 388, 22, SS_NOPREFIX | SS_SUNKEN
-    PUSHBUTTON      "Defaults", IDC_DEFAULTS, 7, 233, 50, 14
-    DEFPUSHBUTTON   "Save", IDOK, 235, 233, 50, 14
-    PUSHBUTTON      "Apply", IDC_APPLY, 290, 233, 50, 14
-    PUSHBUTTON      "Cancel", IDCANCEL, 345, 233, 50, 14
+    LTEXT           "", IDC_PREVIEW, 7, 283, 388, 22, SS_NOPREFIX | SS_SUNKEN
+    PUSHBUTTON      "Defaults", IDC_DEFAULTS, 7, 313, 50, 14
+    DEFPUSHBUTTON   "Save", IDOK, 235, 313, 50, 14
+    PUSHBUTTON      "Apply", IDC_APPLY, 290, 313, 50, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 345, 313, 50, 14
 END
 
 IDD_STATUS DIALOGEX 0, 0, 260, 170
@@ -144,7 +144,7 @@ BEGIN
     CONTROL         "", IDC_J_VIEW, "Static", SS_OWNERDRAW, 199, 10, 180, 160
 END
 
-IDD_PAGE_AWE DIALOGEX 0, 0, 386, 176
+IDD_PAGE_AWE DIALOGEX 0, 0, 386, 256
 STYLE DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -153,10 +153,11 @@ BEGIN
     COMBOBOX        IDC_A_PORT, 66, 14, 50, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Sample RAM", -1, 130, 16, 44, 8
     COMBOBOX        IDC_A_RAM, 176, 14, 100, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    AUTOCHECKBOX    "MPU-401 keeps its synth (SC-55 / SoundFont / MT-32), like an AWE32 with a Sound Canvas on its MIDI port", IDC_A_MPU, 14, 29, 370, 10
-    AUTOCHECKBOX    "Reverb and chorus (as the game or AWEUTIL sets them; off = dry, a little less CPU)", IDC_A_FX, 14, 40, 370, 10
+    LTEXT           "MPU-401 plays on", -1, 14, 30, 62, 8
+    COMBOBOX        IDC_A_MPU, 76, 28, 200, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    AUTOCHECKBOX    "Reverb and chorus (as the game or AWEUTIL sets them; off = dry, a little less CPU)", IDC_A_FX, 14, 41, 370, 10
     LTEXT           "", IDC_A_STAT, 4, 52, 378, 27, SS_NOPREFIX | SS_SUNKEN
-    GROUPBOX        "AWE32 MIDI Synth - a Windows MIDI device next to NUKED SB-EMU, like Creative's AWE32 driver", -1, 2, 81, 382, 94
+    GROUPBOX        "AWE32 MIDI Synth - a Windows MIDI device next to NUKED SB-EMU, like Creative's AWE32 driver", -1, 2, 81, 382, 174
     AUTOCHECKBOX    "On (Windows programs choose ""AWE32 MIDI Synth"")", IDC_M_ON, 8, 93, 170, 10
     LTEXT           "Bank (AWEUTIL /EM)", -1, 186, 94, 70, 8
     COMBOBOX        IDC_M_BANK, 258, 92, 60, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -165,7 +166,37 @@ BEGIN
     LTEXT           "Chorus", -1, 128, 109, 26, 8
     COMBOBOX        IDC_M_CHO, 156, 107, 104, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "&Search for SBK files", IDC_M_SCAN, 270, 106, 108, 13
-    LTEXT           "", IDC_M_STAT, 8, 123, 372, 48, SS_NOPREFIX | SS_SUNKEN
+    LTEXT           "Banks - bank select (CC0, or CC32) picks 1-127; changes here take effect at once:", -1, 8, 123, 300, 8
+    LISTBOX         IDC_M_BANKS, 8, 133, 300, 70, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Add / replace bank...", IDC_M_ADD, 312, 133, 68, 14
+    PUSHBUTTON      "Replace &one preset...", IDC_M_ONE, 312, 150, 68, 14
+    PUSHBUTTON      "&Remove", IDC_M_DEL, 312, 167, 68, 14
+    LTEXT           "Sample RAM", -1, 8, 208, 42, 8
+    CONTROL         "", IDC_M_RAM, "msctls_progress32", WS_BORDER, 52, 207, 150, 10
+    LTEXT           "", IDC_M_RAMT, 206, 208, 174, 8, SS_NOPREFIX
+    LTEXT           "", IDC_M_STAT, 8, 219, 372, 34, SS_NOPREFIX | SS_SUNKEN
+END
+
+IDD_AWEBANK DIALOGEX 0, 0, 300, 136
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "AWE32 bank"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "&SoundFont file (.SF2 or .SBK)", -1, 6, 6, 120, 8
+    EDITTEXT        IDC_B_FILE, 6, 16, 236, 12, ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...", IDC_B_BROWSE, 246, 15, 48, 14
+    AUTORADIOBUTTON "The whole file as user bank", IDC_B_WHOLE, 6, 36, 110, 10, WS_GROUP
+    AUTORADIOBUTTON "Only one preset of it", IDC_B_ONE, 6, 50, 110, 10
+    LTEXT           "&Bank (1-127; one preset: 0-127)", -1, 120, 37, 114, 8
+    EDITTEXT        IDC_B_SLOT, 238, 35, 30, 12, ES_NUMBER
+    LTEXT           "&Preset in the file", -1, 18, 66, 70, 8
+    COMBOBOX        IDC_B_SRC, 90, 64, 204, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Replaces pro&gram", -1, 18, 82, 70, 8
+    EDITTEXT        IDC_B_PROG, 90, 80, 30, 12, ES_NUMBER
+    AUTOCHECKBOX    "Drum kit (channel 10)", IDC_B_DRUM, 128, 81, 100, 10
+    LTEXT           "", IDC_B_MSG, 6, 96, 288, 18, SS_NOPREFIX
+    DEFPUSHBUTTON   "OK", IDOK, 190, 117, 50, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 244, 117, 50, 14
 END
 
 IDD_PAGE_PAD DIALOGEX 0, 0, 386, 176

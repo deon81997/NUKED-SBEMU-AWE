@@ -269,7 +269,8 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     const bool awe_midi = awe_midi_ready();
     if (awe_midi) { awe_lock(); awe_midi_poll(false); awe_unlock(); }
     if (sh) {
-        const bool dos_mpu_off = opt.awe && !opt.awempu;   // /AWEMPU:0: the DOS boxes' MPU-401 has no synth
+        const bool dos_mpu_off = opt.awe && opt.awempu != 1;   // /AWEMPU:0: no synth, GM/GS/MT32: the AWE32 MIDI Synth
+        const int dos_mpu_awe = opt.awe && opt.awempu >= AWEMPU_GM ? opt.awempu - AWEMPU_GM : -1;   // its bank (AWEM_GM..)
         for (;;) {
             // two rings, in time order: events and (AWE32) EMU8000 port writes
             bool he = sh->ev_tail != sh->ev_head, ha = aw && aw->ev_tail != aw->ev_head;
@@ -297,6 +298,11 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
                 if (e.c == 2) {             // "AWE32 MIDI Synth" (Windows MIDI device 2): the EMU8000
                     st.awe_midi_bytes++;
                     if (awe_midi) { wake_awe(); awe_lock(); awe_midi_byte(e.a); awe_unlock(); }
+                    break;
+                }
+                if (e.c == 1 && dos_mpu_awe >= 0) {   // /AWEMPU:GM|GS|MT32: a DOS box's MPU-401 plays the EMU8000
+                    st.awe_midi_bytes++;
+                    wake_awe(); awe_lock(); awe_midi_dos_byte(e.a, dos_mpu_awe); awe_unlock();
                     break;
                 }
                 if (e.c == 1 && dos_mpu_off) break;

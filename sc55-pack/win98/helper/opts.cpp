@@ -88,7 +88,10 @@ void Options::parse(const std::string& text)
         else if (name == "VTIMER") vtimer = num(val);
         else if (name == "AWE") awe = has ? num(val, 1) : 0x620;
         else if (name == "AWERAM") aweram = num(val);
-        else if (name == "AWEMPU") awempu = has ? num(val) : 1;
+        else if (name == "AWEMPU") {    // 1 = the synth above, GM / GS / MT32 = AWE32 MIDI Synth bank, 0 = nothing
+            std::string u = upper(val);
+            awempu = !has ? 1 : u == "GM" ? AWEMPU_GM : u == "GS" ? AWEMPU_GS : (u == "MT32" || u == "MT-32") ? AWEMPU_MT32 : num(val) ? 1 : 0;
+        }
         else if (name == "AWEROM") awerom = val;
         else if (name == "AWEFX") awefx = has ? num(val) : 1;
         else if (name == "VSF") sf = val;
@@ -165,7 +168,7 @@ std::string Options::format() const
     if (awe) {
         add("/AWE:%X", awe);
         if (aweram != d.aweram) add("/AWERAM:%d", aweram);
-        if (awempu != d.awempu) add("/AWEMPU:%d", awempu);
+        if (awempu != d.awempu) add("/AWEMPU:%s", awempu == AWEMPU_GM ? "GM" : awempu == AWEMPU_GS ? "GS" : awempu == AWEMPU_MT32 ? "MT32" : awempu ? "1" : "0");
         if (!awerom.empty()) add("/AWEROM:%s", awerom.c_str());
         if (awefx != d.awefx) add("/AWEFX:%d", awefx);
     }

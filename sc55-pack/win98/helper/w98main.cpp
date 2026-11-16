@@ -45,6 +45,7 @@ static const char WND_CLASS[] = "SC55W_Main";
 // ---------------------------------------------------------------------------
 // paths
 static std::string g_exedir, g_base, g_optpath, g_batpath, g_inipath;
+static std::string g_awe_bankmsg;         // AWE32 bank manager: the last refusal (e.g. "needs 5646 KB ... free")
 static std::string g_awe_scan;            // AWE32 MIDI Synth: what the SBK search found (SC55W.LOG, settings)
 
 static std::string dir_of(const std::string& p)
@@ -2093,7 +2094,172 @@ static void awe_midi_status(HWND p)
     else if (mi.file[mc.bank].empty()) t += std::string(" - no ") + kinds[mc.bank] + " SBK: playing GM.";
     if (!mi.note.empty()) t += "\r\n" + mi.note;
     if (!g_awe_scan.empty()) t += "\r\nSearch: " + g_awe_scan;
-    SetDlgItemTextA(p, IDC_M_STAT, t.c_str());
+    if (!g_awe_bankmsg.empty()) t = g_awe_bankmsg + "\r\n" + t;
+    char cur[2048] = "";
+    GetDlgItemTextA(p, IDC_M_STAT, cur, sizeof cur);
+    if (t != cur) SetDlgItemTextA(p, IDC_M_STAT, t.c_str());
+    // bank list (bank 0 = GM/GS/MT-32, user banks 1-127, single presets) + the sample RAM gauge
+    std::vector<std::string> rows;
+    std::vector<int> data;
+    rows.push_back("Bank 0: " + (mi.using_.empty() ? std::string("GM / GS / MT-32 bank (set above)") : mi.using_) + " - GM/GS/MT-32, set above");
+    data.push_back(0x10000);
+    for (int i = 1; i < 128; i++) {
+        if (mc.ubank[i].empty()) continue;
+        std::string f = mc.ubank[i];
+        size_t k = f.find_last_of("\\/");
+        if (k != std::string::npos) f = f.substr(k + 1);
+        char b[400];
+        if (!mi.uname[i].empty() && mi.uerr[i].empty()) snprintf(b, sizeof b, "Bank %d: %s (%s) - %u KB", i, mi.uname[i].c_str(), f.c_str(), mi.ukb[i]);
+        else snprintf(b, sizeof b, "Bank %d: %s - not loaded: %s", i, f.c_str(), mi.uerr[i].empty() ? "?" : mi.uerr[i].c_str());
+        rows.push_back(b); data.push_back(i);
+    }
+    for (size_t i = 0; i < mi.prow.size(); i++) { rows.push_back(mi.prow[i]); data.push_back(0x20000 | (int)i); }
+    HWND lb = GetDlgItem(p, IDC_M_BANKS);
+    bool same = (int)SendMessageA(lb, LB_GETCOUNT, 0, 0) == (int)rows.size();
+    for (size_t i = 0; same && i < rows.size(); i++) {
+        char b[512] = "";
+        if (SendMessageA(lb, LB_GETTEXTLEN, i, 0) < (LRESULT)sizeof b) SendMessageA(lb, LB_GETTEXT, i, (LPARAM)b);
+        same = rows[i] == b && (int)SendMessageA(lb, LB_GETITEMDATA, i, 0) == data[i];
+    }
+    if (!same) {
+        int sel = (int)SendMessageA(lb, LB_GETCURSEL, 0, 0), seld = sel >= 0 ? (int)SendMessageA(lb, LB_GETITEMDATA, sel, 0) : -1;
+        SendMessageA(lb, WM_SETREDRAW, FALSE, 0);
+        SendMessageA(lb, LB_RESETCONTENT, 0, 0);
+        int w = 0;
+        for (size_t i = 0; i < rows.size(); i++) {
+            int j = (int)SendMessageA(lb, LB_ADDSTRING, 0, (LPARAM)rows[i].c_str());
+            SendMessageA(lb, LB_SETITEMDATA, j, data[i]);
+            if (data[i] == seld) SendMessageA(lb, LB_SETCURSEL, j, 0);
+            if ((int)rows[i].size() > w) w = (int)rows[i].size();
+        }
+        SendMessageA(lb, LB_SETHORIZONTALEXTENT, w * 6, 0);
+        SendMessageA(lb, WM_SETREDRAW, TRUE, 0);
+        InvalidateRect(lb, NULL, TRUE);
+    }
+    unsigned tot = mi.ram_kb, used = mi.used_kb > tot ? tot : mi.used_kb;
+    SendDlgItemMessageA(p, IDC_M_RAM, PBM_SETRANGE, 0, MAKELPARAM(0, 1000));
+    SendDlgItemMessageA(p, IDC_M_RAM, PBM_SETPOS, tot ? (WPARAM)((unsigned long long)used * 1000 / tot) : 0, 0);
+    char rt[160];
+    if (tot) snprintf(rt, sizeof rt, "%u KB used of %u KB, %u KB free", used, tot, tot - used);
+    else snprintf(rt, sizeof rt, "none (AWE32 page: Sample RAM) - only ROM sounds");
+    GetDlgItemTextA(p, IDC_M_RAMT, cur, sizeof cur);
+    if (strcmp(cur, rt)) SetDlgItemTextA(p, IDC_M_RAMT, rt);
+}
+
+// "AWE32 bank" dialog: a whole SF2/SBK file as user bank 1-127, or one preset of it in place of bank/program
+struct AweBankDlg { int slot; bool one; std::vector<int> sb, sp; };
+static void awebank_enable(HWND d)
+{
+    bool one = checked(d, IDC_B_ONE);
+    for (int id : {IDC_B_SRC, IDC_B_PROG, IDC_B_DRUM}) EnableWindow(GetDlgItem(d, id), one);
+}
+static void awebank_file(HWND d, AweBankDlg* a)
+{
+    char f[MAX_PATH] = "";
+    GetDlgItemTextA(d, IDC_B_FILE, f, sizeof f);
+    std::vector<std::string> names;
+    SendDlgItemMessageA(d, IDC_B_SRC, CB_RESETCONTENT, 0, 0);
+    std::string e = f[0] ? awe_file_presets(f, names, a->sb, a->sp) : "";
+    for (size_t i = 0; i < names.size(); i++) cb_add(d, IDC_B_SRC, names[i].c_str(), (int)i);
+    if (!names.empty()) SendDlgItemMessageA(d, IDC_B_SRC, CB_SETCURSEL, 0, 0);
+    SetDlgItemTextA(d, IDC_B_MSG, e.empty() ? (names.empty() ? "" : (std::to_string(names.size()) + " presets in the file.").c_str()) : e.c_str());
+}
+static INT_PTR CALLBACK awebank_proc(HWND d, UINT m, WPARAM w, LPARAM l)
+{
+    AweBankDlg* a = (AweBankDlg*)GetWindowLongPtrA(d, DWLP_USER);
+    switch (m) {
+    case WM_INITDIALOG:
+        SetWindowLongPtrA(d, DWLP_USER, l);
+        a = (AweBankDlg*)l;
+        SetDlgItemInt(d, IDC_B_SLOT, a->slot, FALSE);
+        SetDlgItemInt(d, IDC_B_PROG, 0, FALSE);
+        check(d, a->one ? IDC_B_ONE : IDC_B_WHOLE, true);
+        awebank_enable(d);
+        return TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(w)) {
+        case IDC_B_WHOLE: case IDC_B_ONE: awebank_enable(d); return TRUE;
+        case IDC_B_FILE: if (HIWORD(w) == EN_KILLFOCUS) awebank_file(d, a); return TRUE;
+        case IDC_B_SRC:
+            if (HIWORD(w) == CBN_SELCHANGE) {   // the preset's own program / drum kit as the default target
+                int i = cb_get(d, IDC_B_SRC, -1);
+                if (i >= 0 && i < (int)a->sp.size()) { SetDlgItemInt(d, IDC_B_PROG, a->sp[i], FALSE); check(d, IDC_B_DRUM, a->sb[i] == 128); }
+            }
+            return TRUE;
+        case IDC_B_BROWSE: {
+            char file[MAX_PATH] = "";
+            OPENFILENAMEA ofn;
+            memset(&ofn, 0, sizeof ofn);
+            ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400A;   // Win98 comdlg32 wants the old size
+            ofn.hwndOwner = d;
+            ofn.lpstrFilter = "SoundFont banks (*.SF2;*.SBK)\0*.SF2;*.SBK\0All files\0*.*\0";
+            ofn.lpstrFile = file;
+            ofn.nMaxFile = sizeof file;
+            ofn.lpstrInitialDir = g_base.c_str();
+            ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
+            if (GetOpenFileNameA(&ofn)) { SetDlgItemTextA(d, IDC_B_FILE, file); awebank_file(d, a); }
+            return TRUE;
+        }
+        case IDOK: {
+            char f[MAX_PATH] = "";
+            GetDlgItemTextA(d, IDC_B_FILE, f, sizeof f);
+            BOOL ok;
+            int slot = (int)GetDlgItemInt(d, IDC_B_SLOT, &ok, FALSE);
+            std::string e;
+            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            if (!f[0]) e = "Pick a .SF2 or .SBK file.";
+            else if (!checked(d, IDC_B_ONE)) e = awe_bank_set(ok ? slot : 0, f);
+            else {
+                int i = cb_get(d, IDC_B_SRC, -1);
+                int prog = (int)GetDlgItemInt(d, IDC_B_PROG, NULL, FALSE);
+                bool drum = checked(d, IDC_B_DRUM);
+                if (a->sb.empty()) awebank_file(d, a), i = cb_get(d, IDC_B_SRC, -1);
+                if (i < 0 || i >= (int)a->sb.size()) e = "Pick the preset to use.";
+                else if (!drum && (!ok || slot > 127)) e = "Bank 0-127.";
+                else if (prog > 127) e = "Program 0-127.";
+                else e = awe_preset_set(drum ? 128 : slot, prog, f, a->sb[i], a->sp[i]);
+            }
+            g_awe_bankmsg = e.empty() ? "" : "Not loaded: " + e;
+            logf("AWE32 bank manager: %s %s: %s", checked(d, IDC_B_ONE) ? "preset" : "bank", f, e.empty() ? "loaded" : e.c_str());
+            if (!e.empty()) { SetDlgItemTextA(d, IDC_B_MSG, e.c_str()); MessageBeep(MB_ICONEXCLAMATION); return TRUE; }
+            EndDialog(d, IDOK);
+            return TRUE;
+        }
+        case IDCANCEL: EndDialog(d, IDCANCEL); return TRUE;
+        }
+        return FALSE;
+    }
+    return FALSE;
+}
+static void awe_bank_dialog(HWND p, bool one)
+{
+    AweBankDlg a;
+    const AweMidiCfg& mc = awe_midi_cfg();
+    int sel = (int)SendDlgItemMessageA(p, IDC_M_BANKS, LB_GETCURSEL, 0, 0);
+    int seld = sel >= 0 ? (int)SendDlgItemMessageA(p, IDC_M_BANKS, LB_GETITEMDATA, sel, 0) : -1;
+    a.one = one;
+    a.slot = seld >= 1 && seld <= 127 ? seld : 0;
+    if (!a.slot && !one) for (int i = 1; i < 128 && !a.slot; i++) if (mc.ubank[i].empty()) a.slot = i;
+    DialogBoxParamA(g_inst, MAKEINTRESOURCEA(IDD_AWEBANK), GetParent(p), awebank_proc, (LPARAM)&a);
+    awe_midi_status(p);
+}
+static void awe_bank_delete(HWND p)
+{
+    int sel = (int)SendDlgItemMessageA(p, IDC_M_BANKS, LB_GETCURSEL, 0, 0);
+    int seld = sel >= 0 ? (int)SendDlgItemMessageA(p, IDC_M_BANKS, LB_GETITEMDATA, sel, 0) : -1;
+    if (seld >= 1 && seld <= 127) { awe_bank_remove(seld); logf("AWE32 bank manager: bank %d removed", seld); }
+    else if (seld >= 0x20000) {
+        const auto& v = awe_midi_cfg().presets;
+        size_t i = (size_t)(seld & 0xFFFF);
+        AweMidiInfo mi = awe_midi_info();
+        // the row order is awemidi's; find the row's slot/program by its text in the config
+        if (i < mi.prow.size()) for (const auto& x : v) {
+            char t[48];
+            if (x.slot == 128) snprintf(t, sizeof t, "Drum kit %d:", x.prog); else snprintf(t, sizeof t, "Bank %d program %d:", x.slot, x.prog);
+            if (!mi.prow[i].compare(0, strlen(t), t)) { awe_preset_remove(x.slot, x.prog); logf("AWE32 bank manager: %s removed", t); break; }
+        }
+    } else g_awe_bankmsg = "Bank 0 is the GM / GS / MT-32 bank: pick it above.";
+    awe_midi_status(p);
 }
 
 static void awe_midi_page_read(HWND p, AweMidiCfg& c)
@@ -2110,7 +2276,7 @@ static void awe_page_read(Options& o)
     if (!p) return;
     o.awe = checked(p, IDC_A_ON) ? cb_get(p, IDC_A_PORT, 0x620) : 0;
     o.aweram = cb_get(p, IDC_A_RAM, 512);
-    o.awempu = checked(p, IDC_A_MPU);
+    o.awempu = cb_get(p, IDC_A_MPU, 1);
     o.awefx = checked(p, IDC_A_FX);
     if (o.awe) o.sbtype = 6;
 }
@@ -2128,7 +2294,12 @@ static INT_PTR CALLBACK awe_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
         check(p, IDC_A_ON, g_dlg_opt.awe != 0);
         cb_select(p, IDC_A_PORT, g_dlg_opt.awe ? g_dlg_opt.awe : 0x620);
         cb_select(p, IDC_A_RAM, g_dlg_opt.aweram);
-        check(p, IDC_A_MPU, g_dlg_opt.awempu != 0);
+        cb_add(p, IDC_A_MPU, "the synth on the first tab (SC-55, SoundFont, MT-32, USB)", 1);
+        cb_add(p, IDC_A_MPU, "AWE32 MIDI Synth, GM bank (/AWEMPU:GM)", AWEMPU_GM);
+        cb_add(p, IDC_A_MPU, "AWE32 MIDI Synth, GS bank (/AWEMPU:GS)", AWEMPU_GS);
+        cb_add(p, IDC_A_MPU, "AWE32 MIDI Synth, MT-32 bank (/AWEMPU:MT32)", AWEMPU_MT32);
+        cb_add(p, IDC_A_MPU, "nothing - AWE32 only (/AWEMPU:0)", 0);
+        cb_select(p, IDC_A_MPU, g_dlg_opt.awempu);
         check(p, IDC_A_FX, g_dlg_opt.awefx != 0);
         {
             const AweMidiCfg& mc = awe_midi_cfg();
@@ -2162,6 +2333,9 @@ static INT_PTR CALLBACK awe_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
             awe_midi_status(p);
             return TRUE;
         }
+        if (LOWORD(w) == IDC_M_ADD || LOWORD(w) == IDC_M_ONE) { awe_bank_dialog(p, LOWORD(w) == IDC_M_ONE); return TRUE; }
+        if (LOWORD(w) == IDC_M_DEL) { awe_bank_delete(p); return TRUE; }
+        if (LOWORD(w) == IDC_M_BANKS) return FALSE;
         if (LOWORD(w) == IDC_A_ON || LOWORD(w) == IDC_M_ON) awe_page_enable(p);
         if (HIWORD(w) == CBN_SELCHANGE || HIWORD(w) == BN_CLICKED)
             SendMessageA(GetParent(p), WM_APP + 50, 0, 0);

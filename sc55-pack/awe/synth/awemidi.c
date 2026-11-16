@@ -1142,7 +1142,8 @@ static void note_on(int ch, int key, int vel)
     S.stats.notes++;
     if (S.released) { S.stats.released_notes++; return; }
     pr = find_user(c);
-    if (!pr) pr = find_preset(chan_bank(c), c->prog);
+    if (pr) S.stats.user_notes++;
+    else pr = find_preset(chan_bank(c), c->prog);
     if (!pr) { S.stats.missing++; return; }
     for (i = 0; i < pr->nz; i++) {
         const Zone* z = &pr->z[i];

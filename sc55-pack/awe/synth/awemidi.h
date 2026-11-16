@@ -84,6 +84,7 @@ typedef struct {
     uint32_t bytes, notes, voices_max, stolen, active, released_notes; /* stolen = sounding voices taken */
     uint32_t missing;                                                   /* note-ons with no preset/zone   */
     uint32_t last_addr;                                                 /* sample start of the last voice */
+    uint32_t user_notes;                                                /* note-ons from user banks / presets */
 } AwemStats;
 void awem_stats(AwemStats* s);
 

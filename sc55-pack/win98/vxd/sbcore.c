@@ -894,6 +894,7 @@ static void ddb_export(SC55W_SHARED *p)
     else { SC55W_DDB[DDB_RSV2] = 0; SC55W_DDB[DDB_RSV1] = 0; }
 }
 static u32 vol_saved = 0xFFFFFFFFUL, vol_set;
+static u32 awevol_saved = 0xFFFFFFFFUL, awevol_set;   /* "AWE32 MIDI Synth" volume (IF 11) */
 
 static u8 joy_read(void)
 {
@@ -1060,10 +1061,12 @@ static int vm_slot(u32 vm, int make)
     return fr;
 }
 
+static SC55W_AWE *aw;     /* (defined with the AWE32 code below) */
 void __cdecl sc_vm_gone(u32 vm)
 {
     int i = vm_slot(vm, 0);
     if (i >= 0) vms[i].vm = 0;
+    if (aw && aw->vm == vm) { aw->vm = 0; aw->vm_gone++; }   /* the AWE32 MIDI Synth may take the EMU8000 back */
 }
 
 /* AX=4B00h EXEC (before DOS runs it): full name and size with nested DOS calls */
@@ -1455,6 +1458,8 @@ static u32 attach(u32 user_addr)
     sys_vm = vxd_sys_vm();
     s->midi_volume = vol_saved;
     s->midi_volume_set = vol_set;
+    s->awe_midi_volume = awevol_saved;
+    s->awe_midi_volume_set = awevol_set;
     mixer_reset();
     dsp_reset();
 
@@ -1576,6 +1581,18 @@ void __cdecl sc_api_volume(u32 v)
     vol_saved = v;
     vol_set = 1;
     if (sh) { sh->midi_volume = v; sh->midi_volume_set = 1; }
+}
+
+/* the second device, "AWE32 MIDI Synth" (IF 11): bytes for the helper's EMU8000 MIDI player, and its volume */
+void __cdecl sc_api_midi2(u32 b)
+{
+    ev_put(EV_MIDI, (u8)b, 0, 2);
+}
+void __cdecl sc_api_volume2(u32 v)
+{
+    awevol_saved = v;
+    awevol_set = 1;
+    if (sh) { sh->awe_midi_volume = v; sh->awe_midi_volume_set = 1; }
 }
 
 /* the VxD is being unloaded */

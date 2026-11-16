@@ -38,7 +38,7 @@ Word_Output                 equ 000Ch
 ; C core
 extern _sc_in:near, _sc_out:near, _sc_tick:near, _sc_dma_changed:near
 extern _sc_eoi:near, _sc_ioctl:near, _sc_exit:near, _sc_api_midi:near
-extern _sc_int15:near, _sc_api_volume:near
+extern _sc_int15:near, _sc_api_volume:near, _sc_api_midi2:near, _sc_api_volume2:near
 extern _sc_int21:near, _sc_vm_gone:near, _sc_iow:near
 
 public _vxd_time_us, _vxd_muldiv, _vxd_raise_irq, _vxd_lower_irq
@@ -140,44 +140,56 @@ SC55W_Control endp
 
 ;---------------------------------------------------------------------------
 ; protected-mode API for the 16-bit MIDI driver (INT 2Fh AX=1684h by name)
-;   client AX = 0001h: send CX bytes (1-3) from DL, DH, BL
-;   client AX = 0000h: version -> AX = 0100h
+;   client AX = 0001h: send CX bytes (1-3) from DL, DH, BL ("NUKED SB-EMU")
+;   client AX = 0002h: its volume, DX = left, CX = right
+;   client AX = 0003h / 0004h: the same for the second device "AWE32 MIDI Synth" (IF 11)
+;   client AX = 0000h: version -> AX = 0101h (0100h = one device only)
 ;---------------------------------------------------------------------------
 PM_API proc near
         movzx   eax, word ptr [ebp+Client_EAX]
+        mov     edx, offset _sc_api_midi
         cmp     eax, 1
         je      api_send
         cmp     eax, 2
         je      api_volume
+        mov     edx, offset _sc_api_midi2
+        cmp     eax, 3
+        je      api_send
+        cmp     eax, 4
+        je      api_volume2
         or      eax, eax
         jne     api_bad
-        mov     word ptr [ebp+Client_EAX], 0100h
+        mov     word ptr [ebp+Client_EAX], 0101h
         and     dword ptr [ebp+Client_EFlags], not 1
         ret
-api_send:
+api_send:                               ; EDX = the C function for one byte
         movzx   ecx, word ptr [ebp+Client_ECX]
         cmp     ecx, 3
         ja      api_bad
         jecxz   api_ok
         movzx   eax, byte ptr [ebp+Client_EDX]
+        push    edx
         push    ecx
         push    eax
-        call    _sc_api_midi
+        call    edx
         add     esp, 4
         pop     ecx
+        pop     edx
         dec     ecx
         jz      api_ok
         movzx   eax, byte ptr [ebp+Client_EDX+1]
+        push    edx
         push    ecx
         push    eax
-        call    _sc_api_midi
+        call    edx
         add     esp, 4
         pop     ecx
+        pop     edx
         dec     ecx
         jz      api_ok
         movzx   eax, byte ptr [ebp+Client_EBX]
         push    eax
-        call    _sc_api_midi
+        call    edx
         add     esp, 4
 api_ok:
         and     dword ptr [ebp+Client_EFlags], not 1
@@ -188,6 +200,14 @@ api_volume:                             ; AX=2: MIDI volume, DX = left, CX = rig
         mov     ax, word ptr [ebp+Client_EDX]
         push    eax
         call    _sc_api_volume
+        add     esp, 4
+        jmp     api_ok
+api_volume2:                            ; AX=4: the same for "AWE32 MIDI Synth"
+        movzx   eax, word ptr [ebp+Client_ECX]
+        shl     eax, 16
+        mov     ax, word ptr [ebp+Client_EDX]
+        push    eax
+        call    _sc_api_volume2
         add     esp, 4
         jmp     api_ok
 api_bad:

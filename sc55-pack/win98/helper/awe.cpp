@@ -4,8 +4,11 @@
 #include <windows.h>
 #include <cstdio>
 #include <cstring>
+#include <cctype>
+#include <vector>
 extern "C" {
 #include "../../awe/synth/emu8k.h"
+#include "../../awe/synth/awemidi.h"
 }
 
 static SC55W_AWE* B;
@@ -58,7 +61,12 @@ void awe_apply(const SC55W_AWEEV& e)
     if (e.idx < 6) emu8k_io_write(woff[e.idx], e.val);
 }
 
-void awe_render(int16_t* out, int frames, int rate) { emu8k_render(out, frames, rate); }
+static bool m_started;
+void awe_render(int16_t* out, int frames, int rate)
+{
+    emu8k_render(out, frames, rate);
+    if (m_started) awem_advance(frames * 44100 / rate);
+}
 
 void awe_fx(int on)
 {
@@ -113,10 +121,12 @@ static void stop_thread()
     th = NULL;
 }
 
+static void midi_engine_down();
+static void midi_engine_up();
 static void free_block()
 {
     stop_thread();
-    if (info.on) { awe_lock(); emu8k_close(); awe_unlock(); }
+    if (info.on) { awe_lock(); midi_engine_down(); emu8k_close(); awe_unlock(); }
     if (B) VirtualFree(B, 0, MEM_RELEASE);
     B = NULL;
     B_bytes = 0;
@@ -130,8 +140,9 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
     if (!cs_init) { InitializeCriticalSection(&cs); cs_init = true; }
     if (!ev_w32) ev_w32 = CreateEventA(NULL, FALSE, FALSE, NULL);
     stop_thread();
-    bool same = B && o.awe == built.awe && o.aweram == built.aweram && o.awerom == built.awerom && romdir == built_romdir;
-    if (!o.awe) free_block();
+    const bool need = o.awe || awe_midi_cfg().on;     // the DOS boxes' AWE32 and/or the AWE32 MIDI Synth
+    bool same = B && o.aweram == built.aweram && o.awerom == built.awerom && romdir == built_romdir;
+    if (!need) free_block();
     else if (!same) {
         free_block();
         const size_t pg = 4096;
@@ -171,10 +182,12 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
                 if (!p.empty() && emu8k_load_rom(p.c_str()) == 0) info.rom = p;
                 info.on = true;
                 built = o; built_romdir = romdir;
+                awe_lock(); midi_engine_up(); awe_unlock();
             }
         }
     }
-    if (B && info.on) {
+    info.port = o.awe;
+    if (B && info.on && o.awe) {
         B->ev_head = B->ev_tail = 0;
         B->snap_ev = 0;
         awe_snapshot();
@@ -189,9 +202,218 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
 
 void awe_attached(unsigned long st)
 {
-    if (!info.on || !B) return;
+    if (!info.on || !B || !info.port) return;
     if (!(st & ST_OK_AWE)) { info.error = (st & ST_ERR_AWEPORT) ? "EMU8000 ports in use" : "SC55W.VXD did not take the AWE32 block"; return; }
     InterlockedExchange(&th_stop, 0);
     DWORD tid;                     // Windows 98: CreateThread fails with a NULL thread id
     th = CreateThread(NULL, 0, awe_thread, NULL, 0, &tid);
+}
+
+// ======================================================================================================
+// "AWE32 MIDI Synth"
+static AweMidiCfg mcfg;
+static AwemBank *mbank[3], *mbuiltin;
+static uint32_t mbank_ram;               // sample RAM words the banks were loaded for
+static AweMidiInfo minfo;
+static uint32_t m_seen_rw, m_vm_gone, m_takeovers, m_takebacks;
+static DWORD m_last_dos;
+static const char* const kSbk[3] = {"SYNTHGM.SBK", "SYNTHGS.SBK", "SYNTHMT.SBK"};
+static const char* const kKind[3] = {"GM", "GS", "MT-32"};
+
+void awe_midi_load_cfg(const std::string& ini, AweMidiCfg& c)
+{
+    char b[16];
+    c = AweMidiCfg();
+    c.on = GetPrivateProfileIntA("AWE32 MIDI", "Synth", 1, ini.c_str()) != 0;
+    GetPrivateProfileStringA("AWE32 MIDI", "Bank", "GM", b, sizeof b, ini.c_str());
+    c.bank = !lstrcmpiA(b, "GS") ? 1 : (!lstrcmpiA(b, "MT32") || !lstrcmpiA(b, "MT-32")) ? 2 : 0;
+    c.reverb = GetPrivateProfileIntA("AWE32 MIDI", "Reverb", 4, ini.c_str()) & 7;
+    c.chorus = GetPrivateProfileIntA("AWE32 MIDI", "Chorus", 2, ini.c_str()) & 7;
+}
+void awe_midi_save_cfg(const std::string& ini, const AweMidiCfg& c)
+{
+    char b[16];
+    WritePrivateProfileStringA("AWE32 MIDI", "Synth", c.on ? "1" : "0", ini.c_str());
+    WritePrivateProfileStringA("AWE32 MIDI", "Bank", c.bank == 1 ? "GS" : c.bank == 2 ? "MT32" : "GM", ini.c_str());
+    snprintf(b, sizeof b, "%d", c.reverb); WritePrivateProfileStringA("AWE32 MIDI", "Reverb", b, ini.c_str());
+    snprintf(b, sizeof b, "%d", c.chorus); WritePrivateProfileStringA("AWE32 MIDI", "Chorus", b, ini.c_str());
+}
+const AweMidiCfg& awe_midi_cfg() { return mcfg; }
+AweMidiInfo awe_midi_info() { awe_lock(); AweMidiInfo r = minfo; awe_unlock(); return r; }
+
+// SoundFont 1 file? (cheap: the first 64 KB must hold RIFF sfbk ... ifil 1.x)
+static bool sf1_quick(const std::string& p, DWORD size)
+{
+    if (size < 512 || size > 64u * 1024 * 1024) return false;
+    FILE* f = fopen(p.c_str(), "rb");
+    if (!f) return false;
+    unsigned char h[4096];
+    size_t n = fread(h, 1, sizeof h, f);
+    fclose(f);
+    if (n < 32 || memcmp(h, "RIFF", 4) || memcmp(h + 8, "sfbk", 4)) return false;
+    for (size_t i = 12; i + 10 <= n; i++)
+        if (!memcmp(h + i, "ifil", 4)) return h[i + 8] == 1 && h[i + 9] == 0;
+    return false;
+}
+struct Found { std::string path; int kind, rc; std::string name; };
+static void scan_dir(const std::string& dir, int depth, std::vector<Found>& out, int& files)
+{
+    WIN32_FIND_DATAA fd;
+    HANDLE h = FindFirstFileA((dir + "\\*").c_str(), &fd);
+    if (h == INVALID_HANDLE_VALUE) return;
+    do {
+        if (fd.cFileName[0] == '.') continue;
+        std::string p = dir + "\\" + fd.cFileName;
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) { if (depth < 8) scan_dir(p, depth + 1, out, files); continue; }
+        if (++files > 50000) break;
+        if (fd.nFileSizeHigh || !sf1_quick(p, fd.nFileSizeLow)) continue;
+        int kind = -1; char nm[64];
+        int rc = awem_probe(p.c_str(), &kind, nm, sizeof nm);
+        if (rc != 1 && rc != 2) continue;
+        if (kind < 0) {     // the presets did not tell: the file name, else GM
+            std::string u = fd.cFileName;
+            for (auto& ch : u) ch = (char)toupper((unsigned char)ch);
+            kind = u.find("MT") != std::string::npos ? AWEM_MT32 : u.find("GS") != std::string::npos ? AWEM_GS : AWEM_GM;
+        }
+        out.push_back({p, kind, rc, nm});
+    } while (FindNextFileA(h, &fd));
+    FindClose(h);
+}
+static bool same_file(const std::string& a, const std::string& b)
+{
+    FILE *x = fopen(a.c_str(), "rb"), *y = fopen(b.c_str(), "rb");
+    bool same = x && y;
+    while (same) {
+        char p[4096], q[4096];
+        size_t n = fread(p, 1, sizeof p, x), m = fread(q, 1, sizeof q, y);
+        if (n != m || memcmp(p, q, n)) same = false;
+        if (!n) break;
+    }
+    if (x) fclose(x);
+    if (y) fclose(y);
+    return same;
+}
+std::string awe_midi_scan(const std::string& root, const std::string& romdir)
+{
+    std::vector<Found> f;
+    int files = 0;
+    scan_dir(root, 0, f, files);
+    std::string r;
+    int copied = 0;
+    for (int k = 0; k < 3; k++) {
+        std::string dst = romdir + "\\" + kSbk[k];
+        const Found* best = NULL;
+        for (const auto& x : f) if (x.kind == k && (!best || (x.rc == 1 && best->rc != 1))) best = &x;
+        if (!best) continue;
+        bool have = GetFileAttributesA(dst.c_str()) != INVALID_FILE_ATTRIBUTES;
+        if (have && (same_file(best->path, dst) || lstrcmpiA(best->path.c_str(), dst.c_str()) == 0)) { r += std::string(r.empty() ? "" : ", ") + kSbk[k]; continue; }
+        if (have) { r += std::string(r.empty() ? "" : ", ") + kSbk[k] + " (kept)"; continue; }
+        CreateDirectoryA(romdir.c_str(), NULL);
+        if (CopyFileA(best->path.c_str(), dst.c_str(), TRUE)) { copied++; r += std::string(r.empty() ? "" : ", ") + kSbk[k] + " <- " + best->path; }
+        else r += std::string(r.empty() ? "" : ", ") + "could not copy " + best->path;
+    }
+    char b[96];
+    snprintf(b, sizeof b, "%d files searched, %d SoundFont 1 bank(s) found, %d copied to ROMS", files, (int)f.size(), copied);
+    return std::string(b) + (r.empty() ? "" : ": " + r);
+}
+
+static void apply_banks()            // locked; engine up
+{
+    AwemBank* list[4];
+    int n = 0, mode = mcfg.bank;
+    if (mbank[mode]) list[n++] = mbank[mode];
+    if (mode != 0 && mbank[0]) list[n++] = mbank[0];
+    minfo.builtin = n == 0;
+    if (!n) { if (!mbuiltin) mbuiltin = awem_bank_builtin(); if (mbuiltin) list[n++] = mbuiltin; }
+    minfo.using_.clear();
+    for (int i = 0; i < n; i++) {
+        if (i) minfo.using_ += " + ";
+        minfo.using_ += list[i] == mbuiltin ? std::string("NUKED's own GM map") : std::string(awem_bank_name(list[i]));
+        for (int k = 0; k < 3; k++) if (list[i] == mbank[k]) minfo.using_ += std::string(" (") + kSbk[k] + ")";
+    }
+    awem_set_banks(list, n, mode);
+    if (!m_started) { awem_start(); awem_reset(); m_started = true; }
+    awem_set_fx(mcfg.reverb, mcfg.chorus);
+}
+static void load_banks(const std::string& romdir, uint32_t ram_words, AwemBank* nb[3], std::string& note)
+{
+    for (int k = 0; k < 3; k++) {
+        nb[k] = NULL;
+        std::string p = romdir + "\\" + kSbk[k];
+        if (GetFileAttributesA(p.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
+        char err[128] = "";
+        nb[k] = awem_bank_load(p.c_str(), ram_words, err, sizeof err);
+        if (!nb[k]) note += std::string(kSbk[k]) + ": " + err + ". ";
+        else if (awem_bank_skipped(nb[k])) {
+            char b[160];
+            snprintf(b, sizeof b, "%s: %d sounds left out (sample RAM too small: AWE32 page, Sample RAM). ", kSbk[k], awem_bank_skipped(nb[k]));
+            note += b;
+        }
+    }
+}
+static std::string m_romdir;
+void awe_midi_config(const AweMidiCfg& c, const std::string& romdir, int ram_kb)
+{
+    uint32_t ram = (uint32_t)(info.on ? info.ram_kb : ram_kb) * 512u;
+    AwemBank* nb[3];
+    std::string note;
+    load_banks(romdir, ram, nb, note);
+    awe_lock();
+    for (int k = 0; k < 3; k++) { awem_bank_free(mbank[k]); mbank[k] = nb[k]; minfo.file[k] = nb[k] ? romdir + "\\" + kSbk[k] : ""; }
+    mbank_ram = ram;
+    m_romdir = romdir;
+    mcfg = c;
+    minfo.note = note;
+    if (info.on && mcfg.on) apply_banks();
+    else if (m_started && !mcfg.on) { awem_release(); m_started = false; }
+    awe_unlock();
+}
+static void midi_engine_up()         // locked: a new engine (emu8k_init_mem done, ROM loaded)
+{
+    m_started = false;
+    m_seen_rw = 0; m_vm_gone = 0;
+    if (!mcfg.on) return;
+    uint32_t ram = (uint32_t)info.ram_kb * 512u;
+    if (ram != mbank_ram && !m_romdir.empty()) {   // reload for the new sample RAM size
+        AwemBank* nb[3];
+        std::string note;
+        load_banks(m_romdir, ram, nb, note);
+        for (int k = 0; k < 3; k++) { awem_bank_free(mbank[k]); mbank[k] = nb[k]; }
+        mbank_ram = ram;
+        minfo.note = note;
+    }
+    apply_banks();
+}
+static void midi_engine_down() { if (m_started) awem_release(); m_started = false; }
+bool awe_midi_ready() { return m_started && info.on; }
+void awe_midi_byte(uint8_t b) { if (m_started) awem_byte(b); }
+bool awe_midi_windows() { return m_started && info.on && !awem_released(); }
+void awe_midi_poll(bool dos_wrote)
+{
+    if (!m_started || !B || !info.port) return;
+    uint32_t rw = B->reads + B->writes;
+    DWORD now = GetTickCount();
+    if (dos_wrote || rw != m_seen_rw) {
+        m_seen_rw = rw;
+        m_last_dos = now;
+        if (!awem_released()) { awem_release(); m_vm_gone = B->vm_gone; m_takeovers++; }
+        return;
+    }
+    if (awem_released() && ((B->vm == 0 && B->vm_gone != m_vm_gone) || now - m_last_dos > 10000)) {
+        awem_reclaim();
+        m_takebacks++;
+    }
+}
+std::string awe_midi_stats()
+{
+    AwemStats s;
+    char b[300];
+    awe_lock();
+    if (!m_started) { awe_unlock(); return ""; }
+    awem_stats(&s);
+    snprintf(b, sizeof b, "AWE32 MIDI Synth: %u bytes, %u notes, %u voices at most, %u stolen, %u without a sound, %u while a DOS box had "
+             "the EMU8000 (DOS took it %u times, back %u)%s", s.bytes, s.notes, s.voices_max, s.stolen, s.missing, s.released_notes,
+             m_takeovers, m_takebacks, awem_released() ? ", DOS box has it now" : "");
+    awe_unlock();
+    return b;
 }

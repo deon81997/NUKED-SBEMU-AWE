@@ -18,6 +18,17 @@ inside Windows 98:
     the Sound Blaster becomes type 16 and BLASTER gets E620. The MPU-401
     keeps its SC-55 (/AWEMPU:1). Needs the 1 MB AWE ROM (86Box's
     awe32.raw) in C:\SC55\ROMS, found by content.
+  * AWE32 edition: Windows programs also get a second MIDI device, "AWE32
+    MIDI Synth", played by the EMU8000 like Creative's AWE32 Windows
+    driver: Creative's own banks SYNTHGM.SBK / SYNTHGS.SBK / SYNTHMT.SBK
+    (from your AWE32/AWE64 drivers: found by content anywhere under
+    C:\SC55 and copied to ROMS; see "Where do I get the SBK files?" in
+    section 3), GM / GS / MT-32 like AWEUTIL /EM:GM|GS|MT32, Creative's 8
+    reverb and 8 chorus types like AWE Control (Settings > AWE32). With no
+    SBK: NUKED's own GM map over the AWE ROM. Its volume follows Windows
+    (midiOutSetVolume). A DOS box that uses the AWE32 gets the chip, as on
+    a real card; the MIDI device plays again when that DOS box is closed
+    (or 10 seconds after it left the EMU8000 alone).
   * Windows programs (Media Player, MIDI sequencers, Windows games) get a
     MIDI device called "NUKED SB-EMU" played by the same synth. Its volume
     follows Windows (games' music sliders, midiOutSetVolume).
@@ -200,6 +211,23 @@ goes to the next one). Save / Apply / Cancel are for all four.
 sample RAM 512 KB (AWE32) to 28 MB (/AWERAM), "MPU-401 keeps its synth"
 (/AWEMPU), "Reverb and chorus" (/AWEFX, since awe.4: the EMU8000's effects as
 the game sets them; off = dry); below: which ROM was found and the counters.
+"AWE32 MIDI Synth" (since awe.5, SC55W.INI [AWE32 MIDI]): the second Windows
+MIDI device on/off, Bank GM / GS / MT-32 (as AWEUTIL /EM), Reverb (Room 1-3,
+Hall 1-2, Plate, Delay, Panning Delay; default Hall 2) and Chorus (Chorus 1-4,
+Feedback, Flanger, Short Delay, Short Delay FB; default Chorus 3) as in
+Creative's AWE Control, "Search for SBK files", and which bank plays. The
+sample RAM setting is shared with the DOS boxes' AWE32 (one EMU8000).
+
+Where do I get the SBK files? They come with Creative's AWE32 / AWE64 /
+Sound Blaster 32 drivers; NUKED SB-EMU can't include them. Get a driver
+set from one of these pages, unpack it, and copy the folder (or just
+SYNTHGM.SBK, SYNTHGS.SBK, SYNTHMT.SBK) anywhere under C:\SC55 - the files
+are found by what's inside, names and folders don't matter - then Settings
+> AWE32 > "Search for SBK files" (or restart SC55W):
+  Phil's Computer Lab, Creative drivers:
+     https://www.philscomputerlab.com/creative-labs-drivers.html
+  VOGONS Driver Library:    https://www.vogonsdrivers.com/
+  Sound Blaster 32 PnP CD:  https://archive.org/details/CreativeSoundBlaster32
 
 "Sound and MIDI" has the same options as SETTINGS.BAT / SBSET, with the
 SBEMU switch they set:
@@ -368,6 +396,9 @@ later the sound output stops too (Status: "paused while silent"), so the
 program uses almost no CPU while idle: on a Pentium II 450 about 0.25 % of
 the CPU (it was 1.6 % before beta.81-w98.4). Windows' timer runs at its
 normal rate unless a DOS program plays sound or reads the joystick.
+The AWE32 MIDI Synth (AWE32 edition) is much lighter than the SC-55: a busy
+song (30 voices, reverb + chorus) takes about a fifth of a Pentium II 450,
+nothing when it is silent.
 
 
 -----------------------------------------------------------------------------

@@ -17,7 +17,7 @@ done
 i686-w64-mingw32-g++ -std=c++17 $ARCH -c $S/dbopl.cpp -o $OD/dbopl.o &
 i686-w64-mingw32-gcc $ARCH -c $O/opl3.c -o $OD/opl3.o &
 i686-w64-mingw32-gcc -O2 -c compat/compat98.c -o $OD/compat98.o &
-for f in emu8k emu8k_rom; do   # AWE line: the DOS EMU8000 engine
+for f in emu8k emu8k_rom awemidi; do   # AWE line: the DOS EMU8000 engine + the AWE32 MIDI Synth
   i686-w64-mingw32-gcc $ARCH -c ../awe/synth/$f.c -o $OD/$f.o &
 done
 i686-w64-mingw32-gcc $ARCH -DPADCONV_LIB -c ../tools/padmap/padconv.c -o $OD/padconv.o &

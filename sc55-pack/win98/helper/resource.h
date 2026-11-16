@@ -104,3 +104,9 @@
 #define IDC_A_MPU       1403
 #define IDC_A_STAT      1404
 #define IDC_A_FX        1405
+#define IDC_M_ON        1406
+#define IDC_M_BANK      1407
+#define IDC_M_REV       1408
+#define IDC_M_CHO       1409
+#define IDC_M_SCAN      1410
+#define IDC_M_STAT      1411

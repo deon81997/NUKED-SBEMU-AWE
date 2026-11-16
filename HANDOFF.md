@@ -1,3 +1,48 @@
+## beta.130-awe.5 (2026-11-16, AWE session): "AWE32 MIDI Synth" Windows MIDI device
+- SC55MIDI.DRV now has 2 devices: 0 "NUKED SB-EMU" (as before), 1 "AWE32 MIDI Synth" (MOD_SYNTH, 32 voices, own volume).
+  VxD PM API AX=3/4 (bytes / volume of dev 1, EV_MIDI c = 2; AX=0 -> 0101h; the driver refuses dev 1 on an older VxD),
+  SC55W_SHARED IF 11: reserved9 -> awe_midi_volume, awe_reserved -> awe_midi_volume_set; SC55W_AWE reserved2[0] -> vm_gone
+  (sc_vm_gone: aw->vm = 0, vm_gone++ when the DOS box that touched the EMU8000 is destroyed).
+- awe/synth/awemidi.c (new, plain C, host-testable): SoundFont 1 (.SBK) + SF2 loader (awesfx's parser, SBK->SF2 units,
+  ADIP register formulas), GM/GS/MT-32 MIDI player on emu8k.c via emu8k_write (Linux emux: voices, volume/pitch/pan,
+  register sequence of a note, get_voice stealing; 30 voices), Creative's 8 reverb / 8 chorus parameter sets (Linux
+  emu8000.c), GS SysEx (reset, master volume, reverb/chorus macro, drum part), RPN 0/1/2, release/reclaim for DOS boxes.
+  GPL-2.0-or-later sources credited in the file header. awegm.h = NUKED's own GM map over the ROM: testrig/awe/awegm.py
+  (sample bounds between 49-word zero gaps, HPS pitch, tail loop search) + awegm.tune from testrig/awe/awegmcal.sh
+  (register check of note 60 per program against TimGM6mb via fluidsynth). Approximate: timbres picked by ROM order and
+  features; chroma vs fluidsynth on songs only 0.2-0.6 (stand-in SBK 0.86-0.96) - it is the no-SBK fallback.
+- Helper: awe.cpp "AWE32 MIDI Synth" part: SBK search by content under the pack (SF1 RIFF + ifil 1.x in the first 4 KB,
+  awem_probe kind: GS = >= 8 variation-bank presets, MT-32 = MT-32 names on programs 7/8/16/24, else file name, else GM;
+  copied to ROMS as SYNTHGM/GS/MT.SBK unless one is there), banks in lookup order (mode bank, GM, else built-in map), the
+  EMU8000 block now exists when /AWE or the MIDI device is on (VxD gets awe_port/addr only with /AWE). Ownership in
+  awe_midi_poll(): any DOS AWE read/write (counters) or ring write -> awem_release(); back when that DOS box closes
+  (vm_gone) or 10 s without DOS access. Gain: Windows owner = master x device volume; DOS owner = SB16 mixer path as before.
+  SC55W.INI [AWE32 MIDI] Synth/Bank/Reverb/Chorus (not SBOPTS.TXT: DOS SBEMU matches options by prefix, /AWExxx would hit
+  /AWE). Settings > AWE32 page re-laid out (DOS AWE top, "AWE32 MIDI Synth" group: on, bank, reverb, chorus, Search for
+  SBK files, status with the "where to get them" hint). SC55W.LOG: start line (SBK search) + "AWE32 MIDI Synth: ..." /10 s.
+- DOS: no change (zip keeps the awe.4 DOS EXEs; makefile VERSION says awe.5 for the next DOS build). Release built with
+  testrig/awe98/mkrel.py --keepdos (old zip's DOS files, Win98 files + README98 + HWTEST swapped, SOURCE.ZIP + awemidi).
+- Tests: awe/synth/test/awemidi_tests.sh AWE32.RAW (stand-in SBKs from TimGM6mb by testrig/awe/sf2sbk.py: RAM samples,
+  neutral INAM, gm/gs/mt32 kinds; awemidtest unit + ASan/UBSan PASS: all 128 programs + drum keys 27-87 of the built-in
+  map sound, 40 held notes -> 30 voices / 10 stolen / silent after notes off, release -> silent at once + note-ons held
+  back + reclaim plays, GS master volume / GM on, bend range 12 = x2.00, probe kinds GM/GS/MT-32 from content, 128 KB RAM
+  -> zones left out, GS bank 8 variation + bank 5 fallback; avmidi 02/07/15/17 stand-in vs fluidsynth chroma 0.86-0.96).
+  routetest PASS. Win98 VM (testrig/awe98/m98.sh, 86Box P3B-F PII-450 acpi, 8 MB RAM): Media Player via the Mapper
+  (MIDIMap CurrentInstrument = device name) 911/911 notes; WSEQ.EXE (win98/test/wseq.c, midiStream sequencer) song at
+  volume 100 then 25: REC.WAV -12.1 dB (expected -12.0); dense 30 s (11520 note-ons, 380/s): 9039 stolen (native 9045),
+  0 without a sound; AWELOAD in the batch DOS box -> DOS took it, back after 10 s; AWELOAD in a second DOS box that closes
+  -> back at once; stand-in banks hidden as C:\SC55\EXTRA\BANKS\BANK1.DAT / EXTRA\OTHER.BIN -> found, copied, GS mode.
+  86Box REC.WAV is not in real time (time compressed): compare it with testrig/awe/chromadtw.py (DTW chroma: VM vs native
+  render 0.88, vs fluidsynth 0.86, another song 0.40), not chroma.py. Media Player's first start asks "settings changed by
+  another program": m98.sh answers it from a screenshot (after 100 s; the boot screen looks the same before).
+- CPU (86Box PII-450 at ~98% speed, host idle): IDLEMTR idle 1620574, song via the device 1333127 (-17.7%), dense
+  1323092 (-18.4%); SC55W load 22-24% while playing, ~1-4% idle. 30 sounding voices (emu8k cost scales with sounding
+  voices). Host work during a VM run (python analyses) made 86Box slow: load 268%, late 3586 - rerun idle was clean.
+- Hardware to test (HWTEST top item): user's own SYNTHGM.SBK, Control Panel MIDI device, Media Player, GS/MT-32, reverb/
+  chorus types, Volume Control, Duke in a DOS box taking the chip, CPU with a sequencer.
+- Test downloads: /tmp/dl/ref (Linux emux/emu8000 sources, awesfx git), apt timgm6mb-soundfont + fluidsynth, store-86rig,
+  store-w98qi-86box, store-personal, store-86box-roms.
+
 ## beta.130-awe.4 (2026-11-16, AWE session): EMU8000 reverb + chorus
 - awe/synth/emu8k.c fx_*: 86Box snd_emu8k.c's effect structure and register meanings (GPL-2.0-or-later, credited in the
   file header): reverb = input damper, 6 damped reflection combs (2/4/8/13/19/18-33 x 242 samples, INIT2 ch 14h room),

@@ -1,6 +1,24 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.4)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.5)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.5 "AWE32 MIDI Synth" in Windows 98 (D810 and P5PE-VM; SETUP98
+    run again, Windows restarted, AWE32.RAW in C:\SC55\ROMS). 1) Copy your
+    own SYNTHGM.SBK (and SYNTHGS.SBK / SYNTHMT.SBK if you have them) into any
+    folder under C:\SC55 (for example C:\SC55\CREATIVE). Tray icon >
+    Settings > AWE32 > "Search for SBK files": the box under it lists them,
+    and C:\SC55\ROMS now has SYNTHGM.SBK. 2) Control Panel > Multimedia >
+    MIDI: "AWE32 MIDI Synth" is in the list next to "NUKED SB-EMU"; pick it.
+    3) Media Player: play C:\WINDOWS\MEDIA\CANYON.MID (or any .MID): it
+    sounds like an AWE32 (Creative's GM bank), no stuck or missing notes.
+    4) Settings > AWE32: Bank GS, then MT-32 (an MT-32 game's .MID); Reverb
+    Hall 2 -> Plate -> Delay, Chorus 3 -> Flanger: each changes the sound at
+    once. 5) Volume Control: MIDI / Synthesizer slider moves the AWE32 MIDI
+    Synth's level. 6) While Media Player plays, start Duke 3D (AWE32 music) in
+    a DOS box: Duke's music plays, Media Player goes silent; quit Duke and
+    close the DOS box: Media Player's next notes play again. 7) A sequencer
+    (Cakewalk, or any): play a dense song for 2 minutes, tray > Status CPU %.
+    Send C:\SC55\WIN98\SC55W.LOG ("AWE32 MIDI Synth:" lines).
 
 [ ] beta.130-awe.4 AWE32 reverb + chorus (D810 and P5PE-VM; AWE32.RAW in
     C:\SC55\ROMS). DOS: SC55 with the AWE32 on (SETTINGS > MIDI synth >

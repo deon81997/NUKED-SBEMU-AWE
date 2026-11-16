@@ -45,6 +45,7 @@ static const char WND_CLASS[] = "SC55W_Main";
 // ---------------------------------------------------------------------------
 // paths
 static std::string g_exedir, g_base, g_optpath, g_batpath, g_inipath;
+static std::string g_awe_scan;            // AWE32 MIDI Synth: what the SBK search found (SC55W.LOG, settings)
 
 static std::string dir_of(const std::string& p)
 {
@@ -118,6 +119,7 @@ static CRITICAL_SECTION g_cs;
 static Options g_opt;                 // current saved options (UI thread)
 static Options g_pending;             // handed to the audio thread
 static volatile LONG g_have_pending, g_panic, g_quit;
+static bool g_force_attach;               // AWE32 MIDI Synth switched on/off: the EMU8000 block is (re)built at attach
 static bool g_boot;                 // started from the Run key (/BOOT): let Windows finish starting first
 static HANDLE g_vxd = INVALID_HANDLE_VALUE;
 static SC55W_SHARED* g_sh;
@@ -146,11 +148,11 @@ struct Published {
 static void logf(const char* fmt, ...);
 static void log_activity(const EngineStats& s, DWORD now, double load)
 {
-    static DWORD t; static unsigned m, o, p, a;
+    static DWORD t; static unsigned m, o, p, a, am;
     if (now - t < 10000) return;
     t = now;
-    if (s.midi_bytes == m && s.opl_writes == o && s.pcm_frames == p && s.awe_writes == a) return;
-    m = s.midi_bytes; o = s.opl_writes; p = s.pcm_frames; a = s.awe_writes;
+    if (s.midi_bytes == m && s.opl_writes == o && s.pcm_frames == p && s.awe_writes == a && s.awe_midi_bytes == am) return;
+    m = s.midi_bytes; o = s.opl_writes; p = s.pcm_frames; a = s.awe_writes; am = s.awe_midi_bytes;
     logf("activity: MIDI %u bytes, FM %u writes, digital %u frames, late %u, resyncs %u, MPU ignored %u, load %.1f%%", m, o, p,
          s.late_events, s.resyncs, g_sh ? (unsigned)g_sh->mpu_ignored : 0u, load * 100);
     const SC55W_AWE* aw = awe_block();
@@ -159,6 +161,8 @@ static void log_activity(const EngineStats& s, DWORD now, double load)
              (unsigned)aw->writes, (unsigned)aw->reads,
              (unsigned)aw->ram_writes, (unsigned)aw->ram_reads, (unsigned)aw->overflow, (unsigned)aw->pumped,
              s.awe_idle ? ", idle" : "");
+    std::string ms = awe_midi_stats();
+    if (!ms.empty() && s.awe_midi_bytes) logf("%s, volume %d%%", ms.c_str(), s.awe_midi_volume);
 }
 // MIDI output switch (w98.8, DOS /MOUT): -1 none, 0 emulated synth, n = Windows MIDI out device n-1. The tray
 // menu, the settings window and "SC55W /MOUT:x" set it; the audio thread hands it to the engine.
@@ -444,6 +448,9 @@ static DWORD WINAPI audio_main(LPVOID)
             static Options awe_att;                  // AWE32 options the VxD has
             bool awe_diff = want.awe != awe_att.awe || want.aweram != awe_att.aweram || want.awerom != awe_att.awerom ||
                             want.scrom != awe_att.scrom;
+            EnterCriticalSection(&g_cs);
+            if (g_force_attach) { awe_diff = true; g_force_attach = false; }
+            LeaveCriticalSection(&g_cs);
             if (!have || memcmp(&a, &attached, sizeof a) || awe_diff) {
                 attached = a;
                 awe_att = want;
@@ -1681,6 +1688,7 @@ static void settings_update(HWND d)
 
 static HWND g_page[4];
 static bool joy_page_save(HWND p, std::string& note);
+static void awe_midi_page_read(HWND p, AweMidiCfg& c);
 static void pad_page_save(HWND p);
 static void settings_apply(HWND d, bool save)
 {
@@ -1690,6 +1698,14 @@ static void settings_apply(HWND d, bool save)
     std::string note;
     if (g_page[1]) joy_page_save(g_page[1], note);   // game port / NUKED joystick (SC55W.INI)
     if (g_page[2]) pad_page_save(g_page[2]);         // pad keys and the pad's button map
+    if (g_page[3]) {                                 // AWE32 MIDI Synth (SC55W.INI [AWE32 MIDI]), live
+        AweMidiCfg mc = awe_midi_cfg();
+        awe_midi_page_read(g_page[3], mc);
+        bool onoff = mc.on != awe_midi_cfg().on;
+        awe_midi_config(mc, resolve(o.scrom), o.aweram);
+        if (save) awe_midi_save_cfg(g_inipath, mc);
+        if (onoff) { EnterCriticalSection(&g_cs); g_force_attach = true; LeaveCriticalSection(&g_cs); }
+    }
     push_options(o);                                 // re-attaches when the game port changed
     {   // MIDI output: switched live, kept in SC55W.INI on Save
         int i = (int)SendDlgItemMessageA(d, IDC_MOUT, CB_GETCURSEL, 0, 0);
@@ -2052,7 +2068,40 @@ static void awe_page_status(HWND p)
 static void awe_page_enable(HWND p)
 {
     bool on = checked(p, IDC_A_ON);
-    for (int id : {IDC_A_PORT, IDC_A_RAM, IDC_A_MPU, IDC_A_FX}) EnableWindow(GetDlgItem(p, id), on);
+    for (int id : {IDC_A_PORT, IDC_A_MPU, IDC_A_FX}) EnableWindow(GetDlgItem(p, id), on);
+    bool m = checked(p, IDC_M_ON);
+    EnableWindow(GetDlgItem(p, IDC_A_RAM), on || m);
+    for (int id : {IDC_M_BANK, IDC_M_REV, IDC_M_CHO, IDC_M_SCAN}) EnableWindow(GetDlgItem(p, id), m);
+}
+
+// AWE32 MIDI Synth status: the banks in ROMS, what plays, or the hint when there is no SBK
+static void awe_midi_status(HWND p)
+{
+    AweMidiInfo mi = awe_midi_info();
+    const AweMidiCfg& mc = awe_midi_cfg();
+    std::string t;
+    static const char* const kinds[3] = {"GM", "GS", "MT-32"};
+    if (!mc.on) t = "Off: Windows shows the device, but it stays silent.";
+    else if (!awe_info().on) t = "Not running" + (awe_info().error.empty() ? std::string(".") : " - " + awe_info().error);
+    else t = "Playing with: " + mi.using_ + (awe_info().rom.empty() ? "  - NO ROM: put a 1 MB EMU8000 ROM dump (awe32.raw) in the ROM folder" : "");
+    t += "\r\nIn ROMS: ";
+    bool any = false;
+    for (int k = 0; k < 3; k++) if (!mi.file[k].empty()) { t += std::string(any ? ", " : "") + kinds[k]; any = true; }
+    if (!any) t += "no SBK. NUKED's own GM map plays instead. For Creative's sound put SYNTHGM.SBK (GS: SYNTHGS.SBK, "
+                   "MT-32: SYNTHMT.SBK) from your AWE32/AWE64 Windows drivers anywhere under the pack folder and press "
+                   "Search - README98: Where do I get the SBK files.";
+    else if (mi.file[mc.bank].empty()) t += std::string(" - no ") + kinds[mc.bank] + " SBK: playing GM.";
+    if (!mi.note.empty()) t += "\r\n" + mi.note;
+    if (!g_awe_scan.empty()) t += "\r\nSearch: " + g_awe_scan;
+    SetDlgItemTextA(p, IDC_M_STAT, t.c_str());
+}
+
+static void awe_midi_page_read(HWND p, AweMidiCfg& c)
+{
+    c.on = checked(p, IDC_M_ON);
+    c.bank = cb_get(p, IDC_M_BANK, 0);
+    c.reverb = cb_get(p, IDC_M_REV, 4);
+    c.chorus = cb_get(p, IDC_M_CHO, 2);
 }
 
 static void awe_page_read(Options& o)
@@ -2081,16 +2130,39 @@ static INT_PTR CALLBACK awe_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
         cb_select(p, IDC_A_RAM, g_dlg_opt.aweram);
         check(p, IDC_A_MPU, g_dlg_opt.awempu != 0);
         check(p, IDC_A_FX, g_dlg_opt.awefx != 0);
+        {
+            const AweMidiCfg& mc = awe_midi_cfg();
+            static const char* const banks[] = {"GM", "GS", "MT-32"};
+            static const char* const revs[] = {"Room 1", "Room 2", "Room 3", "Hall 1", "Hall 2", "Plate", "Delay", "Panning Delay"};
+            static const char* const chos[] = {"Chorus 1", "Chorus 2", "Chorus 3", "Chorus 4", "Feedback Chorus", "Flanger",
+                                               "Short Delay", "Short Delay (FB)"};
+            for (int i = 0; i < 3; i++) cb_add(p, IDC_M_BANK, banks[i], i);
+            for (int i = 0; i < 8; i++) { cb_add(p, IDC_M_REV, revs[i], i); cb_add(p, IDC_M_CHO, chos[i], i); }
+            check(p, IDC_M_ON, mc.on);
+            cb_select(p, IDC_M_BANK, mc.bank);
+            cb_select(p, IDC_M_REV, mc.reverb);
+            cb_select(p, IDC_M_CHO, mc.chorus);
+        }
         awe_page_enable(p);
         awe_page_status(p);
+        awe_midi_status(p);
         SetTimer(p, 1, 1000, NULL);
         return TRUE;
     }
     case WM_TIMER:
         awe_page_status(p);
+        awe_midi_status(p);
         return TRUE;
     case WM_COMMAND:
-        if (LOWORD(w) == IDC_A_ON) awe_page_enable(p);
+        if (LOWORD(w) == IDC_M_SCAN) {     // look for SBK files again (the user just copied them), load them
+            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            g_awe_scan = awe_midi_scan(g_base, resolve(g_opt.scrom));
+            awe_midi_config(awe_midi_cfg(), resolve(g_opt.scrom), g_opt.aweram);
+            logf("AWE32 MIDI Synth: SBK search: %s", g_awe_scan.c_str());
+            awe_midi_status(p);
+            return TRUE;
+        }
+        if (LOWORD(w) == IDC_A_ON || LOWORD(w) == IDC_M_ON) awe_page_enable(p);
         if (HIWORD(w) == CBN_SELCHANGE || HIWORD(w) == BN_CLICKED)
             SendMessageA(GetParent(p), WM_APP + 50, 0, 0);
         return FALSE;
@@ -2425,6 +2497,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
     if (!awe_args) InitializeCriticalSection(&g_cs);
     find_paths();
     load_options();
+    {   // AWE32 MIDI Synth: Creative's SBK banks by content under the pack (copied to ROMS), then the device's settings
+        AweMidiCfg mc;
+        awe_midi_load_cfg(g_inipath, mc);
+        g_awe_scan = awe_midi_scan(g_base, resolve(g_opt.scrom));
+        awe_midi_config(mc, resolve(g_opt.scrom), g_opt.aweram);
+    }
 
     WNDCLASSA wc;
     memset(&wc, 0, sizeof wc);
@@ -2438,6 +2516,13 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
     tray_add();
 
     logf("%s build %d, pack folder %s, options: %s", APP_TITLE, BUILD_ID, g_base.c_str(), g_opt.format().c_str());
+    {
+        AweMidiInfo mi = awe_midi_info();
+        const AweMidiCfg& mc = awe_midi_cfg();
+        logf("AWE32 MIDI Synth: %s, bank %s, reverb %d, chorus %d; SBK search: %s%s%s", mc.on ? "on" : "off",
+             mc.bank == 1 ? "GS" : mc.bank == 2 ? "MT-32" : "GM", mc.reverb, mc.chorus, g_awe_scan.c_str(),
+             mi.note.empty() ? "" : "; ", mi.note.c_str());
+    }
     {   // the system, for bug reports
         OSVERSIONINFOA v; v.dwOSVersionInfoSize = sizeof v;
         if (GetVersionExA(&v)) logf("Windows %lu.%lu build %lu %s", v.dwMajorVersion, v.dwMinorVersion, v.dwBuildNumber & 0xFFFF, v.szCSDVersion);

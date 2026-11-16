@@ -1,10 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED */
 /*
  * sc55midi.c - SC55MIDI.DRV, a 16-bit Windows MIDI output driver for
- * Windows 98. It shows up as the MIDI device "NUKED SB-EMU" and hands every
- * byte to SC55W.VXD through its protected-mode API (INT 2Fh AX=1684h by
- * name "SC55W"); SC55W.EXE turns the bytes into sound with the same synth
- * the DOS programs use (SC-55, MT-32 or SoundFont).
+ * Windows 98. It shows up as two MIDI devices: "NUKED SB-EMU" (the synth
+ * the DOS programs use: SC-55, MT-32 or SoundFont) and, on the AWE line,
+ * "AWE32 MIDI Synth" (the EMU8000 played with Creative's SBK banks, like
+ * Creative's AWE32 driver). Every byte goes to SC55W.VXD through its
+ * protected-mode API (INT 2Fh AX=1684h by name "SC55W"; AX=1/2 first
+ * device, AX=3/4 second); SC55W.EXE turns the bytes into sound.
  *
  * The VxD is loaded by SC55W.EXE, so the entry point is looked up at each
  * open: start SC55W.EXE (or let it start with Windows) before playing.
@@ -39,9 +41,11 @@ typedef struct {
 BOOL WINAPI DriverCallback(DWORD dwCallback, UINT uFlags, HANDLE hDevice, UINT uMessage,
                            DWORD dwUser, DWORD dwParam1, DWORD dwParam2);
 
-#define MAX_CLIENTS 4
+#define MAX_CLIENTS 8
+#define NDEV 2
 typedef struct {
     int used;
+    int dev;                /* 0 = NUKED SB-EMU, 1 = AWE32 MIDI Synth */
     MIDIOPENDESC desc;
     UINT flags;
     BYTE status;            /* running status */
@@ -80,40 +84,49 @@ static int lookup(void)
     return 1;
 }
 
-/* AX=1: send CX bytes (1..3) from DL, DH, BL */
-static void send_bytes(unsigned n, BYTE a, BYTE b, BYTE c);
+/* AX=1 (dev 0) / AX=3 (dev 1): send CX bytes (1..3) from DL, DH, BL */
+static void send_bytes(unsigned fn, unsigned n, BYTE a, BYTE b, BYTE c);
 #pragma aux send_bytes = \
     "push bp" \
-    "mov ax, 1" \
     "call dword ptr api_ep" \
     "pop bp" \
-    parm [cx] [dl] [dh] [bl] modify [ax bx cx dx si di es];
+    parm [ax] [cx] [dl] [dh] [bl] modify [ax bx cx dx si di es];
 
-/* AX=2: MIDI volume, DX = left, CX = right (0xFFFF = full) */
-static void send_volume(unsigned l, unsigned r);
+/* AX=2 (dev 0) / AX=4 (dev 1): MIDI volume, DX = left, CX = right (0xFFFF = full) */
+static void send_volume(unsigned fn, unsigned l, unsigned r);
 #pragma aux send_volume = \
     "push bp" \
-    "mov ax, 2" \
     "call dword ptr api_ep" \
     "pop bp" \
-    parm [dx] [cx] modify [ax bx cx dx si di es];
+    parm [ax] [dx] [cx] modify [ax bx cx dx si di es];
 
-static DWORD volume = 0xFFFFFFFFUL;     /* low word left, high word right */
+/* AX=0: API version, 0101h = both devices */
+static unsigned api_version(void);
+#pragma aux api_version = \
+    "push bp" \
+    "xor ax, ax" \
+    "call dword ptr api_ep" \
+    "pop bp" \
+    value [ax] modify [ax bx cx dx si di es];
 
-static void push_volume(void)
+static DWORD volume[NDEV] = { 0xFFFFFFFFUL, 0xFFFFFFFFUL };     /* low word left, high word right */
+
+static void push_volume(int dev)
 {
     int had = api_ep != 0;
     if (!FindWindow("SC55W_Main", NULL) || !lookup()) return;
-    send_volume(LOWORD(volume), HIWORD(volume));
+    if (dev == 0 || api_version() >= 0x0101)
+        send_volume(dev ? 4 : 2, LOWORD(volume[dev]), HIWORD(volume[dev]));
     if (!had && opens == 0) api_ep = 0;
 }
 
-static void send(const BYTE FAR *p, unsigned n)
+static void send(int dev, const BYTE FAR *p, unsigned n)
 {
+    unsigned fn = dev ? 3 : 1;
     if (!api_ep) return;
-    while (n >= 3) { send_bytes(3, p[0], p[1], p[2]); p += 3; n -= 3; }
-    if (n == 2) send_bytes(2, p[0], p[1], 0);
-    else if (n == 1) send_bytes(1, p[0], 0, 0);
+    while (n >= 3) { send_bytes(fn, 3, p[0], p[1], p[2]); p += 3; n -= 3; }
+    if (n == 2) send_bytes(fn, 2, p[0], p[1], 0);
+    else if (n == 1) send_bytes(fn, 1, p[0], 0, 0);
 }
 
 /* ---- MIDI ------------------------------------------------------------ */
@@ -141,10 +154,10 @@ static DWORD short_msg(CLIENT *c, DWORD m)
         n = msg_len(b[0]);
         if (b[0] < 0xF0) c->status = b[0];
         else if (b[0] < 0xF8) c->status = 0;
-        send(b, n);
+        send(c->dev, b, n);
     } else if (c->status) {             /* running status: data bytes only */
         n = msg_len(c->status) - 1;
-        send(b, n);
+        send(c->dev, b, n);
     }
     return MMSYSERR_NOERROR;
 }
@@ -153,22 +166,22 @@ static DWORD long_msg(CLIENT *c, LPMIDIHDR h, DWORD size)
 {
     if (!h || !size || !(h->dwFlags & MHDR_PREPARED)) return MIDIERR_UNPREPARED;
     if (h->dwFlags & MHDR_INQUEUE) return MIDIERR_STILLPLAYING;
-    send((const BYTE FAR *)h->lpData, (unsigned)h->dwBufferLength);
+    send(c->dev, (const BYTE FAR *)h->lpData, (unsigned)h->dwBufferLength);
     c->status = 0;
     h->dwFlags |= MHDR_DONE;
     notify(c, MOM_DONE, (DWORD)h);
     return MMSYSERR_NOERROR;
 }
 
-static void all_off(void)
+static void all_off(int dev)
 {
     BYTE m[3];
     int ch;
     for (ch = 0; ch < 16; ch++) {
         m[0] = (BYTE)(0xB0 | ch);
-        m[1] = 0x40; m[2] = 0; send(m, 3);      /* sustain off       */
-        m[1] = 0x7B; send(m, 3);                /* all notes off     */
-        m[1] = 0x78; send(m, 3);                /* all sound off     */
+        m[1] = 0x40; m[2] = 0; send(dev, m, 3);      /* sustain off       */
+        m[1] = 0x7B; send(dev, m, 3);                /* all notes off     */
+        m[1] = 0x78; send(dev, m, 3);                /* all sound off     */
     }
 }
 
@@ -176,25 +189,26 @@ DWORD FAR PASCAL __export __loadds modMessage(UINT dev, UINT msg, DWORD user, DW
 {
     CLIENT *c;
     int i;
-    if (dev != 0 && msg != MODM_GETNUMDEVS) return MMSYSERR_BADDEVICEID;
+    if (dev >= NDEV && msg != MODM_GETNUMDEVS) return MMSYSERR_BADDEVICEID;
     switch (msg) {
     case MODM_GETNUMDEVS:
-        return 1;
+        return NDEV;
     case MODM_GETDEVCAPS: {
         MIDIOUTCAPS FAR *caps = (MIDIOUTCAPS FAR *)p1;
         MIDIOUTCAPS mc;
-        static const char name[] = "NUKED SB-EMU";
+        static const char name0[] = "NUKED SB-EMU", name1[] = "AWE32 MIDI Synth";
+        const char *name = dev ? name1 : name0;
         BYTE FAR *d;
         const BYTE *s;
         unsigned k, n = (unsigned)p2;
         for (k = 0; k < sizeof mc; k++) ((BYTE *)&mc)[k] = 0;
         mc.wMid = 1;                    /* MM_MICROSOFT */
-        mc.wPid = 1;
+        mc.wPid = dev ? 2 : 1;
         mc.vDriverVersion = 0x0100;
         for (k = 0; name[k]; k++) mc.szPname[k] = name[k];
-        mc.wTechnology = MOD_MIDIPORT;
-        mc.wVoices = 0;
-        mc.wNotes = 0;
+        mc.wTechnology = dev ? MOD_SYNTH : MOD_MIDIPORT;
+        mc.wVoices = dev ? 32 : 0;
+        mc.wNotes = dev ? 32 : 0;
         mc.wChannelMask = 0xFFFF;
         mc.dwSupport = MIDICAPS_VOLUME | MIDICAPS_LRVOLUME;
         if (n > sizeof mc) n = sizeof mc;
@@ -206,25 +220,27 @@ DWORD FAR PASCAL __export __loadds modMessage(UINT dev, UINT msg, DWORD user, DW
         LPMIDIOPENDESC od = (LPMIDIOPENDESC)p1;
         /* SC55W.EXE must be running: it loads the VxD and makes the sound */
         if (!FindWindow("SC55W_Main", NULL) || !lookup()) return MMSYSERR_NOTENABLED;
+        if (dev && api_version() < 0x0101) { if (opens == 0) api_ep = 0; return MMSYSERR_NOTENABLED; }   /* older SC55W */
         for (i = 0; i < MAX_CLIENTS && clients[i].used; i++) ;
         if (i == MAX_CLIENTS) return MMSYSERR_ALLOCATED;
         c = &clients[i];
         c->used = 1;
+        c->dev = dev;
         c->desc = *od;
         c->flags = HIWORD(p2);
         c->status = 0;
         *(DWORD FAR *)user = (DWORD)i;
         opens++;
-        send_volume(LOWORD(volume), HIWORD(volume));   /* SC55W may have been restarted */
+        send_volume(dev ? 4 : 2, LOWORD(volume[dev]), HIWORD(volume[dev]));   /* SC55W may have been restarted */
         notify(c, MOM_OPEN, 0);
         return MMSYSERR_NOERROR;
     }
-    case MODM_GETVOLUME:                /* by device or by handle: one volume for all */
-        *(DWORD FAR *)p1 = volume;
+    case MODM_GETVOLUME:                /* by device or by handle: one volume per device */
+        *(DWORD FAR *)p1 = volume[dev];
         return MMSYSERR_NOERROR;
     case MODM_SETVOLUME:
-        volume = p1;
-        push_volume();
+        volume[dev] = p1;
+        push_volume(dev);
         return MMSYSERR_NOERROR;
     }
     if ((DWORD)user >= MAX_CLIENTS || !clients[(int)user].used) return MMSYSERR_INVALHANDLE;
@@ -240,7 +256,7 @@ DWORD FAR PASCAL __export __loadds modMessage(UINT dev, UINT msg, DWORD user, DW
     case MODM_LONGDATA:
         return long_msg(c, (LPMIDIHDR)p1, p2);
     case MODM_RESET:
-        all_off();
+        all_off(c->dev);
         c->status = 0;
         return MMSYSERR_NOERROR;
     case MODM_PREPARE:

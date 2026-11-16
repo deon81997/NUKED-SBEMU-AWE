@@ -13,7 +13,8 @@
   perf.sh PII-450 old/new: /AWE idle 0.04 ms 1% both; SC-55 + AWELOAD 1.96 ms 67%, SC-55 302/301%, AWE 7% both.
   SC55LOG 0.47x, 22591 frames/s both. Not rerun: midi gamecap/switch, sata, menustat, keysoak (no AWE-specific change).
 - Release: NUKED-SB-EMU-1.0.0-beta.130-awe.1-usb.zip (rezip.py from 127-awe.1, no new files), tag v1.0.0-beta.130-awe.1-usb.
-- Wiki: priavte wiki/src Switch-Reference /KEYTRAP row (out/awe + out/mux regenerated; see posting note in HANDOFF below).
+- Wiki: priavte wiki/src Switch-Reference /KEYTRAP row; posted to this repo's wiki (clone verified = out/awe). out/mux has the
+  same row, NOT posted to the NUKED-SBEMU wiki (MUXED line's page; its next docs chat posts it).
 - Rig setup: testrig/rufus = `git clone --depth 1 https://github.com/pbatard/rufus` (perf.sh/sc55log.sh need it; not in
   this repo, in .git/info/exclude). Test downloads: /tmp/dl/djgpp, /tmp/dl/roms (store-86box-roms), /tmp/dl/timgm6mb
   (apt timgm6mb-soundfont), 86Box 0935207 built in /home/claude/86box/86box.

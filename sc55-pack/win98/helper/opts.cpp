@@ -86,6 +86,10 @@ void Options::parse(const std::string& text)
         else if (name == "JOYDZ") { joydz = num(val); passthru += (passthru.empty() ? "" : " ") + t; }
         else if (name == "MUSB") { musb = has ? num(val) : 1; passthru += (passthru.empty() ? "" : " ") + t; }   // DOS needs it: kept
         else if (name == "VTIMER") vtimer = num(val);
+        else if (name == "AWE") awe = has ? num(val, 1) : 0x620;
+        else if (name == "AWERAM") aweram = num(val);
+        else if (name == "AWEMPU") awempu = has ? num(val) : 1;
+        else if (name == "AWEROM") awerom = val;
         else if (name == "VSF") sf = val;
         else if (name == "VSFVOICES") sfvoices = num(val);
         else if (name == "VMT32") mt32 = upper(val.empty() ? "AUTO" : val);
@@ -104,6 +108,9 @@ void Options::parse(const std::string& text)
     clamp(midivol, 0, 400); clamp(scgain, 0, 1600); clamp(sfvoices, 8, 128);
     clamp(sfrev, 0, 100); clamp(sfroom, 0, 100); clamp(sfdamp, 0, 100); clamp(sfcho, 0, 100);
     clamp(sfcrate, 1, 30); clamp(sfcdepth, 0, 100); clamp(scahead, 0, 500);
+    if (awe != 0 && awe != 0x620 && awe != 0x640 && awe != 0x660 && awe != 0x680) awe = 0x620;
+    clamp(aweram, 0, 28672);
+    if (awe) sbtype = 6;     // AWE32 = an SB16 (as DOS SBEMU)
     if (scvoices && scvoices < 4) scvoices = 4;
     if (scvoices > 24) scvoices = 24;
 }
@@ -154,6 +161,12 @@ std::string Options::format() const
     if (scahead != d.scahead) add("/VSCAHEAD:%d", scahead);
     if (sclpf != d.sclpf) add("/VSCLPF:%d", sclpf);
     if (vtimer != d.vtimer) add("/VTIMER:%d", vtimer);
+    if (awe) {
+        add("/AWE:%X", awe);
+        if (aweram != d.aweram) add("/AWERAM:%d", aweram);
+        if (awempu != d.awempu) add("/AWEMPU:%d", awempu);
+        if (!awerom.empty()) add("/AWEROM:%s", awerom.c_str());
+    }
     if (!passthru.empty()) { s += (s.empty() ? "" : " "); s += passthru; }
     return s;
 }

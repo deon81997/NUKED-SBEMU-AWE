@@ -28,7 +28,7 @@ typedef int32_t  s32;
 #endif
 
 #define SC55W_MAGIC      0x57353543UL   /* "C55W" */
-#define SC55W_IF_VERSION 9
+#define SC55W_IF_VERSION 10   /* 10 = AWE line: EMU8000 (SC55W_AWE) */
 
 /* DeviceIoControl codes */
 #define IOCTL_SC55W_VERSION  0x10   /* out: u32 interface version            */
@@ -40,6 +40,8 @@ typedef int32_t  s32;
 #define IOCTL_SC55W_KEYS     0x16   /* in: set-1 scan codes for the DOS box with the keyboard;
                                        out: u32 1 = sent, 0 = Windows has the keyboard, 2 = queue full */
 #define IOCTL_SC55W_FOCUS    0x17   /* out: SC55W_FOCUS, the programs running in that DOS box */
+#define IOCTL_SC55W_AWEANS   0x18   /* AWE stall mode: in: u32 answer to the pending EMU8000 read (SC55W_AWE.rq_*) */
+#define IOCTL_SC55W_AWEWAIT  0x19   /* AWE stall mode: blocks the calling thread until a read waits; out: u32 1, 0 = detached */
 
 /* the program list of the DOS box that has the keyboard (IOCTL_SC55W_FOCUS) */
 #define SC55W_NPROG 4
@@ -77,10 +79,13 @@ typedef struct {
 #define ST_ERR_JBIOS    0x40000  /* could not hook INT 15h                 */
 #define ST_OK_PROG      0x80000  /* INT 21h watched: programs in DOS boxes  */
 #define ST_ERR_PROG     0x100000 /* could not hook INT 21h                 */
+#define ST_OK_AWE       0x200000 /* EMU8000 ports (base, +400h, +800h) trapped */
+#define ST_ERR_AWEPORT  0x400000 /* an EMU8000 port is owned by another driver */
+#define ST_ERR_AWEBLOCK 0x800000 /* bad / unlockable SC55W_AWE block         */
 
 /* event types in the event ring */
 #define EV_OPL      1   /* a = register (low 8 bits), b = value, c = bank (0/1) */
-#define EV_MIDI     2   /* a = MIDI byte                                        */
+#define EV_MIDI     2   /* a = MIDI byte, c = 1 from a DOS box (else Windows)    */
 #define EV_DAC      3   /* a = 8-bit unsigned sample (DSP command 10h)          */
 #define EV_SPEAKER  4   /* a = 1 on, 0 off                                      */
 #define EV_PCMFMT   5   /* PCM stream rate change; rate in pcmfmt ring          */
@@ -200,13 +205,71 @@ typedef struct {
     /* w98.8 (IF 9): MPU intelligent-mode bytes the VxD ignored (sequencer data, stray status), for SC55W.LOG */
     volatile u32 mpu_ignored;
     volatile u32 reserved9;
+
+    /* AWE line (IF 10): EMU8000 at awe_port (0x620/0x640/0x660/0x680, 0 = off); awe_addr = the helper's
+       SC55W_AWE block (user address, page aligned), awe_size its bytes. The VxD maps it at ATTACH. */
+    u32 awe_port, awe_addr, awe_size, awe_reserved;
 } SC55W_SHARED;
+
+/* ---- AWE32 / EMU8000 (AWE line) ----
+   Writes to the EMU8000 ports go to the AWE ring (VxD -> helper, timed like the event ring); the helper's
+   emu8k.c (the DOS engine) renders them. Reads must be answered at once, two ways (SC55W_AWE.mode):
+   AWE_MIRROR: the VxD keeps the register file (every write), owns the sample-RAM streams (SMALR/SMARR/SMALW/
+     SMARW/SMLD/SMRD: it reads and writes the shared RAM itself, never through the ring), counts WC from its
+     clock, and answers the 3 registers the engine moves (CPF, CVCF, CCCA) from the helper's snapshot
+     unless the program wrote them after that snapshot.
+   AWE_STALL: the VxD posts the read (rq_*), wakes the helper's thread (waiting in IOCTL_SC55W_AWEWAIT on a VMM
+     semaphore) and blocks the DOS box until the helper drained the ring, asked the engine and answered with
+     IOCTL_SC55W_AWEANS. (awe.3: a ring-0 Win32 event set from the DOS box's I/O trap hung both sides.) */
+#define SC55W_AWE_MAGIC 0x38454D45UL    /* "EME8" */
+#define AWE_MIRROR 0
+#define AWE_STALL  1
+#define AWERING_SIZE 16384u
+#define AWE_RAM_START 0x200000u         /* first sample-RAM word address (as emu8k.h) */
+/* port word index: 0 = base+0 (Data0 lo), 1 = base+2 (Data0 hi), 2 = base+400h (Data1), 3 = base+402h (Data2),
+   4 = base+800h (Data3), 5 = base+802h (Pointer); emu8k_io_write offset = awe_woff[idx] */
+typedef struct {
+    u32 time;   /* VxD clock, microseconds */
+    u16 val;
+    u8  idx;    /* port word index 0..5 */
+    u8  pad;
+} SC55W_AWEEV;
+
+typedef struct {
+    u32 magic, size;            /* SC55W_AWE_MAGIC, bytes of the whole block                  */
+    u32 ram_off;                /* byte offset of the sample RAM (u16 words), page aligned      */
+    u32 ram_words;              /* words of sample RAM the card has (0 = none; 512 KB = 262144)  */
+    u32 ram_alloc;              /* words allocated (64K-word blocks + read pad)                 */
+    u32 mode;                   /* AWE_MIRROR / AWE_STALL                                      */
+    u32 rq_event;               /* unused (awe.3 test: ring-0 Win32 event)                      */
+    u32 rom_off;                /* byte offset of the 1 MB ROM (0x80000 words + pad)           */
+
+    /* VxD -> helper */
+    volatile u32 ev_head, ev_tail;
+    volatile u32 reads, writes, ram_writes, ram_reads, overflow;
+    volatile u32 stalls, stall_us;      /* stall mode: reads answered by the helper, time blocked */
+    volatile u32 vm;                    /* the DOS box that touched the ports last                 */
+    volatile u32 pumped;                /* helper: times the ring was drained early (render behind) */
+
+    /* helper -> VxD (mirror): dynamic registers as of AWE ring position snap_ev */
+    volatile u32 snap_ev, snap_seq;
+    volatile u32 cpf[32], cvcf[32], ccca[32];
+
+    /* stall mode: one read in flight */
+    volatile u32 rq_seq, rq_idx, ans_seq, ans_val;
+    volatile u32 dbg_ans, dbg_wake, dbg_loops, dbg_seen;   /* stall diagnostics (VxD: answers, wakes; helper: loops, rq seen) */
+    volatile u32 reserved1[3];
+
+    SC55W_AWEEV ev[AWERING_SIZE];
+    /* sample RAM follows at ram_off */
+} SC55W_AWE;
 
 #define SC55W_DDB_MAGIC 0x374A4E53UL    /* "SNJ7" */
 
 /* the same layout in Open Watcom (VxDs) and MinGW (helper): checked at compile time */
 #define SC55W_CHECK(n, c) typedef char n[(c) ? 1 : -1]
-SC55W_CHECK(sc55w_chk_size, sizeof(SC55W_SHARED) == 529568);
+SC55W_CHECK(sc55w_chk_size, sizeof(SC55W_SHARED) == 529584);
+SC55W_CHECK(sc55w_chk_awe, sizeof(SC55W_AWE) == 131584);
 SC55W_CHECK(sc55w_chk_cfg, sizeof(SC55W_CONFIG) == 16);
 SC55W_CHECK(sc55w_chk_wjoy, sizeof(SC55W_WJOY) == 28);
 

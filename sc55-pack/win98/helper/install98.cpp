@@ -259,6 +259,7 @@ std::string blaster_for(const Options& o)
     std::string s = b;
     if (o.sbtype >= 6) { snprintf(b, sizeof b, " H%d", o.dma16); s += b; }
     if (o.vmpu) { snprintf(b, sizeof b, " P%X", o.mpu_port); s += b; }
+    if (o.awe) { snprintf(b, sizeof b, " E%X", o.awe); s += b; }   // AWE32: EMU8000 base, as DOS SBEMU /AWE
     snprintf(b, sizeof b, " T%d", t);
     return s + b;
 }

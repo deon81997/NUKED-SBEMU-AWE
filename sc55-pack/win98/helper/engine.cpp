@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED */
 // engine.cpp - see engine.h
 #include "engine.h"
+#include "awe.h"
 #include <cmath>
 #include <cstring>
 
@@ -117,12 +118,14 @@ void Engine::switch_out(int to)
 bool Engine::has_input(const SC55W_SHARED* sh) const
 {
     if (!pending_midi.empty()) return true;
-    return sh && (sh->ev_tail != sh->ev_head || sh->pcm_head != sh->pcm_tail);
+    const SC55W_AWE* aw = awe_block();
+    return (sh && (sh->ev_tail != sh->ev_head || sh->pcm_head != sh->pcm_tail)) || (aw && aw->ev_tail != aw->ev_head);
 }
 
 bool Engine::can_sleep(const SC55W_SHARED* sh) const
 {
     return silent_frames >= rate && (!midi || st.midi_idle) && (!opl || !opt.opl || st.opl_idle) && !dac_active &&
+           (!awe_block() || st.awe_idle) &&
            !pcm_primed && !has_input(sh);
 }
 
@@ -169,6 +172,11 @@ void Engine::render_sources(int from, int to)
         opl->render(&bo[(size_t)from * 2], n);
         idle_check(bo.data(), from, to, opl_quiet, st.opl_idle);
     } else memset(&bo[(size_t)from * 2], 0, (size_t)n * 2 * sizeof(float));
+    if (awe_block() && !st.awe_idle) {
+        awe_lock(); awe_render(&ba16[(size_t)from * 2], n, rate); awe_unlock();
+        for (int i = from * 2; i < to * 2; i++) ba[(size_t)i] = ba16[(size_t)i] * (1.0f / 32768.0f);
+        idle_check(ba.data(), from, to, awe_quiet, st.awe_idle);
+    } else if (!ba.empty()) memset(&ba[(size_t)from * 2], 0, (size_t)n * 2 * sizeof(float));
     // direct DAC (DSP command 10h): sample-and-hold, added to the PCM bus
     float d = dac_active ? (dac_value - 128) / 128.0f : 0.0f;
     for (int i = from; i < to; i++) { bp[(size_t)i * 2] = d; bp[(size_t)i * 2 + 1] = d; }
@@ -236,6 +244,16 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     bm.resize((size_t)frames * 2);
     bo.resize((size_t)frames * 2);
     bp.resize((size_t)frames * 2);
+    ba.resize((size_t)frames * 2);
+    ba16.resize((size_t)frames * 2);
+    SC55W_AWE* aw = awe_block();
+    if (aw && awe_stall_mode()) {   // stall mode: the ring is applied at once (the reads need the state now)
+        awe_lock();
+        if (aw->ev_tail != aw->ev_head) wake_awe();
+        while (aw->ev_tail != aw->ev_head) { awe_apply(aw->ev[aw->ev_tail & (AWERING_SIZE - 1)]); aw->ev_tail++; st.awe_writes++; }
+        awe_unlock();
+        aw = NULL;                  // not timed below
+    }
     const double us_per_frame = 1e6 / rate;
     const uint32_t lat_us = (uint32_t)latency_ms * 1000u;
     const uint32_t target = now_us - lat_us;
@@ -254,16 +272,30 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
 
     int pos = 0;
     if (sh) {
-        while (sh->ev_tail != sh->ev_head) {
+        const bool dos_mpu_off = opt.awe && !opt.awempu;   // /AWEMPU:0: the DOS boxes' MPU-401 has no synth
+        for (;;) {
+            // two rings, in time order: events and (AWE32) EMU8000 port writes
+            bool he = sh->ev_tail != sh->ev_head, ha = aw && aw->ev_tail != aw->ev_head;
+            if (!he && !ha) break;
             const SC55W_EVENT& e = sh->ev[sh->ev_tail & (EVRING_SIZE - 1)];
-            int32_t dt = (int32_t)(e.time - win_start);
+            const SC55W_AWEEV* ae = ha ? &aw->ev[aw->ev_tail & (AWERING_SIZE - 1)] : NULL;
+            bool use_awe = ha && (!he || (int32_t)(ae->time - e.time) < 0);
+            uint32_t t = use_awe ? ae->time : e.time;
+            int32_t dt = (int32_t)(t - win_start);
             int epos = dt <= 0 ? 0 : (int)(dt / us_per_frame);
             if (epos >= frames) break;                  // belongs to a later buffer
             if (dt < -(int32_t)lat_us && !quiet_late) st.late_events++;
             if (epos > pos) { render_sources(pos, epos); pos = epos; }
+            if (use_awe) {
+                wake_awe();
+                awe_lock();             // the AWE thread may have drained it meanwhile (overload)
+                if (aw->ev_tail != aw->ev_head) { awe_apply(aw->ev[aw->ev_tail & (AWERING_SIZE - 1)]); aw->ev_tail++; st.awe_writes++; }
+                awe_unlock();
+                continue;
+            }
             switch (e.type) {
             case EV_OPL:  if (opl) { wake_opl(); opl->write(e.c, e.a, e.b); } st.opl_writes++; break;
-            case EV_MIDI: midi_in(e.a, e.time + lat_us); st.midi_bytes++; break;
+            case EV_MIDI: if (e.c == 1 && dos_mpu_off) break; midi_in(e.a, e.time + lat_us); st.midi_bytes++; break;
             case EV_DAC:  dac_value = e.a; dac_active = true; dac_last = e.time; break;
             case EV_RESET: dac_active = false; break;
             default: break;
@@ -273,6 +305,7 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
         if (dac_active && (int32_t)(win_start - dac_last) > 200000) dac_active = false;
     }
     render_sources(pos, frames);
+    if (aw) awe_snapshot();        // mirror mode: CPF/CVCF/CCCA for the VxD's reads
     pcm_render(sh, bp.data(), frames);
 
     // levels: SB mixer registers (as the DOS program set them) x pack volumes
@@ -292,6 +325,9 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     const float sbv = opt.sbvol / 100.0f, oplv = opt.oplvol / 100.0f;
     const float pl = master * ml * vl * sbv, pr = master * mr * vr * sbv;
     const float ol = master * ml * fl * oplv, orr = master * mr * fr * oplv;
+    // AWE32: the EMU8000 is music like the MPU in DOS SBEMU (SB16 mixer MIDI + master, /VMIDIVOL)
+    const float awv = opt.midivol / 100.0f, al = master * ml * fl * awv, ar = master * mr * fr * awv;
+    const bool awe_on = awe_block() != NULL;
     // remove the SC-55's DC offset. CPU: while the synth sleeps its output is a constant, the filter's
     // output decays towards 0 and would end up as denormal floats (and stay there: 0.9995 x the smallest
     // one rounds back to itself), which the Pentium M / 4 handle ~100x slower - a sleeping synth then
@@ -321,6 +357,7 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     for (int i = 0; i < frames; i++) {
         float l = bp[i * 2] * pl + bo[i * 2] * ol + bm[i * 2] * mvl;
         float r = bp[i * 2 + 1] * pr + bo[i * 2 + 1] * orr + bm[i * 2 + 1] * mvr;
+        if (awe_on) { l += ba[i * 2] * al; r += ba[i * 2 + 1] * ar; }
         int a = (int)lrintf(l * 32767.0f), b = (int)lrintf(r * 32767.0f);
         out[i * 2] = (int16_t)(a > 32767 ? 32767 : a < -32768 ? -32768 : a);
         out[i * 2 + 1] = (int16_t)(b > 32767 ? 32767 : b < -32768 ? -32768 : b);

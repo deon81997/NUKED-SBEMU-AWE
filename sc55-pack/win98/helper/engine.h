@@ -16,6 +16,8 @@ struct EngineStats {
     double load = 0;     // render time / audio time, smoothed
     bool fx_shed = false;
     bool midi_idle = false, opl_idle = false;   // synth paused while silent
+    bool awe_idle = false;                      // AWE32: EMU8000 paused while silent
+    unsigned awe_writes = 0;
     bool out_asleep = false;                    // sound output stopped while everything is silent
 };
 
@@ -76,7 +78,8 @@ private:
     uint8_t dac_value = 128;
     bool dac_active = false;
     uint32_t dac_last = 0;
-    std::vector<float> bm, bo, bp;    // per-render scratch: midi, opl, pcm
+    std::vector<float> bm, bo, bp, ba;    // per-render scratch: midi, opl, pcm, AWE32
+    std::vector<int16_t> ba16;
     std::vector<uint8_t> pending_midi;
     MidiTracker tk;
     std::unique_ptr<MidiOutDev> ext;
@@ -89,7 +92,8 @@ private:
     bool quiet_late = false;                    // first render after wake_output: old events are not "late"
     // idle gating: a synth that has had no input for a while and has gone
     // silent is not run (saves CPU, the SC-55 costs a lot); input wakes it
-    int midi_quiet = 0, opl_quiet = 0;
+    int midi_quiet = 0, opl_quiet = 0, awe_quiet = 0;
+    void wake_awe() { awe_quiet = 0; st.awe_idle = false; }
     float midi_hold[2] = {0, 0};            // frames of silence since the last input
     void wake_midi() { midi_quiet = 0; st.midi_idle = false; }
     void wake_opl() { opl_quiet = 0; st.opl_idle = false; }

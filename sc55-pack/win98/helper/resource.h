@@ -58,6 +58,7 @@
 
 #define IDD_PAGE_JOY    103
 #define IDD_PAGE_PAD    104
+#define IDD_PAGE_AWE    105
 #define IDC_TABS        1300
 #define IDC_J_PORTON    1301
 #define IDC_J_ADDR      1302
@@ -97,3 +98,8 @@
 #define IDC_P_RY        1352
 #define IDC_P_DEF       1353
 #define IDC_P_LAST      1354
+#define IDC_A_ON        1400
+#define IDC_A_PORT      1401
+#define IDC_A_RAM       1402
+#define IDC_A_MPU       1403
+#define IDC_A_STAT      1404

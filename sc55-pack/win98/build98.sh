@@ -11,12 +11,15 @@ OD=${OD:-$OD}; EXE=${EXE:-SC55W.EXE}   # buildall.sh: SC55WM.EXE (SSE2) + SC55W2
 BID=$(( $(date +%s) % 100000 + 100000 ))
 CXX="i686-w64-mingw32-g++ -std=c++23 $ARCH -DBUILD_ID=$BID -D_USE_MATH_DEFINES -I$N/build98/backend -I$N/src -I$N/src/backend -I$M/b98 -I$M/src -I$S -I$O"
 mkdir -p $OD
-for f in opts romscan synths engine w98main install98 pad joyout gameport midiroute; do
+for f in opts romscan synths engine w98main install98 pad joyout gameport midiroute awe; do
   $CXX -c helper/$f.cpp -o $OD/$f.o &
 done
 i686-w64-mingw32-g++ -std=c++17 $ARCH -c $S/dbopl.cpp -o $OD/dbopl.o &
 i686-w64-mingw32-gcc $ARCH -c $O/opl3.c -o $OD/opl3.o &
 i686-w64-mingw32-gcc -O2 -c compat/compat98.c -o $OD/compat98.o &
+for f in emu8k emu8k_rom; do   # AWE line: the DOS EMU8000 engine
+  i686-w64-mingw32-gcc $ARCH -c ../awe/synth/$f.c -o $OD/$f.o &
+done
 i686-w64-mingw32-gcc $ARCH -DPADCONV_LIB -c ../tools/padmap/padconv.c -o $OD/padconv.o &
 wait
 i686-w64-mingw32-windres -I helper helper/sc55w.rc -O coff -o $OD/sc55w.res

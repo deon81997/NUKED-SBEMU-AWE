@@ -32,18 +32,27 @@ Destroy_VM_Msg              equ 000Ch
 @VDMAD_Set_Channel_Callbacks equ 001Fh
 VDMAD_Callbacks_ReadNotify  equ 0001h
 PAGEMAPGLOBAL               equ 40000000h
+@Create_Semaphore           equ 0025h
+@Destroy_Semaphore          equ 0026h
+@Wait_Semaphore             equ 0027h
+@Signal_Semaphore           equ 0028h
+Block_Svc_Ints              equ 0001h
+Block_Enable_Ints           equ 0004h
+Word_Input                  equ 0008h
+Word_Output                 equ 000Ch
 
 ; C core
 extern _sc_in:near, _sc_out:near, _sc_tick:near, _sc_dma_changed:near
 extern _sc_eoi:near, _sc_ioctl:near, _sc_exit:near, _sc_api_midi:near
 extern _sc_int15:near, _sc_api_volume:near
-extern _sc_int21:near, _sc_vm_gone:near
+extern _sc_int21:near, _sc_vm_gone:near, _sc_iow:near
 
 public _vxd_time_us, _vxd_muldiv, _vxd_raise_irq, _vxd_lower_irq
 public _vxd_dma_get, _vxd_dma_set, _vxd_timer_arm
 public _vxd_install_io, _vxd_remove_io, _vxd_virt_irq, _vxd_unvirt_irq
 public _vxd_virt_dma, _vxd_unvirt_dma, _vxd_map_block, _vxd_unmap_block
 public _vxd_min_period
+public _vxd_sem_create, _vxd_sem_destroy, _vxd_sem_wait, _vxd_sem_signal, _vxd_set_event
 public _vxd_sys_vm, _vxd_port_in, _vxd_port_out, _vxd_hook_int15
 public _vxd_hook_int21, _vxd_kbd_owner, _vxd_force_keys
 public _vxd_nest_begin, _vxd_nest_int21, _vxd_nest_end
@@ -201,6 +210,11 @@ IO_Stub proc near
         je      io_out
         cmp     ecx, Byte_Input
         je      io_in
+        cmp     ecx, Word_Output                    ; AWE line: EMU8000 word I/O in one call
+        je      io_w
+        cmp     ecx, Word_Input
+        je      io_w
+io_split:
         int 20h                                     ; word/dword/string I/O:
         dd (VMM_DEVICE_ID shl 16) + @Simulate_IO + 8000h   ; split into bytes
 io_in:
@@ -216,6 +230,25 @@ io_out:
         call    _sc_out
         add     esp, 12
         ret
+io_w:   ; u32 sc_iow(vm, port, val, type): EMU8000 word I/O -> AX (input); bit 31 set = not ours, split into bytes
+        push    edx
+        push    ecx
+        push    eax
+        push    ecx
+        push    eax
+        push    edx
+        push    ebx
+        call    _sc_iow
+        add     esp, 16
+        test    eax, eax
+        js      io_w_split
+        add     esp, 12
+        ret
+io_w_split:
+        pop     eax
+        pop     ecx
+        pop     edx
+        jmp     io_split
 IO_Stub endp
 
 ;---------------------------------------------------------------------------
@@ -557,7 +590,12 @@ _vxd_map_block endp
 ; void vxd_unmap_block(u32 alias, u32 size)
 _vxd_unmap_block proc near
         push    PAGEMAPGLOBAL
-        push    map_pages
+        mov     eax, [esp+8]
+        and     eax, 0FFFh
+        add     eax, [esp+12]
+        add     eax, 0FFFh
+        shr     eax, 12                 ; pages, as vxd_map_block counted them
+        push    eax
         mov     eax, [esp+12]
         shr     eax, 12
         push    eax
@@ -734,6 +772,71 @@ _vxd_port_out proc near
         out     dx, al
         ret
 _vxd_port_out endp
+
+;---------------------------------------------------------------------------
+; AWE stall mode: VMM semaphores and the helper's Win32 event
+;---------------------------------------------------------------------------
+_vxd_sem_create proc near               ; u32 vxd_sem_create(void): 0 = failed
+        xor     ecx, ecx
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @Create_Semaphore
+        jnc     @F
+        xor     eax, eax
+@@:     ret
+_vxd_sem_create endp
+
+_vxd_sem_destroy proc near              ; void vxd_sem_destroy(u32 sem)
+        mov     eax, [esp+4]
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @Destroy_Semaphore
+        ret
+_vxd_sem_destroy endp
+
+_vxd_sem_wait proc near                 ; void vxd_sem_wait(u32 sem): blocks this VM / thread
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, [esp+20]
+        mov     ecx, Block_Svc_Ints or Block_Enable_Ints
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @Wait_Semaphore
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+_vxd_sem_wait endp
+
+_vxd_sem_signal proc near               ; void vxd_sem_signal(u32 sem)
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, [esp+20]
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @Signal_Semaphore
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+_vxd_sem_signal endp
+
+_vxd_set_event proc near                ; void vxd_set_event(u32 ring0_event)
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, [esp+20]
+        int 20h
+        dd (VWIN32_DEVICE_ID shl 16) + @_VWIN32_SetWin32Event
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+_vxd_set_event endp
 
 ; void vxd_min_period(int on): 1 ms timer resolution while attached
 _vxd_min_period proc near

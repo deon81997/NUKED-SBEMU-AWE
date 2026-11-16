@@ -144,6 +144,20 @@ BEGIN
     CONTROL         "", IDC_J_VIEW, "Static", SS_OWNERDRAW, 199, 10, 180, 160
 END
 
+IDD_PAGE_AWE DIALOGEX 0, 0, 386, 176
+STYLE DS_CONTROL | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    AUTOCHECKBOX    "AWE32 (EMU8000 wavetable) for DOS programs - Sound Blaster type 16, BLASTER gets E620", IDC_A_ON, 4, 2, 370, 10
+    LTEXT           "EMU8000 port", -1, 14, 19, 60, 8
+    COMBOBOX        IDC_A_PORT, 80, 17, 70, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Sample RAM", -1, 14, 35, 60, 8
+    COMBOBOX        IDC_A_RAM, 80, 33, 110, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    AUTOCHECKBOX    "MPU-401 keeps its synth (SC-55 / SoundFont / MT-32), like an AWE32 with a Sound Canvas on its MIDI port", IDC_A_MPU, 14, 51, 370, 10
+    LTEXT           "", IDC_A_STAT, 4, 68, 378, 50, SS_NOPREFIX | SS_SUNKEN
+    LTEXT           "ROM: a 1 MB EMU8000 ROM dump (for example 86Box's awe32.raw) in the ROM folder, found by its content. Games: run AWEUTIL /S or the game's AWE32 setup as on a real AWE32; command line: SC55W /AWE:620 /AWERAM:512 /AWEMPU:1.", -1, 4, 124, 378, 26
+END
+
 IDD_PAGE_PAD DIALOGEX 0, 0, 386, 176
 STYLE DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"

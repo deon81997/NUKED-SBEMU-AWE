@@ -63,6 +63,11 @@ extern "C" {
 /* ram_kb: on-board sample RAM in KB (0, 512, 1024 ... 28672). 0 = ok. */
 int      emu8k_init(int ram_kb);
 void     emu8k_close(void);
+/* the same with the caller's memory (zeroed, kept by the caller): rom = emu8k_rom_words() words,
+   ram = emu8k_ram_words(ram_kb) words (64K-word blocks + read pad), NULL if ram_kb = 0 */
+int      emu8k_init_mem(int ram_kb, uint16_t *rom, uint16_t *ram);
+uint32_t emu8k_rom_words(void);
+uint32_t emu8k_ram_words(int ram_kb);
 void     emu8k_write(int reg, int channel, uint32_t value);
 uint32_t emu8k_read(int reg, int channel);
 /* addr = absolute EMU8000 word address (RAM starts at 0x200000). */

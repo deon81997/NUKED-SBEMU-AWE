@@ -34,6 +34,11 @@ struct Options {
     int joydz     = 10;      // /JOYDZ: pad stick dead zone % (pad keys threshold), kept for DOS too
     int musb      = 0;       // /MUSB: DOS sends MPU MIDI to USB; in Windows = default MIDI output a Windows MIDI device
     int vtimer    = 1;       // /VTIMER (DOS only, kept for round-trip)
+    // AWE32 (AWE line): EMU8000 in DOS boxes, the same switches as DOS SBEMU
+    int awe       = 0;       // /AWE: 620/640/660/680, 0 = off (SB type 16, BLASTER E620)
+    int aweram    = 512;     // /AWERAM KB 0-28672 (AWE32 = 512)
+    int awempu    = 1;       // /AWEMPU: 1 = the MPU-401 keeps its synth (SC-55 ...), 0 = MPU silent
+    std::string awerom;      // /AWEROM file or folder, "" = the ROM folder (by content)
     std::string sf;          // /VSF SoundFont file
     int sfvoices  = 64;      // /VSFVOICES
     std::string mt32;        // /VMT32 AUTO|MT32|CM32L

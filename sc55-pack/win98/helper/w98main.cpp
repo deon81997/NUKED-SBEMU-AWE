@@ -22,6 +22,7 @@
 #include <vector>
 #include "engine.h"
 #include "romscan.h"
+#include "awe.h"
 #include "install98.h"
 #include "pad.h"
 #include "joyout.h"
@@ -92,6 +93,14 @@ static void find_paths()
 
 // Windows-only settings (not SBEMU options, so they stay out of SBOPTS.TXT)
 static int ini_int(const char* key, int def) { return GetPrivateProfileIntA("SC55W", key, def, g_inipath.c_str()); }
+// AWE32 reads: SC55W.INI [AWE] Mode=mirror (default, the VxD answers from its register mirror) or stall
+// (the DOS box waits for the helper's engine); measured in awe.3, see HANDOFF
+static int awe_mode_ini()
+{
+    char b[16];
+    GetPrivateProfileStringA("AWE", "Mode", "mirror", b, sizeof b, g_inipath.c_str());
+    return (b[0] == 's' || b[0] == 'S') ? AWE_STALL : AWE_MIRROR;
+}
 
 // Start-up step, kept in SC55W.INI [State] Step= and flushed to disk at once. If Windows
 // froze during a start, the step is still set at the next boot: that start is skipped
@@ -144,13 +153,23 @@ struct Published {
 static void logf(const char* fmt, ...);
 static void log_activity(const EngineStats& s, DWORD now, double load)
 {
-    static DWORD t; static unsigned m, o, p;
+    static DWORD t; static unsigned m, o, p, a;
     if (now - t < 10000) return;
     t = now;
-    if (s.midi_bytes == m && s.opl_writes == o && s.pcm_frames == p) return;
-    m = s.midi_bytes; o = s.opl_writes; p = s.pcm_frames;
+    const SC55W_AWE* sb = awe_block();
+    if (sb && sb->mode == AWE_STALL && sb->rq_seq != sb->dbg_ans)
+        logf("AWE32 stall: request %u, answered %u, wakes %u, helper loops %u, seen %u", (unsigned)sb->rq_seq,
+             (unsigned)sb->dbg_ans, (unsigned)sb->dbg_wake, (unsigned)sb->dbg_loops, (unsigned)sb->dbg_seen);
+    if (s.midi_bytes == m && s.opl_writes == o && s.pcm_frames == p && s.awe_writes == a) return;
+    m = s.midi_bytes; o = s.opl_writes; p = s.pcm_frames; a = s.awe_writes;
     logf("activity: MIDI %u bytes, FM %u writes, digital %u frames, late %u, resyncs %u, MPU ignored %u, load %.1f%%", m, o, p,
          s.late_events, s.resyncs, g_sh ? (unsigned)g_sh->mpu_ignored : 0u, load * 100);
+    const SC55W_AWE* aw = awe_block();
+    if (aw)   // AWE32: port writes / reads (stall mode: answered by the engine, total wait), sample RAM words
+        logf("AWE32: %u writes, %u reads (%u stalled, %u ms waited), RAM %u words written, %u read, ring lost %u, early %u%s",
+             (unsigned)aw->writes, (unsigned)aw->reads, (unsigned)aw->stalls, (unsigned)(aw->stall_us / 1000),
+             (unsigned)aw->ram_writes, (unsigned)aw->ram_reads, (unsigned)aw->overflow, (unsigned)aw->pumped,
+             s.awe_idle ? ", idle" : "");
 }
 // MIDI output switch (w98.8, DOS /MOUT): -1 none, 0 emulated synth, n = Windows MIDI out device n-1. The tray
 // menu, the settings window and "SC55W /MOUT:x" set it; the audio thread hands it to the engine.
@@ -250,8 +269,14 @@ static DWORD vxd_attach(const Options& o)
     g_sh->size = sizeof *g_sh;
     g_sh->cfg = config_for(o);
     for (int i = 0x30; i <= 0x37; i++) g_sh->mixer[i] = 0xF8;
+    const AweInfo& ai = awe_prepare(o, resolve(o.scrom), g_sh, awe_mode_ini());
     DWORD addr = (DWORD)g_sh;
     if (!DeviceIoControl(g_vxd, IOCTL_SC55W_ATTACH, &addr, 4, &st, 4, &got, NULL)) st = ST_ERR_LOCK;
+    awe_attached((void*)g_vxd, st);
+    if (o.awe)
+        logf("AWE32: EMU8000 %X, RAM %d KB, reads: %s, ROM: %s%s%s", o.awe, o.aweram,
+             ai.mode == AWE_STALL ? "stall (DOS box waits for the engine)" : "mirror (answered by SC55W.VXD)",
+             ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", ", ai.error.c_str());
     return st;
 }
 
@@ -426,8 +451,12 @@ static DWORD WINAPI audio_main(LPVOID)
             LeaveCriticalSection(&g_cs);
             SC55W_CONFIG a = config_for(want);
             static SC55W_CONFIG attached;            // what the VxD has (INI joystick keys included)
-            if (!have || memcmp(&a, &attached, sizeof a)) {
+            static Options awe_att;                  // AWE32 options the VxD has
+            bool awe_diff = want.awe != awe_att.awe || want.aweram != awe_att.aweram || want.awerom != awe_att.awerom ||
+                            want.scrom != awe_att.scrom;
+            if (!have || memcmp(&a, &attached, sizeof a) || awe_diff) {
                 attached = a;
+                awe_att = want;
                 publish_state("Connecting the Sound Blaster");
                 set_step("attach");
                 DWORD st = vxd_attach(want);
@@ -830,6 +859,12 @@ static std::string attach_problems(const Options& o, DWORD st)
     }
     if (st & ST_ERR_JOYPORT) m += "- The game port (201) is taken by another driver; DOS programs get no joystick.\r\n";
     if (st & ST_ERR_JBIOS) m += "- The BIOS joystick call (INT 15h) could not be hooked.\r\n";
+    if (st & ST_ERR_AWEPORT) {
+        snprintf(b, sizeof b, "- The AWE32 ports (%X, %X, %X) are taken by another driver; DOS programs get no AWE32.\r\n",
+                 o.awe, o.awe + 0x400, o.awe + 0x800);
+        m += b;
+    }
+    if (o.awe && (st & ST_ERR_AWEBLOCK)) m += "- The AWE32 sample memory could not be set up (try less AWE RAM).\r\n";
     return m;
 }
 
@@ -1578,6 +1613,7 @@ static void settings_show(HWND d, const Options& o)
     g_dlg_filling = false;
 }
 
+static void awe_page_read(Options& o);
 static Options settings_read(HWND d)
 {
     Options o = g_dlg_opt;            // keeps DOS-only switches (passthru, /VTIMER, /VSCROM)
@@ -1627,6 +1663,7 @@ static Options settings_read(HWND d)
     o.rate = cb_get(d, IDC_RATE, 22050);
     o.scahead = get_int(d, IDC_AHEAD, 0, 500, o.scahead);
     o.fixtc = checked(d, IDC_FIXTC);
+    awe_page_read(o);
     return o;
 }
 
@@ -1652,7 +1689,7 @@ static void settings_update(HWND d)
     SetDlgItemTextA(d, IDC_PREVIEW, t.c_str());
 }
 
-static HWND g_page[3];
+static HWND g_page[4];
 static bool joy_page_save(HWND p, std::string& note);
 static void pad_page_save(HWND p);
 static void settings_apply(HWND d, bool save)
@@ -1696,7 +1733,7 @@ static BOOL CALLBACK tab_show_ctl(HWND c, LPARAM l)
     if (GetParent(c) != (HWND)l) return TRUE;                 // only the dialog's own controls
     int id = GetDlgCtrlID(c);
     for (int a : g_tab_always) if (id == a) return TRUE;
-    for (int i = 1; i < 3; i++) if (c == g_page[i]) return TRUE;
+    for (int i = 1; i < 4; i++) if (c == g_page[i]) return TRUE;
     ShowWindow(c, g_tab == 0 ? SW_SHOW : SW_HIDE);
     return TRUE;
 }
@@ -1705,7 +1742,7 @@ static void tab_show(HWND d)
 {
     g_tab = (int)SendDlgItemMessageA(d, IDC_TABS, TCM_GETCURSEL, 0, 0);
     EnumChildWindows(d, tab_show_ctl, (LPARAM)d);
-    for (int i = 1; i < 3; i++) if (g_page[i]) ShowWindow(g_page[i], g_tab == i ? SW_SHOW : SW_HIDE);
+    for (int i = 1; i < 4; i++) if (g_page[i]) ShowWindow(g_page[i], g_tab == i ? SW_SHOW : SW_HIDE);
 }
 
 static int ini_get(const char* sec, const char* key, int def) { return GetPrivateProfileIntA(sec, key, def, g_inipath.c_str()); }
@@ -2007,11 +2044,74 @@ static INT_PTR CALLBACK pad_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
     return FALSE;
 }
 
+// --- AWE32 page (AWE line): its switches are SBOPTS.TXT's (/AWE /AWERAM /AWEMPU), read with page 0
+static void awe_page_status(HWND p)
+{
+    const AweInfo& ai = awe_info();
+    const SC55W_AWE* aw = awe_block();
+    char b[600];
+    if (!g_opt.awe) snprintf(b, sizeof b, "AWE32 off.");
+    else if (!ai.on) snprintf(b, sizeof b, "AWE32 %X: not running%s%s", g_opt.awe, ai.error.empty() ? "" : " - ", ai.error.c_str());
+    else snprintf(b, sizeof b, "AWE32 %X, %d KB sample RAM, reads %s%s%s.\r\nROM: %s\r\n%u port writes, %u reads, %u RAM words written.",
+                  ai.port, ai.ram_kb, ai.mode == AWE_STALL ? "answered by the engine (stall)" : "answered by SC55W.VXD (mirror)",
+                  ai.error.empty() ? "" : " - ", ai.error.c_str(),
+                  ai.rom.empty() ? "none found: put a 1 MB EMU8000 ROM dump (awe32.raw) in the ROM folder - ROM instruments stay silent" : ai.rom.c_str(),
+                  aw ? (unsigned)aw->writes : 0u, aw ? (unsigned)aw->reads : 0u, aw ? (unsigned)aw->ram_writes : 0u);
+    SetDlgItemTextA(p, IDC_A_STAT, b);
+}
+
+static void awe_page_enable(HWND p)
+{
+    bool on = checked(p, IDC_A_ON);
+    for (int id : {IDC_A_PORT, IDC_A_RAM, IDC_A_MPU}) EnableWindow(GetDlgItem(p, id), on);
+}
+
+static void awe_page_read(Options& o)
+{
+    HWND p = g_page[3];
+    if (!p) return;
+    o.awe = checked(p, IDC_A_ON) ? cb_get(p, IDC_A_PORT, 0x620) : 0;
+    o.aweram = cb_get(p, IDC_A_RAM, 512);
+    o.awempu = checked(p, IDC_A_MPU);
+    if (o.awe) o.sbtype = 6;
+}
+
+static INT_PTR CALLBACK awe_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
+{
+    (void)l;
+    switch (m) {
+    case WM_INITDIALOG: {
+        for (int port : {0x620, 0x640, 0x660, 0x680}) { char b[8]; snprintf(b, sizeof b, "%X", port); cb_add(p, IDC_A_PORT, b, port); }
+        static const struct { const char* t; int kb; } rams[] = {
+            {"512 KB (AWE32)", 512}, {"1 MB", 1024}, {"2 MB", 2048}, {"4 MB (AWE64 Gold)", 4096}, {"8 MB", 8192},
+            {"12 MB", 12288}, {"16 MB", 16384}, {"28 MB (most)", 28672}, {"none (ROM only)", 0}};
+        for (auto& r : rams) cb_add(p, IDC_A_RAM, r.t, r.kb);
+        check(p, IDC_A_ON, g_dlg_opt.awe != 0);
+        cb_select(p, IDC_A_PORT, g_dlg_opt.awe ? g_dlg_opt.awe : 0x620);
+        cb_select(p, IDC_A_RAM, g_dlg_opt.aweram);
+        check(p, IDC_A_MPU, g_dlg_opt.awempu != 0);
+        awe_page_enable(p);
+        awe_page_status(p);
+        SetTimer(p, 1, 1000, NULL);
+        return TRUE;
+    }
+    case WM_TIMER:
+        awe_page_status(p);
+        return TRUE;
+    case WM_COMMAND:
+        if (LOWORD(w) == IDC_A_ON) awe_page_enable(p);
+        if (HIWORD(w) == CBN_SELCHANGE || HIWORD(w) == BN_CLICKED)
+            SendMessageA(GetParent(p), WM_APP + 50, 0, 0);
+        return FALSE;
+    }
+    return FALSE;
+}
+
 static void pages_create(HWND d)
 {
     HWND tab = GetDlgItem(d, IDC_TABS);
-    const char* names[] = {"Sound and MIDI", "Joystick", "Pad keys"};
-    for (int i = 0; i < 3; i++) {
+    const char* names[] = {"Sound and MIDI", "Joystick", "Pad keys", "AWE32"};
+    for (int i = 0; i < 4; i++) {
         TCITEMA it;
         memset(&it, 0, sizeof it);
         it.mask = TCIF_TEXT;
@@ -2024,7 +2124,8 @@ static void pages_create(HWND d)
     SendMessageA(tab, TCM_ADJUSTRECT, FALSE, (LPARAM)&r);
     g_page[1] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_JOY), d, joy_page_proc, 0);
     g_page[2] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_PAD), d, pad_page_proc, 0);
-    for (int i = 1; i < 3; i++)
+    g_page[3] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_AWE), d, awe_page_proc, 0);
+    for (int i = 1; i < 4; i++)
         SetWindowPos(g_page[i], HWND_TOP, r.left, r.top, r.right - r.left, r.bottom - r.top, SWP_HIDEWINDOW);
     SendMessageA(tab, TCM_SETCURSEL, g_tab, 0);
     tab_show(d);
@@ -2035,7 +2136,7 @@ static INT_PTR CALLBACK settings_proc(HWND d, UINT m, WPARAM w, LPARAM l)
     switch (m) {
     case WM_INITDIALOG:
         g_dlg_opt = g_opt;
-        g_page[1] = g_page[2] = NULL;
+        g_page[1] = g_page[2] = g_page[3] = NULL;
         pages_create(d);
         settings_fill_lists(d);
         settings_show(d, g_dlg_opt);
@@ -2098,7 +2199,7 @@ static INT_PTR CALLBACK settings_proc(HWND d, UINT m, WPARAM w, LPARAM l)
         return TRUE;
     case WM_DESTROY:
         g_settings_dlg = NULL;
-        g_page[1] = g_page[2] = NULL;
+        g_page[1] = g_page[2] = g_page[3] = NULL;
         return TRUE;
     }
     return FALSE;
@@ -2175,6 +2276,7 @@ static void shutdown_all()
     if (g_vxd != INVALID_HANDLE_VALUE) {
         DWORD got;
         DeviceIoControl(g_vxd, IOCTL_SC55W_DETACH, NULL, 0, NULL, 0, &got, NULL);
+        awe_shutdown();
         CloseHandle(g_vxd);
         g_vxd = INVALID_HANDLE_VALUE;
     }
@@ -2234,6 +2336,10 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         else if (w == 3) DestroyWindow(h);
         else if (w == 4) mout_choose((int)l, false);      // SC55W /MOUT:x run again
         else if (w == 5) return mout_current();
+        else if (w == 6) {   // SC55W /AWE... run again: SBOPTS.TXT changed, take it over
+            load_options();
+            push_options(g_opt);
+        }
         return 0;
     case WM_STATECHG:
         tray_tip();
@@ -2282,10 +2388,35 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
         }
     }
 
+    // /AWE[:620|640|660|680|0] /AWERAM:kb /AWEMPU:0|1 /AWEROM:path (AWE line, as DOS SBEMU): saved to SBOPTS.TXT
+    // and the BLASTER line (E620); a running SC55W takes them over at once
+    bool awe_args = false;
+    {
+        std::string raw = cmd ? cmd : "", t, args;
+        for (size_t i = 0; i <= raw.size(); i++) {
+            if (i == raw.size() || raw[i] == ' ') {
+                std::string u = t;
+                for (auto& ch : u) ch = (char)toupper((unsigned char)ch);
+                if (u.rfind("/AWE", 0) == 0 || u.rfind("-AWE", 0) == 0) args += " " + t;
+                t.clear();
+            } else t += raw[i];
+        }
+        if (!args.empty()) {
+            InitializeCriticalSection(&g_cs);
+            find_paths();
+            load_options();
+            g_opt.parse(args);
+            save_options(g_opt);
+            autoexec_update_blaster(g_opt);
+            awe_args = true;
+        }
+    }
+
     // one copy only; a second start forwards its request to the first
     HANDLE mx = CreateMutexA(NULL, FALSE, "SC55W_Helper_Mutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         HWND other = FindWindowA(WND_CLASS, NULL);
+        if (other && awe_args) { PostMessageA(other, WM_REMOTE, 6, 0); return 0; }
         if (other && !mout_arg.empty()) {
             DWORD_PTR cur = 0;
             SendMessageTimeoutA(other, WM_REMOTE, 5, 0, SMTO_ABORTIFHUNG, 2000, &cur);   // its current output (NEXT)
@@ -2300,7 +2431,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
     }
     if (remote == 3) return 0;
 
-    InitializeCriticalSection(&g_cs);
+    if (!awe_args) InitializeCriticalSection(&g_cs);
     find_paths();
     load_options();
 

@@ -77,6 +77,7 @@ typedef struct {
     uint32_t rs_phase;
     int16_t  rs_prev[2];
     int      ok;
+    int      ext;               /* rom/ram belong to the caller (emu8k_init_mem) */
 } emu8k_t;
 
 static emu8k_t E;
@@ -922,13 +923,14 @@ uint16_t emu8k_io_read(int off)
 }
 
 /* ---- init ---- */
-int emu8k_init(int ram_kb)
+static int init_with(int ram_kb, uint16_t *rom, uint16_t *ram)
 {
     int j, i;
     emu8k_close();
     build_tables();
     memset(&E, 0, sizeof(E));
-    E.rom   = (uint16_t *) calloc(0x80000 + PAD, 2);
+    E.ext   = rom != NULL;
+    E.rom   = rom ? rom : (uint16_t *) calloc(0x80000 + PAD, 2);
     E.empty = (uint16_t *) calloc(0x10000, 2);
     if (!E.rom || !E.empty)
         return -1;
@@ -944,7 +946,7 @@ int emu8k_init(int ram_kb)
     if (ram_kb) {
         uint32_t words = (uint32_t) ram_kb * 512u;
         uint32_t nblk  = (words + 0xFFFF) >> 16;
-        E.ram = (uint16_t *) calloc(nblk * 0x10000u + PAD, 2);
+        E.ram = E.ext ? ram : (uint16_t *) calloc(nblk * 0x10000u + PAD, 2);
         if (!E.ram)
             return -1;
         for (i = 0; i < (int) nblk; i++)
@@ -964,10 +966,38 @@ int emu8k_init(int ram_kb)
     return 0;
 }
 
+int emu8k_init(int ram_kb)
+{
+    return init_with(ram_kb, NULL, NULL);
+}
+
+/* rom: emu8k_mem_words(0) zeroed words, ram: emu8k_mem_words(ram_kb) - that zeroed words; both stay the
+   caller's (Windows 98: a block shared with SC55W.VXD, which reads and writes the RAM itself) */
+int emu8k_init_mem(int ram_kb, uint16_t *rom, uint16_t *ram)
+{
+    if (!rom || (ram_kb > 0 && !ram))
+        return -1;
+    return init_with(ram_kb, rom, ram);
+}
+
+uint32_t emu8k_rom_words(void) { return 0x80000u + PAD; }
+uint32_t emu8k_ram_words(int ram_kb)
+{
+    uint32_t words;
+    if (ram_kb <= 0)
+        return 0;
+    if (ram_kb > 28672)
+        ram_kb = 28672;
+    words = (uint32_t) ram_kb * 512u;
+    return ((words + 0xFFFF) >> 16) * 0x10000u + PAD;
+}
+
 void emu8k_close(void)
 {
-    free(E.rom);
-    free(E.ram);
+    if (!E.ext) {
+        free(E.rom);
+        free(E.ram);
+    }
     free(E.empty);
     memset(&E, 0, sizeof(E));
 }

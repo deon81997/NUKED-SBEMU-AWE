@@ -58,6 +58,10 @@ static u32 sh_size;
 static u32 owner_vm;            /* VM that last programmed the DSP */
 static SC55W_CONFIG cfg;
 static u32 trapped;
+static int awe_port(u32 port);
+static u8 awe_in8(u32 port);
+static void awe_out8(u32 port, u8 v);
+static void awe_detach(void);
 
 static void trace(u32 code, u32 a, u32 b)
 {
@@ -141,7 +145,7 @@ static u8 mpu_read(u32 port)
 }
 
 static int mpu_len(u8 st) { return st >= 0xF0 ? (st == 0xF2 ? 2 : (st == 0xF1 || st == 0xF3) ? 1 : 0) : (st & 0xE0) == 0xC0 ? 1 : 2; }
-static void mpu_out(u8 b) { ev_put(EV_MIDI, b, 0, 0); }
+static void mpu_out(u8 b) { ev_put(EV_MIDI, b, 0, 1); }   /* c = 1: from a DOS box (AWE line /AWEMPU:0) */
 
 static void mpu_cmd(u8 v)
 {
@@ -784,7 +788,7 @@ static void dsp_exec(u8 c)
     /* --- MIDI --- */
     case 0x30: case 0x31: break;
     case 0x34: case 0x35: case 0x36: case 0x37: dsp.midi_uart = 1; break;
-    case 0x38: ev_put(EV_MIDI, p[0], 0, 0); break;
+    case 0x38: ev_put(EV_MIDI, p[0], 0, 1); break;
     /* --- rate and size --- */
     case 0x40:
         dsp.time_const = p[0]; dsp.use_tc = 1; update_tc_rate(); break;
@@ -841,7 +845,7 @@ static void dsp_exec(u8 c)
 static void dsp_write(u8 v)
 {
     if (dsp.highspeed && xf.active) return;            /* high-speed mode ignores commands */
-    if (dsp.midi_uart && dsp.cmd < 0) { ev_put(EV_MIDI, v, 0, 0); return; }
+    if (dsp.midi_uart && dsp.cmd < 0) { ev_put(EV_MIDI, v, 0, 1); return; }
     if (dsp.cmd < 0) {
         if (sh) sh->dsp_cmds++;
         dsp.np = 0;
@@ -945,6 +949,7 @@ int __cdecl sc_int15(u32 vm, u8 *cl)
 u32 __cdecl sc_in(u32 vm, u32 port)
 {
     u32 off;
+    if (awe_port(port)) return awe_in8(port);
     if ((trapped & ST_OK_JOY) && port == joy_port) {
         if (vm == sys_vm && !(cfg.joy & 8)) return vxd_port_in(port);
         return joy_read();
@@ -977,6 +982,7 @@ void __cdecl sc_out(u32 vm, u32 port, u32 val)
 {
     u8 v = (u8)val;
     u32 off;
+    if (awe_port(port)) { awe_out8(port, v); return; }
     if ((trapped & ST_OK_JOY) && port == joy_port) {
         if (vm == sys_vm && !(cfg.joy & 8)) vxd_port_out(port, val);
         else joy_t0 = vxd_time_us();
@@ -1122,6 +1128,331 @@ static void untrap_range(u32 base, u32 n)
     for (i = 0; i < n; i++) vxd_remove_io(base + i);
 }
 
+/* ====================================================================== */
+/* AWE32 / EMU8000 (AWE line): ports base+0..3, +400h..403h, +800h..803h   */
+/* ====================================================================== */
+/* see sc55wif.h SC55W_AWE: writes -> AWE ring (helper's emu8k.c renders them); reads are answered here at
+   once from a register mirror (mode AWE_MIRROR) or by blocking the DOS box until the helper answers
+   (AWE_STALL). The sample-RAM streams and WC are the VxD's own in mirror mode. */
+extern u32  __cdecl vxd_sem_create(void);
+extern void __cdecl vxd_sem_destroy(u32 sem);
+extern void __cdecl vxd_sem_wait(u32 sem);
+extern void __cdecl vxd_sem_signal(u32 sem);
+
+static SC55W_AWE *aw;
+static u32 aw_size, awe_base, aw_sem, aw_mode, trapped_awe;
+static u32 sem_ans, sem_req;   /* stall mode: VMM semaphores, made once and kept (a waiter may still hold one) */
+static volatile u32 aw_rq, aw_ans, aw_val;   /* stall mode, in VxD memory: valid after detach too */
+static u16 *aw_rom, *aw_ram;
+static u32 aw_ram_end, aw_ram_alloc;       /* word addresses: end of RAM, end of the allocated blocks */
+static u32 aw_reg[4][8][32];               /* raw register file as written (Data0..Data3, reg, channel) */
+static u32 aw_wev[3][32];                  /* AWE ring position + 1 of the last write to CPF / CVCF / CCCA */
+static u32 aw_smalr, aw_smarr, aw_smalw, aw_smarw;
+static u16 aw_smld_buf, aw_smrd_buf;
+static u8  aw_ch, aw_rg, aw_rnd, aw_env[32];
+static u8  aw_wl[6], aw_rl[6], aw_rv[6];   /* byte I/O: low byte written / high byte read, per word port */
+static u16 awe_stall_read(u32 idx);
+
+#define AW_ADDR 0xFFFFFFUL
+
+static void awe_ev(u32 idx, u16 v)
+{
+    u32 h = aw->ev_head;
+    SC55W_AWEEV *e;
+    if (h - aw->ev_tail >= AWERING_SIZE) {
+        if (aw_mode != AWE_STALL) { aw->overflow++; return; }
+        /* stall mode: let the helper drain the ring (a request with nothing to read) */
+        awe_stall_read(0xFF);
+        if (!aw) return;
+    }
+    e = &aw->ev[h & (AWERING_SIZE - 1)];
+    e->time = vxd_time_us();
+    e->val = v;
+    e->idx = (u8)idx;
+    aw->ev_head = h + 1;
+}
+
+static u16 awe_ram_rd(u32 a)
+{
+    a &= AW_ADDR;
+    if (a < 0x80000UL) return aw_rom[a];
+    if (a >= AWE_RAM_START && a < aw_ram_alloc) return aw_ram[a - AWE_RAM_START];
+    return 0;
+}
+
+static void awe_ram_wr(u32 a, u16 w)
+{
+    a &= AW_ADDR;
+    if (aw_ram_end <= AWE_RAM_START || a < AWE_RAM_START || a >= 0xFFFFE0UL) return;
+    while (a >= aw_ram_end) a -= aw_ram_end - AWE_RAM_START;     /* wraps like the card (emu8k_ram_write) */
+    aw_ram[a - AWE_RAM_START] = w;
+    aw->ram_writes++;
+}
+
+static int awe_dword1(u32 r, u32 ch)   /* Data1/Data2 pair forms one dword */
+{
+    return r == 0 || (r == 1 && (ch == 9 || ch == 10 || ch == 13 || ch == 14 || (ch >= 20 && ch <= 23)));
+}
+
+/* the dynamic registers: the helper's snapshot unless the program wrote them since */
+static int awe_fresh(int k, u32 ch) { u32 w = aw_wev[k][ch]; return w && (s32)(w - 1 - aw->snap_ev) >= 0; }
+static u32 awe_cpf(u32 ch)  { return awe_fresh(0, ch) ? (aw_reg[0][0][ch] & 0xFFFF0000UL) | (aw->cpf[ch] & 0xFFFF) : aw->cpf[ch]; }
+static u32 awe_cvcf(u32 ch) { return awe_fresh(1, ch) ? aw_reg[0][2][ch] : aw->cvcf[ch]; }
+static u32 awe_ccca(u32 ch) { return awe_fresh(2, ch) ? aw_reg[1][0][ch] : (aw_reg[1][0][ch] & 0xFF000000UL) | (aw->ccca[ch] & AW_ADDR); }
+
+static u32 awe_cfg1_raw(u32 ch)
+{
+    switch (ch) {
+    case 20: return aw_smalr;
+    case 21: return aw_smarr;
+    case 22: return aw_smalw;
+    case 23: return aw_smarw;
+    }
+    return aw_reg[1][1][ch];   /* HWCF4-7 */
+}
+
+/* emu8k_read() of the register file (p = Data port 0..3, r = register, ch = channel) */
+static u32 awe_read(u32 p, u32 r, u32 ch)
+{
+    u32 h1, h2, h3;
+    u16 v;
+    switch (p) {
+    case 0:
+        if (r == 0) return awe_cpf(ch);
+        if (r == 2) return awe_cvcf(ch);
+        return aw_reg[0][r][ch];
+    case 1:
+        if (r == 0) return awe_ccca(ch);
+        if (r == 1) {
+            h1 = aw_reg[1][1][29]; h2 = aw_reg[1][1][30]; h3 = aw_reg[1][1][31];
+            switch (ch) {
+            case 9: case 10: case 13: case 14: case 20: case 21: case 22: case 23: return awe_cfg1_raw(ch);
+            case 26: v = aw_smld_buf; aw_smld_buf = awe_ram_rd(aw_smalr); aw_smalr = (aw_smalr + 1) & AW_ADDR; aw->ram_reads++; return v;
+            case 29: return (h1 & 0xFE) | (h3 & 1);
+            case 30: return ((h2 >> 4) & 0x0E) | (h1 & 1) | ((h3 & 2) ? 0x10 : 0) | ((h3 & 4) ? 0x40 : 0) |
+                            ((h3 & 8) ? 0x20 : 0) | ((h3 & 0x10) ? 0x80 : 0);
+            case 31: return h2 & 0x1F;
+            }
+            return 0xFFFF;
+        }
+        return aw_reg[1][r][ch];
+    case 2:
+        if (r == 0) return 0xFFFF;
+        if (r == 1) {
+            if (ch == 26) { v = aw_smrd_buf; aw_smrd_buf = awe_ram_rd(aw_smarr); aw_smarr = (aw_smarr + 1) & AW_ADDR; aw->ram_reads++; return v; }
+            if (ch == 27) return vxd_muldiv(vxd_time_us(), 441, 10000) & 0xFFFF;   /* WC: 44.1 kHz sample counter */
+            return 0xFFFF;
+        }
+        return aw_reg[2][r][ch];
+    default:
+        if (r == 6) return 0xFFFF;
+        if (r == 7) return 0x1C | ((aw_reg[3][7][0] & 2) ? 0xFF02 : 0);
+        return aw_reg[3][r][ch];
+    }
+}
+
+static u16 awe_stall_read(u32 idx)
+{
+    u32 t0 = vxd_time_us();
+    aw_val = 0xFFFF;
+    aw->rq_idx = idx;
+    aw->rq_seq = ++aw_rq;
+    vxd_sem_signal(sem_req);            /* the helper's thread waits in IOCTL_SC55W_AWEWAIT */
+    while (aw_ans != aw_rq && aw_sem) { vxd_sem_wait(aw_sem); if (aw) aw->dbg_wake++; }
+    if (aw) { aw->stalls++; aw->stall_us += vxd_time_us() - t0; }
+    return (u16)aw_val;
+}
+
+/* IOCTL_SC55W_AWEANS: the helper's answer */
+static void awe_answer(u32 v)
+{
+    aw_val = v;
+    aw_ans = aw_rq;
+    if (aw) aw->dbg_ans++;
+    if (aw_sem) vxd_sem_signal(aw_sem);
+}
+
+static u16 awe_rd16(u32 idx)
+{
+    u32 r = aw_rg, ch = aw_ch, d;
+    aw->reads++;
+    if (aw_mode == AWE_STALL) return awe_stall_read(idx);
+    switch (idx) {
+    case 5: aw_rnd = (u8)((aw_rnd + 1) & 0x1F); return (u16)(((0x80 | aw_rnd) << 8) | (r << 5) | ch);
+    case 0: case 1: d = awe_read(0, r, ch); return (u16)(idx == 1 ? d >> 16 : d);
+    case 2: case 3:
+        if (awe_dword1(r, ch)) {
+            d = r == 0 ? awe_ccca(ch) : awe_cfg1_raw(ch);
+            return (u16)(idx == 3 ? d >> 16 : d);
+        }
+        return (u16)awe_read(idx == 2 ? 1 : 2, r, ch);
+    }
+    return (u16)awe_read(3, r, ch);
+}
+
+static void awe_wr16(u32 idx, u16 w)
+{
+    u32 r = aw_rg, ch = aw_ch, p, d, *m;
+    aw->writes++;
+    if (idx == 5) { aw_ch = (u8)(w & 31); aw_rg = (u8)((w >> 5) & 7); awe_ev(idx, w); return; }
+    if (aw_mode != AWE_STALL && r == 1 && (idx == 2 || idx == 3)) {
+        /* sample-RAM streams: the VxD's own, never through the ring */
+        if (idx == 2 && ch == 26) { awe_ram_wr(aw_smalw, w); aw_smalw = (aw_smalw + 1) & AW_ADDR; return; }
+        if (idx == 3 && ch == 26) { awe_ram_wr(aw_smarw, w); aw_smarw = (aw_smarw + 1) & AW_ADDR; return; }
+        if (ch >= 20 && ch <= 23) {
+            u32 *a = ch == 20 ? &aw_smalr : ch == 21 ? &aw_smarr : ch == 22 ? &aw_smalw : &aw_smarw;
+            *a = (idx == 3 ? (*a & 0xFFFF) | ((u32)(w & 0xFF) << 16) : (*a & 0xFFFF0000UL) | w) & AW_ADDR;
+            return;
+        }
+    }
+    awe_ev(idx, w);
+    /* the mirror (stall mode keeps it too: cheap, and the hwcf/env rules stay in one place) */
+    if (idx <= 1) {
+        m = &aw_reg[0][r][ch];
+        d = r == 0 ? awe_cpf(ch) : r == 2 ? awe_cvcf(ch) : *m;
+        *m = idx ? (d & 0xFFFF) | ((u32)w << 16) : (d & 0xFFFF0000UL) | w;
+        if (r == 0) aw_wev[0][ch] = aw->ev_head;
+        if (r == 2) aw_wev[1][ch] = aw->ev_head;
+        return;
+    }
+    if (idx <= 3 && awe_dword1(r, ch)) {
+        m = &aw_reg[1][r][ch];
+        d = r == 0 ? awe_ccca(ch) : *m;
+        *m = idx == 3 ? (d & 0xFFFF) | ((u32)(r == 1 ? w & 0xFF : w) << 16) : (d & 0xFFFF0000UL) | w;
+        if (r == 0) aw_wev[2][ch] = aw->ev_head;
+        return;
+    }
+    p = idx == 2 ? 1 : idx == 3 ? 2 : 3;
+    if (p == 3 && r == 7) { aw_reg[3][7][0] = w; return; }      /* ID: one register */
+    aw_reg[p][r][ch] = w;
+    if (p == 1 && r == 5) {   /* DCYSUSV: envelope on -> HWCF3 = 4 (emu8k_write: Doom / OpenCP never set it) */
+        int was = aw_env[ch];
+        aw_env[ch] = (u8)!(w & 0x80);
+        if (aw_env[ch] && !was && aw_reg[1][1][31] != 4) aw_reg[1][1][31] = 4;
+    }
+}
+
+/* byte ports: as DOS SBEMU's vawe.c (low byte latched until the high byte comes) */
+static int awe_byteidx(u32 port, u32 *woff_idx)
+{
+    u32 off = port - awe_base, w;
+    if (off < 4) w = off >> 1;
+    else if (off - 0x400 < 4) w = 2 + ((off - 0x400) >> 1);
+    else if (off - 0x800 < 4) w = 4 + ((off - 0x800) >> 1);
+    else return -1;
+    *woff_idx = w;
+    return (int)(off & 1);
+}
+
+static u8 awe_in8(u32 port)
+{
+    u32 i; int hi = awe_byteidx(port, &i);
+    u16 w;
+    if (hi < 0) return 0xFF;
+    if (!hi) { w = awe_rd16(i); aw_rl[i] = (u8)(w >> 8); aw_rv[i] = 1; return (u8)w; }
+    if (aw_rv[i]) { aw_rv[i] = 0; return aw_rl[i]; }
+    return (u8)(awe_rd16(i) >> 8);
+}
+
+static void awe_out8(u32 port, u8 v)
+{
+    u32 i; int hi = awe_byteidx(port, &i);
+    if (hi < 0) return;
+    if (!hi) { aw_wl[i] = v; if (i == 5) awe_wr16(5, v); }
+    else awe_wr16(i, (u16)(aw_wl[i] | (v << 8)));
+    aw_rv[i] = 0;
+}
+
+static int awe_port(u32 port)
+{
+    u32 off = port - awe_base;
+    return trapped_awe && (off < 4 || off - 0x400 < 4 || off - 0x800 < 4);
+}
+
+/* word I/O from the asm stub; bit 31 = not ours (split into bytes) */
+u32 __cdecl sc_iow(u32 vm, u32 port, u32 val, u32 type)
+{
+    u32 i;
+    if (!awe_port(port) || (port & 1) || awe_byteidx(port, &i) != 0) return 0x80000000UL;
+    aw->vm = vm;
+    if (type == 0x0C) { awe_wr16(i, (u16)val); aw_rv[i] = 0; return 0; }
+    return awe_rd16(i);
+}
+
+static void awe_reset_mirror(void)
+{
+    u32 ch;
+    mset(aw_reg, 0, sizeof aw_reg);
+    mset(aw_wev, 0, sizeof aw_wev);
+    mset(aw_env, 0, sizeof aw_env);
+    mset(aw_rv, 0, sizeof aw_rv);
+    for (ch = 0; ch < 32; ch++) {
+        aw_reg[1][5][ch] = 0x80;       /* DCYSUSV: envelope off */
+        aw_reg[0][3][ch] = 0xFFFF;     /* VTFT: filter target open */
+        aw_reg[2][4][ch] = 0x8000;     /* ATKHLDV */
+        aw_reg[2][6][ch] = 0x8000;     /* ATKHLD */
+        aw->cvcf[ch] = 0xFFFF;
+    }
+    aw_reg[1][1][29] = 0x59; aw_reg[1][1][30] = 0x20; aw_reg[1][1][31] = 0;   /* HWCF1-3 */
+    aw_smalr = aw_smarr = aw_smalw = aw_smarw = 0;
+    aw_smld_buf = aw_smrd_buf = 0;
+    aw_ch = aw_rg = 0;
+}
+
+static void awe_untrap(void)
+{
+    u32 i;
+    for (i = 0; i < 4; i++) { vxd_remove_io(awe_base + i); vxd_remove_io(awe_base + 0x400 + i); vxd_remove_io(awe_base + 0x800 + i); }
+}
+
+static u32 awe_attach(SC55W_SHARED *s)
+{
+    SC55W_AWE *a;
+    if (!s->awe_port || !s->awe_addr) return 0;
+    if (s->awe_port != 0x620 && s->awe_port != 0x640 && s->awe_port != 0x660 && s->awe_port != 0x680) return ST_ERR_AWEBLOCK;
+    a = (SC55W_AWE *)vxd_map_block(s->awe_addr, s->awe_size);
+    if (!a) return ST_ERR_AWEBLOCK;
+    if (a->magic != SC55W_AWE_MAGIC || a->size != s->awe_size || a->rom_off < sizeof(SC55W_AWE) ||
+        a->rom_off + 2 * 0x80000UL > a->size || a->ram_off < a->rom_off || a->ram_off + 2 * a->ram_alloc > a->size) {
+        vxd_unmap_block((u32)a, s->awe_size);
+        return ST_ERR_AWEBLOCK;
+    }
+    aw = a; aw_size = s->awe_size; awe_base = s->awe_port;
+    aw_mode = a->mode;
+    aw_rom = (u16 *)((u8 *)a + a->rom_off);
+    aw_ram = (u16 *)((u8 *)a + a->ram_off);
+    aw_ram_end = AWE_RAM_START + a->ram_words;
+    aw_ram_alloc = AWE_RAM_START + a->ram_alloc;
+    awe_reset_mirror();
+    aw_sem = 0;
+    if (aw_mode == AWE_STALL) {
+        if (!sem_ans) sem_ans = vxd_sem_create();
+        if (!sem_req) sem_req = vxd_sem_create();
+        if (sem_ans && sem_req) aw_sem = sem_ans; else aw_mode = AWE_MIRROR;
+    }
+    a->mode = aw_mode;
+    if (trap_range(awe_base, 4)) {
+        if (trap_range(awe_base + 0x400, 4)) {
+            if (trap_range(awe_base + 0x800, 4)) { trapped_awe = 1; return ST_OK_AWE; }
+            untrap_range(awe_base + 0x400, 4);
+        }
+        untrap_range(awe_base, 4);
+    }
+    return ST_ERR_AWEPORT;
+}
+
+static void awe_detach(void)
+{
+    if (trapped_awe) awe_untrap();
+    trapped_awe = 0;
+    if (aw_sem) {   /* a DOS box blocked on a read: let it go (answers 0FFFFh) */
+        aw_val = 0xFFFF; aw_ans = aw_rq; aw_sem = 0;
+        vxd_sem_signal(sem_ans);
+        vxd_sem_signal(sem_req);            /* and the helper's thread (it sees the detach) */
+    }
+    if (aw) { vxd_unmap_block((u32)aw, aw_size); aw = 0; }
+}
+
 static void detach(void)
 {
     xf.active = 0;
@@ -1136,6 +1467,7 @@ static void detach(void)
     if (trapped & ST_OK_JBIOS) vxd_hook_int15(0);
     if (hooked21) { vxd_hook_int21(0); hooked21 = 0; }
     if (min_on) { vxd_min_period(0); min_on = 0; }
+    awe_detach();
     trapped = 0;
     ddb_export(0);
     if (sh) { vxd_unmap_block((u32)sh, sh_size); sh = 0; }
@@ -1200,6 +1532,7 @@ static u32 attach(u32 user_addr)
         mset(vms, 0, sizeof vms);
         if (vxd_hook_int21(1) == 0) { st |= ST_OK_PROG; hooked21 = 1; } else st |= ST_ERR_PROG;
     }
+    st |= awe_attach(s);
     trapped = st & 0xFF;
     s->attach_status = st;
     s->now_us = vxd_time_us();
@@ -1258,6 +1591,14 @@ int __cdecl sc_ioctl(u32 code, u8 *in, u32 inlen, u8 *out, u32 outlen)
         if (outlen >= 4) { *(u32 *)out = r; return 4; }
         return 0;
     }
+    case IOCTL_SC55W_AWEWAIT:   /* stall mode, the helper's AWE thread: blocks until a read waits; out: u32 rq_seq, 0 = detached */
+        if (!aw || !aw_sem) return -1;
+        vxd_sem_wait(sem_req);
+        if (outlen >= 4) { *(u32 *)out = (aw && aw_sem) ? 1 : 0; return 4; }
+        return 0;
+    case IOCTL_SC55W_AWEANS:
+        awe_answer(inlen >= 4 ? *(u32 *)in : 0xFFFF);
+        return 0;
     case IOCTL_SC55W_FOCUS: {
         SC55W_FOCUS *f = (SC55W_FOCUS *)out;
         u32 owner = vxd_kbd_owner();

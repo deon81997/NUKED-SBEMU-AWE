@@ -7,6 +7,8 @@
 </tr>
 </table>
 
+<picture><img src="docs/90s/icon-book.gif" alt="book"></picture> <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/wiki">~ Read the WIKI!! ~</a></b> <sub>(quick start, AWE32 page, every switch, troubleshooting)</sub> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture>
+
 <table>
 <tr>
 <td align="center" valign="top"><picture><img src="docs/90s/fd-marine-shoot.gif" alt="Freedoom marine"></picture><br><br><picture><img src="docs/90s/tux-waddle.gif" width="120" alt="Tux"></picture><br><br><picture><img src="docs/90s/fd-soulsphere.gif" alt="soul sphere"></picture><br><br><picture><img src="docs/90s/port220-small.gif" width="96" alt="Port 220"></picture><br><br><picture><img src="docs/90s/fd-hatchling.gif" alt="Freedoom hatchling"></picture><br><br><picture><img src="docs/90s/ic-speaker.gif" alt="speaker"></picture><br><br><picture><img src="docs/90s/vox-flopsy.gif" width="100" alt="Flopsy in voxels"></picture><br><br><picture><img src="docs/90s/fd-zombie.gif" alt="Freedoom zombie"></picture><br><br><picture><img src="docs/90s/ic-rocket.gif" alt="rocket"></picture></td>
@@ -410,7 +412,7 @@ and the top end is a little brighter than a real card.
 
 <picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **Options:** `/AWE:620` (or 640, 660, 680),
 `/AWERAM:512` (sample RAM in KB: 512 like an AWE32, 4096 like an AWE64 Gold, up to 28672), `/AWEROM:file or folder`.
-The AWE32 and the SC-55 take turns: with `/AWE` on, the MPU-401 has no synth behind it.
+The AWE32 and the SC-55 play together: with `/AWE` on, the MPU-401 keeps its synth (`/AWEMPU:0` = AWE32 only).
 All the details are in README.TXT, section 6c.
 
 <div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>

@@ -29,6 +29,8 @@
 #include <commctrl.h>
 #include "resource.h"
 
+#include "../common/nsbver.h"
+__attribute__((used)) const char nsb_version_tag[] = NSB_VER_TAG("SC55W*.EXE");
 #ifndef BUILD_ID
 #define BUILD_ID 0
 #endif
@@ -133,7 +135,26 @@ struct Published {
     unsigned underruns = 0;
     double load = 0;
     bool shed = false;
+    std::string mout = "emulated synth", mout_error;   // MIDI output (w98.8)
+    int mout_code = 0;
+    unsigned mout_sent = 0, mout_drop = 0;
+    uint32_t mpu_ignored = 0;
 } g_pub;
+// w98.8: what the DOS boxes / Windows programs sent, every 10 s while it changes (SC55W.LOG, for BUGREP)
+static void logf(const char* fmt, ...);
+static void log_activity(const EngineStats& s, DWORD now, double load)
+{
+    static DWORD t; static unsigned m, o, p;
+    if (now - t < 10000) return;
+    t = now;
+    if (s.midi_bytes == m && s.opl_writes == o && s.pcm_frames == p) return;
+    m = s.midi_bytes; o = s.opl_writes; p = s.pcm_frames;
+    logf("activity: MIDI %u bytes, FM %u writes, digital %u frames, late %u, resyncs %u, MPU ignored %u, load %.1f%%", m, o, p,
+         s.late_events, s.resyncs, g_sh ? (unsigned)g_sh->mpu_ignored : 0u, load * 100);
+}
+// MIDI output switch (w98.8, DOS /MOUT): -1 none, 0 emulated synth, n = Windows MIDI out device n-1. The tray
+// menu, the settings window and "SC55W /MOUT:x" set it; the audio thread hands it to the engine.
+static volatile LONG g_mout_req = -1;
 
 // SC55W.LOG next to the EXE: what happened at start-up, for troubleshooting
 static void logf(const char* fmt, ...)
@@ -451,6 +472,8 @@ static DWORD WINAPI audio_main(LPVOID)
             publish_state("Running");
         }
         if (!have) { Sleep(20); continue; }
+        eng.clock = vxd_now;
+        if (g_mout_req >= 0) eng.request_out((int)InterlockedExchange(&g_mout_req, -1));
 
         if (!g_wo) {
             DWORD now = GetTickCount();
@@ -474,6 +497,7 @@ static DWORD WINAPI audio_main(LPVOID)
                 }
                 if (eng.st.out_asleep) { eng.st.out_asleep = false; eng.wake_output(); }
                 if (n > 0) { eng.render(sh, vxd_now(), tmp, n); rec_write(tmp, n); }
+                log_activity(eng.st, now, load);
                 Sleep(25);
                 continue;
             }
@@ -644,6 +668,19 @@ static DWORD WINAPI audio_main(LPVOID)
                  underruns, eng.st.midi_idle ? "synth idle" : "synth running");
         }
 
+        log_activity(eng.st, now, load);
+        {   // MIDI output switches and failures, MPU intelligent-mode bytes ignored: SC55W.LOG
+            static std::string lo = "emulated synth", le; static uint32_t li;
+            std::string o = eng.out_name.empty() ? std::string("emulated synth") : eng.out_name;
+            if (o != lo) {
+                if (lo != "emulated synth") logf("MIDI output: %s (%s sent %u bytes, lost %u)", o.c_str(), lo.c_str(), eng.prev_sent, eng.prev_drop);
+                else logf("MIDI output: %s", o.c_str());
+                lo = o;
+            }
+            if (eng.out_error != le) { if (!eng.out_error.empty()) logf("MIDI output switch failed: %s", eng.out_error.c_str()); le = eng.out_error; }
+            if (g_sh && g_sh->mpu_ignored && !li) logf("MPU-401: a program sent intelligent-mode sequencer bytes (ignored)");
+            if (g_sh) li = g_sh->mpu_ignored;
+        }
         {   // every 30 s, when something went wrong since the last line: a trace in SC55W.LOG
             static DWORD last_log; static unsigned lu, ll, lr;
             if (now - last_log > 30000) {
@@ -658,6 +695,12 @@ static DWORD WINAPI audio_main(LPVOID)
             last_pub = now;
             EnterCriticalSection(&g_cs);
             g_pub.st = eng.st;
+            g_pub.mout = eng.out_name.empty() ? std::string("emulated synth") : eng.out_name;
+            g_pub.mout_error = eng.out_error;
+            g_pub.mout_code = eng.out_code();
+            g_pub.mout_sent = eng.ext_dev() ? eng.ext_dev()->sent() : 0;
+            g_pub.mout_drop = eng.ext_dev() ? eng.ext_dev()->dropped() : 0;
+            g_pub.mpu_ignored = g_sh ? g_sh->mpu_ignored : 0;
             g_pub.underruns = underruns;
             g_pub.load = load;
             g_pub.shed = shed;
@@ -918,7 +961,7 @@ static int axis_val(const JOYCAPSA& c, const JOYINFOEX& j, char a)
     return (int)joy_scale(v, lo, hi) - 32768;
 }
 
-static void pad_read(const JOYCAPSA& c, const JOYINFOEX& j, PadInput& in)
+static void pad_read(const JOYCAPSA& c, const JOYINFOEX& j, PadInput& in, int idx)
 {
     in.present = true;
     for (int i = 0; i < PB_COUNT; i++) {
@@ -935,8 +978,14 @@ static void pad_read(const JOYCAPSA& c, const JOYINFOEX& j, PadInput& in)
     if (g_padmap.trig && strchr("XYZRUV", g_padmap.trig)) {          // triggers on one axis
         int t = axis_val(c, j, g_padmap.trig);
         in.trig = t;
-        if (t > 12000) in.button[PB_LT] = true;
-        if (t < -12000) in.button[PB_RT] = true;
+        // w98.8 (DOS beta.125): on past 160/255 of the travel, off below 96/255 - a trigger resting near one
+        // threshold (was +-12000 both ways) no longer types / repeats keys
+        static bool lt[2], rt[2];
+        bool& l = lt[idx & 1]; bool& r = rt[idx & 1];
+        l = l ? t > 12336 : t > 20560;
+        r = r ? t < -12336 : t < -20560;
+        if (l) in.button[PB_LT] = true;
+        if (r) in.button[PB_RT] = true;
     }
     in.axis[PA_LX] = axis_val(c, j, 'X');
     in.axis[PA_LY] = axis_val(c, j, 'Y');
@@ -1085,8 +1134,8 @@ static DWORD WINAPI joy_main(LPVOID)
                 LeaveCriticalSection(&g_cs);
             }
             PadInput pin[2];
-            if (got[0]) pad_read(cap[0], ji[0], pin[0]);
-            if (got[1]) pad_read(cap[1], ji[1], pin[1]);
+            if (got[0]) pad_read(cap[0], ji[0], pin[0], 0);
+            if (got[1]) pad_read(cap[1], ji[1], pin[1], 1);
             PadInput& in = pin[0];
             if (in.present) note_input(in, ji[0].dwButtons);
             EnterCriticalSection(&g_cs);
@@ -1128,10 +1177,21 @@ static DWORD WINAPI joy_main(LPVOID)
             }
             PadOutput out;
             pad_step(in, focus_dos, out);
+            // w98.8 (DOS beta.125: a lost break = a stuck key): VKD refused the bytes (its buffer full) -> they
+            // go again, first, at the next poll, whole keys in order; a DOS box losing the keyboard drops them
+            static std::vector<uint8_t> key_retry;
+            if (!key_retry.empty()) {
+                if (!focus_dos) key_retry.clear();
+                else out.scancodes.insert(out.scancodes.begin(), key_retry.begin(), key_retry.end());
+                key_retry.clear();
+            }
             if (!out.scancodes.empty()) {
                 DWORD r = 0, got_n = 0;
                 DeviceIoControl(g_vxd, IOCTL_SC55W_KEYS, out.scancodes.data(), (DWORD)out.scancodes.size(),
                                 &r, 4, &got_n, NULL);
+                if (r == 2 && focus_dos && out.scancodes.size() < 256) key_retry = out.scancodes;
+                static unsigned key_fail;
+                if (r == 2 && !(key_fail++ & 63)) logf("pad keys: Windows keyboard buffer full, sent again (%u)", key_fail);
             }
             // a second Windows joystick still gives the DOS stick B and buttons 3-4
             if (got[1]) {
@@ -1220,6 +1280,11 @@ static std::string status_text()
         snprintf(b, sizeof b, "Windows MIDI volume: %d%%\r\n", p.st.midi_volume);
         s += b;
     }
+    s += "MIDI to: " + p.mout;
+    if (p.mout_code) { snprintf(b, sizeof b, " (%u bytes sent%s)", p.mout_sent, p.mout_drop ? ", some lost" : ""); s += b; }
+    s += " - tray menu \"MIDI to\" switches it\r\n";
+    if (!p.mout_error.empty()) s += "   Last switch failed: " + p.mout_error + "\r\n";
+    if (p.mpu_ignored) { snprintf(b, sizeof b, "   MPU-401 intelligent-mode sequencer bytes ignored: %u\r\n", (unsigned)p.mpu_ignored); s += b; }
     s += midi_driver_installed() ? "Windows MIDI device: \"NUKED SB-EMU\" (installed)\r\n"
                                  : "Windows MIDI device: not installed (run SETUP98)\r\n";
     if (!p.wave_error.empty()) s += p.wave_error + "\r\n";
@@ -1319,6 +1384,117 @@ static bool checked(HWND d, int id) { return IsDlgButtonChecked(d, id) == BST_CH
 enum { SYN_SC55 = 0, SYN_SF2 = 1, SYN_MT_AUTO = 2, SYN_MT32 = 3, SYN_CM32L = 4 };
 static std::vector<std::string> g_romsets;
 
+// ---------------------------------------------------------------------------
+// MIDI output choice (w98.8): the emulated synth or a Windows MIDI out device (a USB MIDI cable to a real SC-55,
+// a sound card's MPU-401 port, ...). SC55W.INI [SC55W] MidiOut= keeps the choice (synth / the device's name);
+// none there and SBOPTS.TXT /MUSB:1 (DOS: MPU MIDI to USB) = the first USB device. Switches while a game plays.
+static std::string up_s(std::string s) { for (auto& c : s) c = (char)toupper((unsigned char)c); return s; }
+// "SYNTH" / "USB" / "USB2" / "NEXT" / a number (1 = first device) / a device name -> engine code, -1 = unknown
+static int mout_code_for(const std::string& want_in, int cur)
+{
+    std::string w = up_s(want_in);
+    auto l = midi_out_list();
+    if (w.empty() || w == "SYNTH" || w == "EMU" || w == "SC55" || w == "SC-55" || w == "SF" || w == "MT32" || w == "0") return 0;
+    if (w == "NEXT") {                          // synth -> device 1 -> device 2 ... -> synth (as Ctrl+Alt+F11 in DOS)
+        int n = (int)l.size() + 1, at = 0;
+        for (int i = 0; i < (int)l.size(); i++) if ((int)l[i].id + 1 == cur) at = i + 1;
+        int nx = (at + 1) % n;
+        return nx ? (int)l[nx - 1].id + 1 : 0;
+    }
+    if (w.compare(0, 3, "USB") == 0) {
+        int k = w.size() > 3 && isdigit((unsigned char)w[3]) ? w[3] - '0' : 1, seen = 0;
+        for (auto& m : l) if (up_s(m.name).find("USB") != std::string::npos && ++seen == k) return (int)m.id + 1;
+        seen = 0;                                // no device says USB: the k-th device
+        for (auto& m : l) if (++seen == k) return (int)m.id + 1;
+        return -1;
+    }
+    if (isdigit((unsigned char)w[0])) { int k = atoi(w.c_str()); return k >= 1 && k <= (int)l.size() ? (int)l[k - 1].id + 1 : -1; }
+    for (auto& m : l) if (up_s(m.name) == w) return (int)m.id + 1;
+    for (auto& m : l) if (up_s(m.name).find(w) != std::string::npos) return (int)m.id + 1;
+    return -1;
+}
+static std::string mout_name_for(int code)
+{
+    if (!code) return "synth";
+    MIDIOUTCAPSA c;
+    return midiOutGetDevCapsA((UINT)(code - 1), &c, sizeof c) == MMSYSERR_NOERROR ? std::string(c.szPname) : "synth";
+}
+static int mout_current()
+{
+    EnterCriticalSection(&g_cs);
+    int c = g_pub.mout_code;
+    LeaveCriticalSection(&g_cs);
+    return c;
+}
+static void mout_choose(int code, bool save)
+{
+    if (code < 0) return;
+    InterlockedExchange(&g_mout_req, code);
+    if (save) WritePrivateProfileStringA("SC55W", "MidiOut", mout_name_for(code).c_str(), g_inipath.c_str());
+}
+static void mout_start()
+{
+    char b[128] = "";
+    GetPrivateProfileStringA("SC55W", "MidiOut", "", b, sizeof b, g_inipath.c_str());
+    std::string w = b;
+    if (w.empty() && g_opt.musb) w = "USB";
+    if (w.empty()) return;
+    int c = mout_code_for(w, 0);
+    if (c < 0) { logf("MIDI output \"%s\" not found: emulated synth", w.c_str()); return; }
+    if (c) mout_choose(c, false);
+}
+static void mout_fill(HWND d)
+{
+    SendDlgItemMessageA(d, IDC_MOUT, CB_RESETCONTENT, 0, 0);
+    cb_add(d, IDC_MOUT, "Emulated synth", 0);
+    for (auto& m : midi_out_list()) cb_add(d, IDC_MOUT, m.name.c_str(), (int)m.id + 1);
+    int cur = mout_current();
+    int n = (int)SendDlgItemMessageA(d, IDC_MOUT, CB_GETCOUNT, 0, 0);
+    for (int i = 0; i < n; i++)
+        if ((int)SendDlgItemMessageA(d, IDC_MOUT, CB_GETITEMDATA, i, 0) == cur) SendDlgItemMessageA(d, IDC_MOUT, CB_SETCURSEL, i, 0);
+}
+
+// ---------------------------------------------------------------------------
+// versions (w98.8, DOS /VER): every Win98 binary carries "$VER: NUKED SB-EMU <version> (<file>) $". SC55W writes
+// VERSIONS.TXT next to itself at every start (BUGREP.BAT in DOS adds it to BUGREP.TXT); SC55W /VER shows it.
+static std::string file_version(const std::string& path)
+{
+    FILE* f = fopen(path.c_str(), "rb");
+    if (!f) return "";
+    std::string s;
+    char buf[65536];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof buf, f)) > 0) s.append(buf, n);
+    fclose(f);
+    std::string needle = std::string("$VER") + ": NUKED SB-EMU ";   // not one literal: it would find itself
+    size_t p = s.find(needle);
+    if (p == std::string::npos) return "no version tag (older than 1.0.0-beta.130-w98.8)";
+    size_t e = s.find(" (", p + 19);
+    return s.substr(p + 19, e == std::string::npos ? 32 : e - p - 19);
+}
+static std::string versions_report()
+{
+    char sys[MAX_PATH] = "";
+    GetSystemDirectoryA(sys, sizeof sys);
+    std::string r = "NUKED SB-EMU for Windows 98, running " NSB_VER "\r\n";
+    struct { std::string dir; const char* f; } fl[] = {
+        {g_exedir, "SC55W.EXE"}, {g_exedir, "SC55WM.EXE"}, {g_exedir, "SC55W2.EXE"}, {g_exedir, "SC55W.VXD"},
+        {g_exedir, "SC55MIDI.DRV"}, {sys, "SC55MIDI.DRV"}, {path_join(g_exedir, "JOY"), "NUKEDJOY.VXD"}, {sys, "NUKEDJOY.VXD"}};
+    for (auto& x : fl) {
+        std::string p = path_join(x.dir, x.f), v = file_version(p);
+        if (!v.empty()) r += p + ": " + v + "\r\n";
+    }
+    return r;
+}
+static void versions_write()
+{
+    FILE* f = fopen(path_join(g_exedir, "VERSIONS.TXT").c_str(), "wb");
+    if (!f) return;
+    std::string r = versions_report();
+    fwrite(r.data(), 1, r.size(), f);
+    fclose(f);
+}
+
 static void settings_fill_lists(HWND d)
 {
     cb_add(d, IDC_PORT, "220", 0x220);
@@ -1382,6 +1558,8 @@ static void settings_show(HWND d, const Options& o)
     cb_select(d, IDC_SCVOICES, o.scvoices);
     check(d, IDC_SCFX, o.scfx != 0);
     check(d, IDC_SCAUTO, o.scauto != 0);
+    check(d, IDC_SCLPF, o.sclpf != 0);
+    mout_fill(d);
     set_int(d, IDC_SFREV, o.sfrev);
     set_int(d, IDC_SFROOM, o.sfroom);
     set_int(d, IDC_SFDAMP, o.sfdamp);
@@ -1433,6 +1611,7 @@ static Options settings_read(HWND d)
     o.scvoices = cb_get(d, IDC_SCVOICES, 0);
     o.scfx = checked(d, IDC_SCFX);
     o.scauto = checked(d, IDC_SCAUTO);
+    o.sclpf = checked(d, IDC_SCLPF);
     o.sfrev = get_int(d, IDC_SFREV, 0, 100, o.sfrev);
     o.sfroom = get_int(d, IDC_SFROOM, 0, 100, o.sfroom);
     o.sfdamp = get_int(d, IDC_SFDAMP, 0, 100, o.sfdamp);
@@ -1464,6 +1643,7 @@ static void settings_update(HWND d)
     EnableWindow(GetDlgItem(d, IDC_SCVOICES), sc);
     EnableWindow(GetDlgItem(d, IDC_SCFX), sc);
     EnableWindow(GetDlgItem(d, IDC_SCAUTO), sc);
+    EnableWindow(GetDlgItem(d, IDC_SCLPF), sc);
     const int sfids[] = {IDC_SFREV, IDC_SFROOM, IDC_SFDAMP, IDC_SFCHO, IDC_SFCRATE, IDC_SFCDEPTH, IDC_SFVOICES, IDC_SFSEND};
     for (int id : sfids) EnableWindow(GetDlgItem(d, id), sf);
     std::string t = "Saved as: " + (o.format().empty() ? std::string("(all defaults)") : o.format());
@@ -1484,6 +1664,14 @@ static void settings_apply(HWND d, bool save)
     if (g_page[1]) joy_page_save(g_page[1], note);   // game port / NUKED joystick (SC55W.INI)
     if (g_page[2]) pad_page_save(g_page[2]);         // pad keys and the pad's button map
     push_options(o);                                 // re-attaches when the game port changed
+    {   // MIDI output: switched live, kept in SC55W.INI on Save
+        int i = (int)SendDlgItemMessageA(d, IDC_MOUT, CB_GETCURSEL, 0, 0);
+        if (i >= 0) {
+            int code = (int)SendDlgItemMessageA(d, IDC_MOUT, CB_GETITEMDATA, i, 0);
+            if (code != mout_current()) mout_choose(code, false);
+            if (save) mout_choose(code, true);
+        }
+    }
     if (!note.empty()) MessageBoxA(d, note.c_str(), APP_TITLE, MB_ICONINFORMATION);
     if (save) {
         if (!save_options(o))
@@ -2006,6 +2194,18 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
             AppendMenuA(mn, MF_STRING, IDM_STATUS, "&Status...");
             AppendMenuA(mn, MF_STRING, IDM_SETTINGS, "S&ettings...");
             AppendMenuA(mn, MF_STRING, IDM_PANIC, "&All notes off");
+            {   // MIDI to: switches while a game plays (DOS: Ctrl+Alt+F11 / MENU / SBEMU /MOUT)
+                HMENU sub = CreatePopupMenu();
+                int cur = mout_current();
+                EnterCriticalSection(&g_cs);
+                std::string syn = g_pub.synth;
+                LeaveCriticalSection(&g_cs);
+                AppendMenuA(sub, MF_STRING | (cur == 0 ? MF_CHECKED : 0), IDM_MOUT_BASE,
+                            ("Emulated synth" + (syn.empty() || syn == "none" ? std::string() : " (" + syn + ")")).c_str());
+                for (auto& m : midi_out_list())
+                    if (m.id < 60) AppendMenuA(sub, MF_STRING | (cur == (int)m.id + 1 ? MF_CHECKED : 0), IDM_MOUT_BASE + 1 + m.id, m.name.c_str());
+                AppendMenuA(mn, MF_POPUP, (UINT_PTR)sub, "&MIDI to");
+            }
             AppendMenuA(mn, MF_SEPARATOR, 0, NULL);
             AppendMenuA(mn, MF_STRING, IDM_EXIT, "E&xit");
             SetMenuDefaultItem(mn, IDM_STATUS, FALSE);
@@ -2023,12 +2223,17 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         case IDM_SETTINGS: show_settings(); break;
         case IDM_PANIC: InterlockedExchange(&g_panic, 1); break;
         case IDM_EXIT: DestroyWindow(h); break;
+        default:
+            if (LOWORD(w) >= IDM_MOUT_BASE && LOWORD(w) <= IDM_MOUT_BASE + 60) mout_choose(LOWORD(w) - IDM_MOUT_BASE, true);
+            break;
         }
         return 0;
     case WM_REMOTE:
         if (w == 1) show_settings();
         else if (w == 2) show_status();
         else if (w == 3) DestroyWindow(h);
+        else if (w == 4) mout_choose((int)l, false);      // SC55W /MOUT:x run again
+        else if (w == 5) return mout_current();
         return 0;
     case WM_STATECHG:
         tray_tip();
@@ -2057,10 +2262,37 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
     g_boot = c.find("/BOOT") != std::string::npos;
     if (c.find("/UNINSTALL") != std::string::npos) return run_uninstall(inst);
 
+    // /VER: the versions of every Win98 file (also in VERSIONS.TXT), as PROGRAM /VER in DOS
+    if (c.find("/VER") != std::string::npos && c.find("/VERB") == std::string::npos) {
+        InitializeCriticalSection(&g_cs);
+        find_paths();
+        versions_write();
+        MessageBoxA(NULL, versions_report().c_str(), APP_TITLE, MB_ICONINFORMATION | MB_SETFOREGROUND);
+        return 0;
+    }
+    // /MOUT:SYNTH|USB|USB1|USB2|NEXT|n|name: the MIDI output, also for a running SC55W (DOS SBEMU /MOUT)
+    std::string mout_arg;
+    {
+        size_t p = c.find("/MOUT:");
+        if (p != std::string::npos) {
+            std::string raw = cmd ? cmd : "";
+            size_t e = raw.find(' ', p + 6);
+            mout_arg = raw.substr(p + 6, e == std::string::npos ? std::string::npos : e - p - 6);
+            if (!mout_arg.empty() && mout_arg[0] == '"') { size_t q = raw.find('"', p + 7); mout_arg = raw.substr(p + 7, q == std::string::npos ? std::string::npos : q - p - 7); }
+        }
+    }
+
     // one copy only; a second start forwards its request to the first
     HANDLE mx = CreateMutexA(NULL, FALSE, "SC55W_Helper_Mutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         HWND other = FindWindowA(WND_CLASS, NULL);
+        if (other && !mout_arg.empty()) {
+            DWORD_PTR cur = 0;
+            SendMessageTimeoutA(other, WM_REMOTE, 5, 0, SMTO_ABORTIFHUNG, 2000, &cur);   // its current output (NEXT)
+            int code = mout_code_for(mout_arg, (int)cur);
+            if (code >= 0) PostMessageA(other, WM_REMOTE, 4, code);
+            return code >= 0 ? 0 : 1;
+        }
         if (other) PostMessageA(other, WM_REMOTE, remote ? remote : 2, 0);
         if (remote == 3)       // /EXIT: return once the helper has gone (for SETUP98 / UNINST98)
             for (int i = 0; i < 100 && FindWindowA(WND_CLASS, NULL); i++) Sleep(100);
@@ -2120,8 +2352,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
     push_options(g_opt);
     DWORD tid;
     g_thread = CreateThread(NULL, 0, audio_main, NULL, 0, &tid);
+    versions_write();
+    if (!mout_arg.empty()) { int code = mout_code_for(mout_arg, 0); if (code >= 0) mout_choose(code, false); else logf("/MOUT:%s: no such output", mout_arg.c_str()); }
+    else mout_start();
     g_padkeys = ini_int("PadKeys", 1) != 0 && g_vxd != INVALID_HANDLE_VALUE;
     pad_map_load();
+    pad_set_deadzone(g_opt.joydz);
     if (g_padkeys) pad_files_load();
     if (ini_int("Joystick", 1) || ini_int("JoyBios", 1) || g_padkeys) {
         HANDLE jt = CreateThread(NULL, 0, joy_main, NULL, 0, &tid);

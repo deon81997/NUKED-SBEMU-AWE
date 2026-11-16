@@ -95,6 +95,24 @@ C:\SC55\WIN98\SC55W.INI and the uninstaller puts it back.
                       interrupts). Double-click the icon for the same.
      Settings...      see section 3.
      All notes off    stops stuck notes.
+     MIDI to          where the MIDI music goes, switched while a game
+                      plays (since beta.130-w98.8; DOS: Ctrl+Alt+F11 /
+                      SBEMU /MOUT): "Emulated synth" (the SC-55, MT-32 or
+                      SoundFont) or any Windows MIDI output, e.g. a USB
+                      MIDI cable (M-Audio Uno) to a real SC-55, or a sound
+                      card's MIDI port. The old one is silenced, the new
+                      one gets the song's state first (reset, instruments,
+                      controllers, volume last, with the ~50 ms a real
+                      SC-55 needs after a reset), so the music goes on
+                      without stuck notes or a loud blast. The choice is
+                      kept (SC55W.INI MidiOut=). The same from a command
+                      line, also while SC55W runs:
+                        C:\SC55\WIN98\SC55W.EXE /MOUT:SYNTH | USB | USB2 |
+                                                  NEXT | 2 | "device name"
+                      (USB = the first Windows MIDI output whose name says
+                      USB, or the first one; NEXT = the next in the menu.)
+                      SBOPTS.TXT /MUSB:1 (DOS: MIDI to USB) makes USB the
+                      start choice when MidiOut= is not set.
      Exit             stops the program (DOS boxes lose their sound, the
                       MIDI device stops working).
 
@@ -183,10 +201,15 @@ SBEMU switch they set:
      MPU-401 330 / 300 / off (/P, /VMPU), synth: Roland SC-55, SoundFont
      (/VSF), MT-32 auto / MT-32 / CM-32L (/VMT32), SC-55 ROM set (/VSCSET,
      "auto" or one of the sets found in C:\SC55\ROMS).
+     MIDI to: the emulated synth or a Windows MIDI output (as the tray
+     menu, see section 2).
   SC-55 / MT-32
      Gain (/VSCGAIN, 100 = unity), note limit (/VSCVOICES), reverb and
      chorus (/VSCFX), automatic speed control (/VSCAUTO: pauses the SC-55's
-     reverb/chorus while the CPU cannot keep up).
+     reverb/chorus while the CPU cannot keep up), low-pass (/VSCLPF, on by
+     default as in DOS beta.109: at 22050 Hz output the SC-55's 32 kHz sound
+     is filtered first, so high notes and cymbals do not whistle; no effect
+     at 32000 Hz and up; its CPU cost is too small to measure).
   SoundFont
      reverb, room, damping, chorus, chorus speed and depth, voices, follow
      the song's reverb/chorus sends (/VSFREV ... /VSFSEND).
@@ -359,7 +382,29 @@ normal rate unless a DOS program plays sound or reads the joystick.
                  our sound program too little time while the game ran full
                  screen. Fixed with BufferAuto (above); on older versions
                  set BufferMs=300.
-  C:\SC55\WIN98\SC55W.LOG shows what happened at the last start.
+  C:\SC55\WIN98\SC55W.LOG shows what happened at the last start, and
+                 every 10 s while something plays: "activity: MIDI n bytes,
+                 FM n writes, digital n frames ..." (BUGREP.BAT in DOS
+                 copies it, with VERSIONS.TXT, into BUGREP.TXT).
+  Which version is installed: C:\SC55\WIN98\SC55W.EXE /VER shows (and
+                 C:\SC55\WIN98\VERSIONS.TXT lists) the version of every
+                 Windows 98 file: SC55W*.EXE, SC55W.VXD, SC55MIDI.DRV (also
+                 the copy in WINDOWS\SYSTEM), NUKEDJOY.VXD (since
+                 beta.130-w98.8; older files say "no version tag").
+  A game's music has wrong or extra notes with an MPU-401 in
+                 "intelligent mode" (games that ask the MPU-401 for its
+                 version, or send "want to send data" commands): fixed in
+                 beta.130-w98.8 (as DOS beta.122): every command gets its
+                 answer, command parameter bytes are no longer played as
+                 notes. Status / SC55W.LOG count sequencer bytes the
+                 MPU-401 ignores (its own sequencer is not emulated).
+  Keys typed by themselves in a DOS game with a pad (stick drift, a
+                 trigger resting half way): fixed in beta.130-w98.8 (as DOS
+                 beta.125): a stick types its key past half the travel
+                 (SBOPTS.TXT /JOYDZ, 10 % = half) and lets go below 3/4 of
+                 that, only after it was seen at rest once and past the
+                 line in two reads in a row; buttons count after two equal
+                 reads; triggers on past 63 %, off below 38 %.
 
 
 -----------------------------------------------------------------------------

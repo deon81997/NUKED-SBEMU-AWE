@@ -5,6 +5,8 @@
  * code (SC55W.EXE /EXIT in a batch file still waits). GPL-2.0-or-later. */
 #include <windows.h>
 #include <string.h>
+#include "../common/nsbver.h"
+__attribute__((used)) const char nsb_version_tag[] = NSB_VER_TAG("SC55W.EXE");
 
 static int has_sse2(void)
 {

@@ -7,6 +7,8 @@
 #include "../common/sc55wif.h"
 #include "opts.h"
 #include "synths.h"
+#include "midiroute.h"
+#include <windows.h>
 
 struct EngineStats {
     int midi_volume = 100;          // Windows MIDI volume, percent (average of L and R)
@@ -43,6 +45,18 @@ public:
     // MIDI from another source (e.g. a Windows MIDI-in port): applied at the next render
     void midi_now(uint8_t b);
 
+    // ---- MIDI output (w98.8; DOS /MOUT): 0 = the emulated synth, else a Windows MIDI out device (its id + 1).
+    // Any thread may ask (request_out); the switch happens in render(): the old output is silenced, the new one
+    // gets the music's state (MidiTracker replay), so it changes while a game plays.
+    volatile LONG out_request = -1;
+    void request_out(int code) { InterlockedExchange(&out_request, code); }
+    int out_code() const { return out_cur; }
+    std::string out_name;           // what MIDI goes to now (status window / log)
+    std::string out_error;          // last switch that failed
+    MidiOutDev::Clock clock = nullptr;
+    const MidiOutDev* ext_dev() const { return ext.get(); }
+    unsigned prev_sent = 0, prev_drop = 0;   // the external device switched away from: bytes it sent / lost
+
     // CPU: the sound output can be stopped while nothing makes a sound (synths asleep, no DMA,
     // no direct DAC, the last second rendered was exact silence and no input is waiting).
     // has_input() = something is waiting in the VxD's rings: start the output again.
@@ -64,6 +78,11 @@ private:
     uint32_t dac_last = 0;
     std::vector<float> bm, bo, bp;    // per-render scratch: midi, opl, pcm
     std::vector<uint8_t> pending_midi;
+    MidiTracker tk;
+    std::unique_ptr<MidiOutDev> ext;
+    int out_cur = 0;
+    void midi_in(uint8_t b, uint32_t t_us);
+    void switch_out(int to);
     float dc_x[2] = {0, 0}, dc_y[2] = {0, 0};   // DC blocker on the MIDI bus
     uint64_t frames_total = 0;                  // frames rendered since setup (idle rule)
     int silent_frames = 0;                      // output frames of exact silence in a row

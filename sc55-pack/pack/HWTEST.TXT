@@ -2,6 +2,22 @@ NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
 
+[ ] beta.130-w98.8 Windows 98 part (D810 and P5PE-VM, Windows 98 running,
+    SETUP98.BAT run again and Windows restarted). 1) C:\SC55\WIN98\SC55W.EXE
+    /VER: every line says 1.0.0-beta.130-w98.8-usb. 2) Duke 3D in a DOS box
+    (music General MIDI 330, effects SB16): music and effects play, no
+    stuck or extra notes. 3) P5PE-VM with the Uno + SC-55 (Uno's Windows
+    driver installed): tray icon > MIDI to > the Uno while Duke plays, then
+    back to Emulated synth, five times: no blast, no stuck notes, the
+    instruments and level stay right. Then a Windows MIDI player (Media
+    Player, a .MID file) - same switch. 4) 360 pad in a DOS game with pad
+    keys (any layout using the stick for arrows): 10 minutes untouched on
+    the desk - no keys typed; pushes still work at once. 5) D810, Settings
+    > Output 22050 Hz: SC-55 high notes / cymbals without whistling; tick
+    "Low-pass" off and on to compare. 6) Status: CPU % the same as with
+    beta.91-w98.7 for the same song. Send C:\SC55\BUGREP.TXT (run BUGREP
+    in MS-DOS mode) or C:\SC55\WIN98\SC55W.LOG + VERSIONS.TXT.
+
 [ ] beta.130 stuck right arrow in Duke 3D (D810, built-in keyboard; cable
     as for beta.127 below). Main PC:  python DBGLOG.PY COM3 -k K -k E!
     DOS PC:  SC55 /DBG:COM1:2  then Duke 3D, 15 minutes, lots of turning with

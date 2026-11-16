@@ -28,7 +28,7 @@ typedef int32_t  s32;
 #endif
 
 #define SC55W_MAGIC      0x57353543UL   /* "C55W" */
-#define SC55W_IF_VERSION 8
+#define SC55W_IF_VERSION 9
 
 /* DeviceIoControl codes */
 #define IOCTL_SC55W_VERSION  0x10   /* out: u32 interface version            */
@@ -196,13 +196,17 @@ typedef struct {
        80 bytes LCD display RAM, 64 bytes custom characters. MIDPLAY draws the real SC-55 panel from it. */
     volatile u32 lcd_seq;
     u8           lcd[152];
+
+    /* w98.8 (IF 9): MPU intelligent-mode bytes the VxD ignored (sequencer data, stray status), for SC55W.LOG */
+    volatile u32 mpu_ignored;
+    volatile u32 reserved9;
 } SC55W_SHARED;
 
 #define SC55W_DDB_MAGIC 0x374A4E53UL    /* "SNJ7" */
 
 /* the same layout in Open Watcom (VxDs) and MinGW (helper): checked at compile time */
 #define SC55W_CHECK(n, c) typedef char n[(c) ? 1 : -1]
-SC55W_CHECK(sc55w_chk_size, sizeof(SC55W_SHARED) == 529560);
+SC55W_CHECK(sc55w_chk_size, sizeof(SC55W_SHARED) == 529568);
 SC55W_CHECK(sc55w_chk_cfg, sizeof(SC55W_CONFIG) == 16);
 SC55W_CHECK(sc55w_chk_wjoy, sizeof(SC55W_WJOY) == 28);
 

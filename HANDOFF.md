@@ -1,3 +1,14 @@
+## beta.130-awe.2 (2026-11-16, AWE session): Windows 98 part = MUXED beta.130-w98.8
+- main = beta.130-awe.1 + MUXED v1.0.0-beta.130-usb..v1.0.0-beta.130-w98.8-usb (650e443) as a 3-way patch (git diff --binary),
+  minus MUXED's README/HANDOFF/btn-awe32.gif. All files applied cleanly: the AWE line's win98/ was identical to MUXED beta.130,
+  and there is no AWE code in win98/. No DOS source change; no new F_SYNTH/VMPU_ENABLED uses. makefile VERSION -> awe.2.
+- Release zip: rezip.py from 130-awe.1, then FILES/WIN98/* and README98.TXT copied from MUXED's w98.8 zip (34 entries:
+  MUXED's prebuilt SC55W*.EXE, VXDs, SC55MIDI.DRV, SOURCE.ZIP). Rebuild Win98 binaries here only if win98/ ever diverges.
+- README: awe.2 entry on top, 121-awe.1 moved to Older news (before 119-awe.2), MUXED w98.8 entry at the top of Older news;
+  rows testrig/midi + "keysoak, dukekey" taken from MUXED; MT-32 / CM-32L 86box/roms note after the ROM table.
+- Test: duke.sh HIMEM 60 s (awe.2 SBEMU): 327 int/s, 0.10 ms, AWE 2%, 0.0% ticks lost; cmp.py vs awe.1 same bands.
+  Win98 part not run here (MUXED's w98par/routetest results apply; same source and binaries).
+
 ## beta.130-awe.1 (2026-11-16, AWE session): MUXED beta.128-130 merged into the AWE line
 - main = beta.127-awe.1 + MUXED v1.0.0-beta.127-usb..v1.0.0-beta.130-usb (2985070) as a 3-way patch (branch awe-beta130).
   Brings usbmidi/igap /DBG stats (128), clean Ctrl+Alt+F11 switch without loud blast + MIDPLAY ignores hotkeys (129),

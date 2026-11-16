@@ -34,6 +34,7 @@ std::string pad_select(const std::vector<std::pair<std::string, uint32_t>>& prog
 
 // one step: input -> output (keys only for changes); focus_dos = a DOS box has the keyboard
 void pad_step(const PadInput& in, bool focus_dos, PadOutput& out);
+void pad_set_deadzone(int pct);        // SBOPTS.TXT /JOYDZ (default 10): the stick -> key threshold
 
 // release everything (keys sent as breaks into out)
 void pad_release(PadOutput& out);

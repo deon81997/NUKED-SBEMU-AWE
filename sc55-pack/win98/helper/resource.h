@@ -37,6 +37,9 @@
 #define IDC_PREVIEW     1032
 #define IDC_APPLY       1033
 #define IDC_DEFAULTS    1034
+#define IDC_MOUT        1035
+#define IDC_SCLPF       1036
+#define IDM_MOUT_BASE   2100   /* 2100 = emulated synth, 2101.. = Windows MIDI out device 0.. */
 #define IDC_STATUSTEXT  1100
 #define IDC_PANIC       1101
 

@@ -40,7 +40,8 @@ BEGIN
     LTEXT           "SoundFont file", -1, 147, 77, 100, 8
     EDITTEXT        IDC_SF, 147, 87, 99, 12, ES_AUTOHSCROLL
     PUSHBUTTON      "...", IDC_SFBROWSE, 248, 87, 16, 12
-    LTEXT           "MIDI device: ""NUKED SB-EMU""", -1, 147, 106, 118, 8
+    LTEXT           "MIDI to", -1, 147, 106, 30, 8
+    COMBOBOX        IDC_MOUT, 178, 104, 86, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     GROUPBOX        "Volume (%)", -1, 141, 126, 128, 72
     LTEXT           "Master", -1, 147, 139, 70, 8
@@ -57,8 +58,9 @@ BEGIN
     EDITTEXT        IDC_SCGAIN, 356, 33, 34, 12, ES_NUMBER
     LTEXT           "Note limit", -1, 281, 49, 72, 8
     COMBOBOX        IDC_SCVOICES, 356, 47, 34, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    AUTOCHECKBOX    "Reverb and chorus", IDC_SCFX, 281, 64, 110, 10
-    AUTOCHECKBOX    "Automatic speed control", IDC_SCAUTO, 281, 77, 110, 10
+    AUTOCHECKBOX    "Reverb and chorus", IDC_SCFX, 281, 61, 110, 10
+    AUTOCHECKBOX    "Automatic speed control", IDC_SCAUTO, 281, 72, 110, 10
+    AUTOCHECKBOX    "Low-pass (rates below 32 kHz)", IDC_SCLPF, 281, 83, 112, 10
 
     GROUPBOX        "SoundFont", -1, 275, 98, 120, 100
     LTEXT           "Reverb", -1, 281, 111, 30, 8

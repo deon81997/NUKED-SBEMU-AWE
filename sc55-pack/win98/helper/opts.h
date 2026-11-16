@@ -30,6 +30,9 @@ struct Options {
     int scfx      = 1;       // /VSCFX
     int scauto    = 1;       // /VSCAUTO
     int scahead   = 50;      // /VSCAHEAD ms
+    int sclpf     = 1;       // /VSCLPF 0|1 anti-alias low-pass when the output rate is below the SC-55's (DOS beta.109)
+    int joydz     = 10;      // /JOYDZ: pad stick dead zone % (pad keys threshold), kept for DOS too
+    int musb      = 0;       // /MUSB: DOS sends MPU MIDI to USB; in Windows = default MIDI output a Windows MIDI device
     int vtimer    = 1;       // /VTIMER (DOS only, kept for round-trip)
     std::string sf;          // /VSF SoundFont file
     int sfvoices  = 64;      // /VSFVOICES

@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 
     Engine eng;
     auto t0 = std::chrono::steady_clock::now();
-    eng.setup(o, romdir, 44100, 50);
+    eng.setup(o, romdir, getenv("OUTRATE") ? atoi(getenv("OUTRATE")) : 44100, 50);
     double setup_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     printf("synth: %s (setup %.2fs)%s%s\n", eng.midi ? eng.midi->describe().c_str() : "none", setup_s,
            eng.midi_error.empty() ? "" : " ERROR: ", eng.midi_error.c_str());
@@ -50,6 +50,11 @@ int main(int argc, char** argv)
     // MIDI: GS reset at 0.1 s, piano C4-E4-G4-C5 one per 0.5 s from 1.0 s (needs ~0.5 s to boot)
     midi(sh.get(), base + 100000, {0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7});
     int notes[4] = {60, 64, 67, 72};
+    if (getenv("HIGHNOTES")) { notes[0] = 96; notes[1] = 100; notes[2] = 103; notes[3] = 108; }   // w98.8 low-pass check
+    if (getenv("MPUSEQ")) {   // w98.8: MPUINT UART's bytes, no GS reset
+        midi(sh.get(), base + 1500000, {0xC0, 0x00, 0x90, 0x48, 0x00, 0x48, 0x7F});
+        midi(sh.get(), base + 3500000, {0x80, 0x48, 0x00});
+    } else
     for (int i = 0; i < 4; i++) {
         uint32_t t = base + 1000000 + i * 500000;
         midi(sh.get(), t, {0x90, notes[i], 100});
@@ -65,7 +70,7 @@ int main(int argc, char** argv)
     // SB PCM: 22050 Hz, 1 kHz sine from 5.0 s to 6.0 s, produced in real-time-sized chunks below
     sh->fmt[0].frame = 0; sh->fmt[0].rate = 22050; sh->fmt_head = 1;
 
-    const int rate = 44100, chunk = 441;      // 10 ms buffers
+    const int rate = getenv("OUTRATE") ? atoi(getenv("OUTRATE")) : 44100, chunk = rate / 100;      // 10 ms buffers
     const double secs = argc > 0 && getenv("SECS") ? atof(getenv("SECS")) : 7.0;
     FILE* f = fopen(outp.c_str(), "wb");
     fwrite("RIFF", 1, 44, f);

@@ -34,7 +34,7 @@ void Engine::setup(const Options& o, const std::string& romdir, int out_rate, in
 static Options live_blank(Options x)
 {
     x.vol = x.sbvol = x.oplvol = x.midivol = x.scgain = 0;
-    x.scfx = x.scauto = x.scahead = x.vtimer = 0;
+    x.scfx = x.scauto = x.scahead = x.vtimer = x.sclpf = 0;
     x.sb_port = x.irq = x.dma8 = x.dma16 = x.sbtype = x.mpu_port = x.fixtc = x.opl = x.vmpu = 0;
     x.passthru.clear();
     return x;
@@ -51,11 +51,68 @@ bool Engine::apply_live(const Options& o)
     if (midi) {
         midi->gain = midi_gain(o);
         if (fx_changed && !st.fx_shed) midi->set_fx(o.scfx != 0);
+        midi->set_lowpass(o.sclpf != 0);
     }
     return true;
 }
 
 void Engine::midi_now(uint8_t b) { pending_midi.push_back(b); }
+
+// every MIDI byte (DOS boxes through the VxD, Windows programs through SC55MIDI.DRV): the tracker, then the output
+void Engine::midi_in(uint8_t b, uint32_t t_us)
+{
+    tk.byte(b);
+    if (out_cur && ext) { ext->put(b, t_us); return; }
+    if (midi) { wake_midi(); midi->midi_byte(b); }
+}
+
+// drains what the old device still has to send, then closes it, without holding up the audio thread
+static DWORD WINAPI close_later(LPVOID p)
+{
+    MidiOutDev* d = (MidiOutDev*)p;
+    Sleep(300);
+    delete d;
+    return 0;
+}
+
+void Engine::switch_out(int to)
+{
+    if (to < 0 || to == out_cur) return;
+    std::unique_ptr<MidiOutDev> nd;
+    std::string name = "emulated synth";
+    if (to) {
+        nd.reset(new MidiOutDev);
+        std::string err;
+        MIDIOUTCAPSA c;
+        name = midiOutGetDevCapsA((UINT)(to - 1), &c, sizeof c) == MMSYSERR_NOERROR ? c.szPname : "MIDI device";
+        if (!nd->open((UINT)(to - 1), clock, err)) { out_error = name + ": " + err; return; }
+    }
+    // the old output: silence it
+    if (out_cur && ext) {
+        MidiOutDev* o = ext.get();
+        prev_sent = o->sent(); prev_drop = o->dropped();
+        tk.silence([o](uint8_t b) { o->put(b, 0); });
+        DWORD tid;
+        HANDLE t = CreateThread(NULL, 0, close_later, ext.release(), 0, &tid);
+        if (t) CloseHandle(t);
+    } else if (midi) {
+        MidiSynth* m = midi.get();
+        tk.silence([m](uint8_t b) { m->midi_byte(b); });
+    }
+    // the new one: the music's state, with cable time after a reset
+    if (to) {
+        ext = std::move(nd);
+        MidiOutDev* o = ext.get();
+        tk.replay([o](uint8_t b) { o->put(b, 0); }, [o](int n) { o->pause((n * 32 + 99) / 100); });
+    } else if (midi) {
+        wake_midi();
+        MidiSynth* m = midi.get();
+        tk.replay([m](uint8_t b) { m->midi_byte(b); }, [m](int n) { while (n-- > 0) m->midi_byte(0xF8); });
+    }
+    out_cur = to;
+    out_name = name;
+    out_error.clear();
+}
 
 bool Engine::has_input(const SC55W_SHARED* sh) const
 {
@@ -191,7 +248,8 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
         win_start += drift / 32;                // follow the VxD clock smoothly
     }
 
-    for (uint8_t b : pending_midi) if (midi) { wake_midi(); midi->midi_byte(b); }
+    if (out_request >= 0) switch_out((int)InterlockedExchange(&out_request, -1));
+    for (uint8_t b : pending_midi) midi_in(b, 0);
     pending_midi.clear();
 
     int pos = 0;
@@ -205,7 +263,7 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
             if (epos > pos) { render_sources(pos, epos); pos = epos; }
             switch (e.type) {
             case EV_OPL:  if (opl) { wake_opl(); opl->write(e.c, e.a, e.b); } st.opl_writes++; break;
-            case EV_MIDI: if (midi) { wake_midi(); midi->midi_byte(e.a); } st.midi_bytes++; break;
+            case EV_MIDI: midi_in(e.a, e.time + lat_us); st.midi_bytes++; break;
             case EV_DAC:  dac_value = e.a; dac_active = true; dac_last = e.time; break;
             case EV_RESET: dac_active = false; break;
             default: break;

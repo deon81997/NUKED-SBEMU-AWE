@@ -253,8 +253,40 @@ void pad_release(PadOutput& out)
         if (g_down[k]) { key_bytes(k, false, out.scancodes); g_down[k] = false; }
 }
 
-void pad_step(const PadInput& in, bool focus_dos, PadOutput& out)
+// w98.8 (DOS beta.125, padmap.c): stick -> keys threshold 16000 at a 10% dead zone (was 13000: a worn stick's
+// drift typed keys), on past it, off only below 3/4 of it, an axis must have been seen at rest once
+// (|v| < half the threshold) after the pad came, and past the threshold in two polls in a row; buttons count
+// after two equal polls (one bad report is no key press)
+static int g_thr = 16000;
+static uint8_t g_ax[PA_COUNT];          // 1 = neg on, 2 = pos on, 4 = seen at rest (armed), 8 / 16 = neg / pos past once
+static bool g_braw[PB_COUNT], g_bstable[PB_COUNT];
+void pad_set_deadzone(int pct)
 {
+    int t = 16000 + (pct - 10) * 328;
+    g_thr = t < 3300 ? 3300 : t > 31000 ? 31000 : t;
+}
+static bool axis_on(int i, int v, bool neg)
+{
+    uint8_t& st = g_ax[i];
+    const int bit = neg ? 1 : 2, pend = bit << 3;
+    if (!(st & 4)) { if (v > -g_thr / 2 && v < g_thr / 2) st |= 4; return false; }
+    const int lim = (st & bit) ? g_thr * 3 / 4 : g_thr;
+    bool on = neg ? v < -lim : v > lim;
+    if (on && !(st & bit)) {
+        if (st & pend) st |= (uint8_t)bit; else { st |= (uint8_t)pend; on = false; }
+    } else if (!on) st &= (uint8_t)~(bit | pend);
+    return on;
+}
+
+void pad_step(const PadInput& in_raw, bool focus_dos, PadOutput& out)
+{
+    PadInput in = in_raw;
+    if (!in.present) { memset(g_ax, 0, sizeof g_ax); memset(g_braw, 0, sizeof g_braw); memset(g_bstable, 0, sizeof g_bstable); }
+    else for (int i = 0; i < PB_COUNT; i++) {
+        if (in.button[i] == g_braw[i]) g_bstable[i] = in.button[i];
+        g_braw[i] = in.button[i];
+        in.button[i] = g_bstable[i];
+    }
     if (g_lay.empty()) { g_lay.resize(1); default_layout(g_lay[0]); }
     const Layout& L = g_lay[g_cur];
     const Layout& D = g_lay[0];
@@ -296,8 +328,9 @@ void pad_step(const PadInput& in, bool focus_dos, PadOutput& out)
                 analog[stick] = (uint16_t)(in.axis[i] + 32768);
                 continue;
             }
-            if (in.axis[i] < -13000) for (int x : n) act(x);
-            else if (in.axis[i] > 13000) for (int x : p) act(x);
+            bool on_n = axis_on(i, in.axis[i], true), on_p = axis_on(i, in.axis[i], false);
+            if (on_n) for (int x : n) act(x);
+            else if (on_p) for (int x : p) act(x);
         }
     }
     // keys: only to a DOS box. When Windows takes the keyboard, held keys are released at

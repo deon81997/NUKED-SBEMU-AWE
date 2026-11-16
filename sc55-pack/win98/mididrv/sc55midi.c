@@ -14,6 +14,8 @@
  */
 #include <windows.h>
 #include <mmsystem.h>
+#include "../common/nsbver.h"
+const char __far nsb_version_tag[] = NSB_VER_TAG("SC55MIDI.DRV");
 
 /* MMDDK message numbers */
 #define MODM_GETNUMDEVS     1

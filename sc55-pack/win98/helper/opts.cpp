@@ -82,6 +82,9 @@ void Options::parse(const std::string& text)
         else if (name == "VSCFX") scfx = num(val);
         else if (name == "VSCAUTO") scauto = num(val);
         else if (name == "VSCAHEAD") scahead = num(val);
+        else if (name == "VSCLPF") sclpf = has ? num(val) : 1;
+        else if (name == "JOYDZ") { joydz = num(val); passthru += (passthru.empty() ? "" : " ") + t; }
+        else if (name == "MUSB") { musb = has ? num(val) : 1; passthru += (passthru.empty() ? "" : " ") + t; }   // DOS needs it: kept
         else if (name == "VTIMER") vtimer = num(val);
         else if (name == "VSF") sf = val;
         else if (name == "VSFVOICES") sfvoices = num(val);
@@ -149,6 +152,7 @@ std::string Options::format() const
         if (scauto != d.scauto) add("/VSCAUTO:%d", scauto);
     }
     if (scahead != d.scahead) add("/VSCAHEAD:%d", scahead);
+    if (sclpf != d.sclpf) add("/VSCLPF:%d", sclpf);
     if (vtimer != d.vtimer) add("/VTIMER:%d", vtimer);
     if (!passthru.empty()) { s += (s.empty() ? "" : " "); s += passthru; }
     return s;

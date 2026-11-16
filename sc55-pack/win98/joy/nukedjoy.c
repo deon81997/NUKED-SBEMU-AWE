@@ -7,6 +7,8 @@
  * The first Windows joystick id with this type gets NUKED joystick 1, the next one 2.
  */
 #include "../common/sc55wif.h"
+#include "../common/nsbver.h"
+const char nsb_version_tag[] = NSB_VER_TAG("NUKEDJOY.VXD");
 #ifndef NJ_BUILD
 #define NJ_BUILD 0
 #endif

@@ -3,6 +3,7 @@
 # build SC55W.VXD.  DEV=1 ./build.sh -> unique device name per build (SWnnnnn)
 set -e
 cd "$(dirname "$0")"
+sh ../tools/mkver.sh
 export WATCOM=/home/claude/ow PATH=/home/claude/ow/binl64:$PATH INCLUDE=/home/claude/ow/h
 J=/home/claude/jwasm-src/build/GccUnixR/jwasm
 $J -q -c -W2 -Fo sc55w.o sc55w.asm

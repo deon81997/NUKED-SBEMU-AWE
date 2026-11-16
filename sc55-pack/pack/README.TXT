@@ -11,7 +11,14 @@ card. Made for a Dell Latitude D810 (Pentium M, AC'97) running Windows 98,
 but it works on any PC with a PCI sound card that SBEMU supports.
 
 INSIDE WINDOWS 98 (DOS boxes and a Windows MIDI device): run SETUP98.BAT
-and see README98.TXT.
+and see README98.TXT. Since beta.130-w98.8 the Windows 98 part does what
+DOS beta.130 does where Windows lets it: MIDI output switched while a game
+plays (tray icon > MIDI to, or SC55W /MOUT:..., to the SC-55 emulation or a
+USB MIDI cable / any Windows MIDI port), the SC-55 low-pass (/VSCLPF), the
+MPU-401 intelligent-mode fixes, the pad key fixes (/JOYDZ) and /VER
+versions (SC55W /VER, VERSIONS.TXT in BUGREP). Not there because Windows
+owns that hardware: S/PDIF (use the Audigy's own Windows mixer), USB disks,
+the debug serial link, WCSET/VWC.
 
 CONTENTS
    1. What you get and what it does NOT do

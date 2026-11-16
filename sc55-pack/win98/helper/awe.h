@@ -27,4 +27,5 @@ void awe_lock();
 void awe_unlock();
 void awe_apply(const SC55W_AWEEV& e);            // one ring entry into the engine (locked)
 void awe_render(int16_t* out, int frames, int rate);
-void awe_snapshot();                             // dynamic registers for the VxD's mirror
+void awe_snapshot();
+void awe_fx(int on);                             // reverb + chorus on/off (/AWEFX), applied when it changes                             // dynamic registers for the VxD's mirror

@@ -103,3 +103,4 @@
 #define IDC_A_RAM       1402
 #define IDC_A_MPU       1403
 #define IDC_A_STAT      1404
+#define IDC_A_FX        1405

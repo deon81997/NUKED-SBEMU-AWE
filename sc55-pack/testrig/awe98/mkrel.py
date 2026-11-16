@@ -17,7 +17,7 @@ for i in z.infolist():
         out = zipfile.ZipFile(b, 'w', zipfile.ZIP_DEFLATED, compresslevel=9)
         names = [e.filename for e in sz.infolist() if not e.filename.endswith('/')]
         names += ['win98/helper/awe.cpp', 'win98/helper/awe.h', 'awe/synth/emu8k.c', 'awe/synth/emu8k.h', 'awe/synth/emu8k_rom.c']
-        for f in names:
+        for f in dict.fromkeys(names):   # once each (a zip built by this script has the AWE files already)
             src = 'sc55-pack/' + f
             if os.path.isfile(src): out.write(src, f)
             else: out.writestr(f, sz.read(f))

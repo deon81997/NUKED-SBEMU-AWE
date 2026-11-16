@@ -38,6 +38,7 @@ static Options live_blank(Options x)
     x.scfx = x.scauto = x.scahead = x.vtimer = x.sclpf = 0;
     x.sb_port = x.irq = x.dma8 = x.dma16 = x.sbtype = x.mpu_port = x.fixtc = x.opl = x.vmpu = 0;
     x.passthru.clear();
+    x.awe = x.aweram = x.awempu = x.awefx = 0; x.awerom.clear();   // AWE32: the VxD attach and awe.cpp, no synth restart
     return x;
 }
 
@@ -247,6 +248,7 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     ba.resize((size_t)frames * 2);
     ba16.resize((size_t)frames * 2);
     SC55W_AWE* aw = awe_block();
+    if (aw) awe_fx(opt.awefx);
     const double us_per_frame = 1e6 / rate;
     const uint32_t lat_us = (uint32_t)latency_ms * 1000u;
     const uint32_t target = now_us - lat_us;

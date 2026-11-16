@@ -49,5 +49,10 @@ echo "-- pitch modulation (modulation every EMU8K_CTRL samples: level within 1 d
 python3 "$T/compare.py" --min-snr 0 --max-lvl 1 $(p t02_pitch t10_modpitch) || fail=1
 echo "-- filter: 2-pole here vs 86Box 4-pole Moog (level within 6 dB)"
 python3 "$T/compare.py" --min-snr 0 --max-lvl 6 $(p t04_filter t05_lfo t07_32voices) || fail=1
-echo "-- t11_reads: read-back text compared above; t12_sends: 86Box adds reverb/chorus, ours are stubs (audio not compared)"
+echo "-- reverb (8 Creative types) and chorus (8 types): same structure as 86Box, integer (SNR >= 20 dB, level within 1 dB)"
+python3 "$T/compare.py" --min-snr 20 --max-lvl 1 $(p t12_sends t12_rev0_room1 t12_rev1_room2 t12_rev2_room3 t12_rev3_hall1 \
+  t12_rev4_hall2 t12_rev5_plate t12_rev6_delay t12_rev7_pandelay t13_cho0_chorus1 t13_cho1_chorus2 t13_cho2_chorus3 \
+  t13_cho3_chorus4 t13_cho4_feedback t13_cho5_flanger t13_cho6_shortdelay t13_cho7_shortdelayfb) || fail=1
+python3 "$T/fxcmp.py" "$W/ours" "$W/ref"
+echo "-- t11_reads: read-back text compared above"
 [ $fail = 0 ] && echo PASS || echo FAIL

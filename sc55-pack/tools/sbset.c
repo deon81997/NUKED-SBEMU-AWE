@@ -261,6 +261,7 @@ static int using_sc55(void) { return mpu_synth() == 0; }
 static int is_sc_field(int i) { return i >= F_ROMSET && i <= F_SCAUTO; }
 static int is_sf_field(int i) { return i >= F_SF && i <= F_SEND; }
 
+static int g_awefx0;    /* /AWEFX:0 seen: kept on the line while the AWE32 is on (no field for it) */
 static void build_line(char* out)
 {
     int i; out[0] = 0;
@@ -272,7 +273,7 @@ static void build_line(char* out)
         if (is_sc_field(i) && !using_sc55() && !(i == F_SCGAIN && !using_sf())) continue; /* SC-55 settings only with the SC-55 (its gain also sets the MT-32's) */
         if (i == F_MPU && awe_on())                      /* AWE32: EMU8000 at 620h, SB16; the MPU-401 keeps its synth */
         {
-            sprintf(t, "%s/AWE:620%s", out[0] ? " " : "", mpu_synth() == 5 ? " /AWEMPU:0" : "");
+            sprintf(t, "%s/AWE:620%s%s", out[0] ? " " : "", mpu_synth() == 5 ? " /AWEMPU:0" : "", g_awefx0 ? " /AWEFX:0" : "");
             strcat(out, t);
         }
         if (i == F_MPU && mpu_synth() == 4)              /* USB MIDI device: SBEMU's USB host sends the MPU-401's MIDI */
@@ -324,6 +325,7 @@ static void parse_tokens(char* s)
             F[F_AWEMPU].cur = g_awempu0 ? 5 : F[F_SYNTH].cur; F[F_SYNTH].cur = 5;
         }
         if (!strcasecmp(tok, "/AWEMPU:0")) { g_awempu0 = 1; F[F_AWEMPU].cur = 5; }
+        if (!strcasecmp(tok, "/AWEFX:0")) g_awefx0 = 1;
         if (!strncasecmp(tok, "/VSF:", 5))
         {
             strncpy(g_sf, tok + 5, sizeof g_sf - 1);

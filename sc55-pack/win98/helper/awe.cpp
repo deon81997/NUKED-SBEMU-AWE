@@ -60,6 +60,14 @@ void awe_apply(const SC55W_AWEEV& e)
 
 void awe_render(int16_t* out, int frames, int rate) { emu8k_render(out, frames, rate); }
 
+void awe_fx(int on)
+{
+    static int cur = -1;
+    if (on == cur) return;
+    awe_lock(); emu8k_set_fx(on); awe_unlock();
+    cur = on;
+}
+
 void awe_snapshot()
 {
     if (!B) return;

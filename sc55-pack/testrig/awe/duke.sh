@@ -20,6 +20,7 @@ LG=REM; [ -n "${LOG:-}" ] && LG='SET SBEMULOG=C:\SBLOG.TXT'   # LOG=1: SBEMU sta
 printf "@ECHO OFF\r\nPATH C:\\\\DOS\r\n$LG\r\n$Q\r\nC:\\\\SC55\\\\HDPMI32I -r\r\nCD \\\\SC55\r\nSBEMU ${OPTS:-/A220 /I5 /D1 /H5 /T6 /AWE:620 /AWERAM:1024 /JOY:1} > C:\\\\SB.TXT\r\nSBDIAG START > NUL\r\nCD \\\\DUKE\r\nDUKE3D\r\nC:\\\\SC55\\\\SBDIAG > C:\\\\DIAG.TXT\r\nECHO DONE > C:\\\\DONE.TXT\r\n" > $V/c/AUTOEXEC.BAT
 mcopy -o -s -i $V/hd.img@@32256 $V/c/* ::/
 sed -e 's#^hdd_01_fn = .*#hdd_01_fn = hd.img#' -e 's/^hdd_01_parameters = .*/hdd_01_parameters = 63, 16, 2080, 0, ide/' $TR/86box/p2bls-uhci.cfg > $V/86box.cfg
+[ "${MHZ:-}" = 450 ] && sed -i -e 's/^cpu_speed = .*/cpu_speed = 450000000/' -e 's/^cpu_multi = .*/cpu_multi = 4.5/' $V/86box.cfg || true   # MHZ=450: Pentium II 450 for speed runs
 echo 'lx=0 ly=0 rx=0 ry=0 lt=0 rt=0 buttons=0' > $V/xpad1.st; echo "export XPAD=1 XPAD_STATE=$V/xpad1.st" > $V/env
 bash $TR/86box/run.sh $V > /dev/null
 QUIT=1 python3 $H/drv.py $V $SECS > $V/drv.log 2>&1 || true

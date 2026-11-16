@@ -39,6 +39,7 @@ struct Options {
     int aweram    = 512;     // /AWERAM KB 0-28672 (AWE32 = 512)
     int awempu    = 1;       // /AWEMPU: 1 = the MPU-401 keeps its synth (SC-55 ...), 0 = MPU silent
     std::string awerom;      // /AWEROM file or folder, "" = the ROM folder (by content)
+    int awefx     = 1;       // /AWEFX: EMU8000 reverb + chorus, 0 = dry
     std::string sf;          // /VSF SoundFont file
     int sfvoices  = 64;      // /VSFVOICES
     std::string mt32;        // /VMT32 AUTO|MT32|CM32L

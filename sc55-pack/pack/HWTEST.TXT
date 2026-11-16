@@ -1,6 +1,18 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.3)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.4)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.4 AWE32 reverb + chorus (D810 and P5PE-VM; AWE32.RAW in
+    C:\SC55\ROMS). DOS: SC55 with the AWE32 on (SETTINGS > MIDI synth >
+    AWE32). 1) Duke 3D, music AWE32: the music has a room/hall echo after the
+    notes (compare: SBEMU /AWEFX:0 at the DOS prompt = dry, SBEMU /AWEFX:1 =
+    back on, both at once while SBEMU runs). 2) Run AWEUTIL /S (if you have
+    it) or a game with an effects menu and try Hall 2 / Plate / Delay and
+    Chorus 3 / Flanger: each sounds different, no crackle, no endless echo.
+    3) SBDIAG after 2 minutes of Duke: "AWE32 needs" about 4% or less on the
+    P5PE-VM (Pentium 4), more on the D810 is fine below 10%. 4) Windows 98:
+    the same Duke test in a DOS box; Settings > AWE32 > "Reverb and chorus"
+    off/on while it plays. Send SBDIAG.TXT / SC55W.LOG.
 
 [ ] beta.130-awe.3 AWE32 in Windows 98 DOS boxes (D810 and P5PE-VM, Windows
     98, SETUP98.BAT run again, Windows restarted, AWE32.RAW in C:\SC55\ROMS).

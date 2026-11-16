@@ -2052,7 +2052,7 @@ static void awe_page_status(HWND p)
 static void awe_page_enable(HWND p)
 {
     bool on = checked(p, IDC_A_ON);
-    for (int id : {IDC_A_PORT, IDC_A_RAM, IDC_A_MPU}) EnableWindow(GetDlgItem(p, id), on);
+    for (int id : {IDC_A_PORT, IDC_A_RAM, IDC_A_MPU, IDC_A_FX}) EnableWindow(GetDlgItem(p, id), on);
 }
 
 static void awe_page_read(Options& o)
@@ -2062,6 +2062,7 @@ static void awe_page_read(Options& o)
     o.awe = checked(p, IDC_A_ON) ? cb_get(p, IDC_A_PORT, 0x620) : 0;
     o.aweram = cb_get(p, IDC_A_RAM, 512);
     o.awempu = checked(p, IDC_A_MPU);
+    o.awefx = checked(p, IDC_A_FX);
     if (o.awe) o.sbtype = 6;
 }
 
@@ -2079,6 +2080,7 @@ static INT_PTR CALLBACK awe_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
         cb_select(p, IDC_A_PORT, g_dlg_opt.awe ? g_dlg_opt.awe : 0x620);
         cb_select(p, IDC_A_RAM, g_dlg_opt.aweram);
         check(p, IDC_A_MPU, g_dlg_opt.awempu != 0);
+        check(p, IDC_A_FX, g_dlg_opt.awefx != 0);
         awe_page_enable(p);
         awe_page_status(p);
         SetTimer(p, 1, 1000, NULL);

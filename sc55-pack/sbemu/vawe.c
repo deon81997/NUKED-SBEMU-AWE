@@ -140,6 +140,7 @@ void VAWE_Close(void)
 }
 
 int VAWE_Enabled(void) { return VAWE_On; }
+void VAWE_SetFx(int on) { emu8k_set_fx(on); }   /* reverb + chorus; works before VAWE_Init too */
 int VAWE_Base(void) { return VAWE_BasePort; }
 uint32_t VAWE_Accesses(void) { return VAWE_Count; }
 

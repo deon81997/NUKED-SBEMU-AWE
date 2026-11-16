@@ -1203,6 +1203,7 @@ struct MAIN_OPT
     "/AWERAM", "AWE sample RAM in KB (0-28672; AWE32 = 512, AWE64 Gold = 4096)", 512, MAIN_SETCMD_BASE10,
     "/AWEROM", "AWE ROM: a 1 MB EMU8000 ROM dump, or a folder searched by content (default: ROMS, then AWE)", (uintptr_t)"", MAIN_SETCMD_STR,
     "/AWEMPU", "With /AWE the MPU-401 keeps its synth (SC-55, SoundFont, MT-32, USB MIDI), like an AWE32 with a Sound Canvas on its MIDI port. 0 = AWE only, MPU silent", 1, MAIN_SETCMD_BASE10,
+    "/AWEFX", "With /AWE the EMU8000's reverb and chorus (as the game or AWEUTIL sets them; 0 = off, dry, a little less CPU). Changes at once when SBEMU runs again", 1, MAIN_SETCMD_BASE10,
     NULL, NULL, 0,
 };
 enum EOption
@@ -1289,6 +1290,7 @@ enum EOption
     OPT_AWERAM,
     OPT_AWEROM,
     OPT_AWEMPU,
+    OPT_AWEFX,
     OPT_COUNT,
 };
 
@@ -2544,6 +2546,7 @@ int main(int argc, char* argv[])
     {
         MAIN_Step("AWE32 init");
         int romok = 0; char romname[128];
+        VAWE_SetFx((int)MAIN_Options[OPT_AWEFX].value);
         if(VAWE_Init(MAIN_Options[OPT_AWE].value, MAIN_Options[OPT_AWERAM].value, (const char*)MAIN_Options[OPT_AWEROM].value, &romok, romname, sizeof romname) != 0)
         {
             MAIN_CPrintf(RED, "Error: Not enough memory for the AWE32 (/AWERAM:%d needs about %d KB).\n", (int)MAIN_Options[OPT_AWERAM].value, (int)MAIN_Options[OPT_AWERAM].value + 1300);
@@ -2564,7 +2567,8 @@ int main(int argc, char* argv[])
                 return 1;
             }
         }
-        printf("AWE32 EMU8000 emulation at address %x, %d KB RAM, ROM: %s: ", MAIN_Options[OPT_AWE].value, (int)MAIN_Options[OPT_AWERAM].value,
+        printf("AWE32 EMU8000 emulation at address %x, %d KB RAM%s, ROM: %s: ", MAIN_Options[OPT_AWE].value, (int)MAIN_Options[OPT_AWERAM].value,
+            MAIN_Options[OPT_AWEFX].value ? "" : ", no reverb/chorus (/AWEFX:0)",
             romok ? romname : "not found (put AWE32.RAW / AWEROM.BIN into ROMS; games that load their own samples still play)");
         MAIN_Print_Enabled_Newline(true);
         if(!MAIN_Options[OPT_AWEMPU].value)
@@ -3940,6 +3944,11 @@ static void MAIN_TSR_Interrupt()
             {
                 update_serial_debug_output();
                 if(DBGL_On && !MAIN_Int28On) MAIN_Int28On = DPMI_InstallRealModeISR(0x28, MAIN_Int28, &MAIN_Int28REG, &MAIN_Int28Handle, FALSE) == 0;
+            }
+            if(OPT_CHANGED(OPT_AWEFX))
+            {   /* reverb/chorus on/off: at once */
+                VAWE_SetFx((int)MAIN_Options[OPT_AWEFX].value);
+                if(VAWE_Enabled()) printf("AWE32 reverb and chorus %s.\n", MAIN_Options[OPT_AWEFX].value ? "on" : "off");
             }
             if(OPT_CHANGED(OPT_AWE) || OPT_CHANGED(OPT_AWERAM) || OPT_CHANGED(OPT_AWEROM) || OPT_CHANGED(OPT_AWEMPU))
             {   /* the EMU8000's memory and port traps are set up when SBEMU loads: keep what is running */

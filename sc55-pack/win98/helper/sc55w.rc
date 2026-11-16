@@ -154,7 +154,8 @@ BEGIN
     LTEXT           "Sample RAM", -1, 14, 35, 60, 8
     COMBOBOX        IDC_A_RAM, 80, 33, 110, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     AUTOCHECKBOX    "MPU-401 keeps its synth (SC-55 / SoundFont / MT-32), like an AWE32 with a Sound Canvas on its MIDI port", IDC_A_MPU, 14, 51, 370, 10
-    LTEXT           "", IDC_A_STAT, 4, 68, 378, 50, SS_NOPREFIX | SS_SUNKEN
+    AUTOCHECKBOX    "Reverb and chorus (as the game or AWEUTIL sets them; off = dry, a little less CPU)", IDC_A_FX, 14, 63, 370, 10
+    LTEXT           "", IDC_A_STAT, 4, 78, 378, 44, SS_NOPREFIX | SS_SUNKEN
     LTEXT           "ROM: a 1 MB EMU8000 ROM dump (for example 86Box's awe32.raw) in the ROM folder, found by its content. Games: run AWEUTIL /S or the game's AWE32 setup as on a real AWE32; command line: SC55W /AWE:620 /AWERAM:512 /AWEMPU:1.", -1, 4, 124, 378, 26
 END
 

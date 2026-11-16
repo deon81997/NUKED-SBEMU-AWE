@@ -13,6 +13,7 @@ extern "C" {
 
 /* base 620h/640h/660h/680h; ram_kb 0..28672; rom = file, folder (searched by content) or NULL.
  * Returns 0 = ok (rom_found tells whether ROM samples are there), -1 = out of memory. */
+void VAWE_SetFx(int on);
 int  VAWE_Init(int base, int ram_kb, const char* rom, int* rom_found, char* rom_used, int rom_used_len);
 void VAWE_Close(void);
 int  VAWE_Enabled(void);

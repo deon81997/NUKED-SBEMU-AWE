@@ -17,6 +17,7 @@ uint32_t emu8k_read(int reg, int channel);
 void     emu8k_ram_write(uint32_t addr, uint16_t word); /* word address, RAM at 0x200000 */
 uint16_t emu8k_ram_read(uint32_t addr);
 void     emu8k_render(int16_t *stereo, int frames, int rate); /* any rate; engine 44.1 kHz */
+void     emu8k_set_fx(int on);                       /* reverb + chorus, 1 = on (default) */
 int      emu8k_load_rom(const char *path);           /* AWEROM.BIN or ROM-layout .SF2   */
 ```
 
@@ -52,7 +53,7 @@ Memory: about 250 KB static tables/state, 1 MB ROM, plus sample RAM.
 | Mod envelope -> pitch/cutoff, LFO1 (vibrato, tremolo, filter), LFO2 | Done |
 | Resonant low-pass (Q 0-15, cutoff 125 Hz-8 kHz) | Done, 2-pole (see deviations) |
 | Pan, HWCF3 mute, DMA-voice mute | Done |
-| Reverb / chorus | Stub: sends and INIT/HWCF parameters stored, no effect output |
+| Reverb / chorus | Done (awe.4): 86Box's structure (6 damped reflections + 2 diffused tails; 2-tap LFO chorus with feedback), integer; the 8 Creative reverb and 8 chorus types match 86Box at 40-54 dB SNR (test t12_rev*, t13_cho*, fxcmp.py). `emu8k_set_fx(0)` = dry |
 | ROM: raw dump / AWE-DUMP offset / ROM-layout SF2 | Done |
 | ROM from an arbitrary GM SoundFont (remap to SYNTHGM ROM sample slots) | Not done (needs a SYNTHGM ROM sample map) |
 | Capture of real-game register logs from 86Box | Not done here (no AWE games in the rig yet) |

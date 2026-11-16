@@ -15,6 +15,20 @@
         mov cx, 31 | 1 << 5
         mov ax, 0004h
         call wr
+%ifdef FX
+        ; reverb Hall 2 + chorus 3 as Creative's drivers program them (testrig/awe AWELOADFX.COM: nasm -DFX)
+        mov si, fxtab
+.fx:    lodsw
+        or ax, ax
+        jz .fxd
+        mov bx, ax
+        lodsw
+        mov cx, ax
+        lodsw
+        call wr
+        jmp .fx
+.fxd:
+%endif
         xor di, di              ; channel
 .ch:    mov si, tab
 .e:     lodsw                   ; port (0 = end)
@@ -69,8 +83,13 @@ tab:    dw 0A20h, 5 << 5, 0080h        ; DCYSUSV: envelope off while setting up
         dw 0620h, 6 << 5, 1000h        ; PSST low: loop start 001000h
         dw 0622h, 6 << 5, 8000h        ; PSST high: pan 80h
         dw 0620h, 7 << 5, 9000h        ; CSL low: loop end 009000h
+%ifdef FX
+        dw 0622h, 7 << 5, 0FF00h       ; CSL high: chorus send FFh
+        dw 0620h, 1 << 5, 0FF00h       ; PTRX low: reverb send FFh
+%else
         dw 0622h, 7 << 5, 0000h        ; CSL high
         dw 0620h, 1 << 5, 0000h        ; PTRX low
+%endif
         dw 0622h, 1 << 5, 4000h        ; PTRX high: pitch target 4000h
         dw 0620h, 0 << 5, 0000h        ; CPF low
         dw 0622h, 0 << 5, 4000h        ; CPF high: current pitch 4000h
@@ -82,3 +101,17 @@ tab:    dw 0A20h, 5 << 5, 0080h        ; DCYSUSV: envelope off while setting up
         dw 0A22h, 0 << 5, 0000h        ; CCCA high: Q 0
         dw 0
 msg     db 'AWELOAD: 16 AWE32 voices playing', 13, 10, '$'
+
+%ifdef FX
+; port, pointer (channel | reg << 5), value: INIT1 = A20h r2, INIT2 = A22h r2, INIT3 = A20h r3, INIT4 = A22h r3
+fxtab:  dw 0A20h, 2<<5|03h, 0B488h, 0A20h, 2<<5|05h, 0A470h, 0A22h, 3<<5|1Fh, 09570h, 0A20h, 2<<5|07h, 084B5h
+        dw 0A22h, 2<<5|14h, 0383Ah, 0A22h, 2<<5|16h, 03EB5h, 0A20h, 2<<5|0Fh, 07254h, 0A20h, 2<<5|17h, 07234h
+        dw 0A20h, 2<<5|1Fh, 07224h, 0A22h, 2<<5|07h, 07254h, 0A22h, 2<<5|0Fh, 07264h, 0A22h, 2<<5|17h, 07294h
+        dw 0A22h, 2<<5|1Dh, 044C3h, 0A22h, 2<<5|1Fh, 045C3h, 0A20h, 3<<5|01h, 0A404h, 0A20h, 3<<5|03h, 0A504h
+        dw 0A20h, 2<<5|09h, 0842Ah, 0A20h, 2<<5|0Bh, 0852Ah, 0A20h, 2<<5|11h, 0842Ah, 0A20h, 2<<5|13h, 0852Ah
+        dw 0A20h, 2<<5|19h, 08429h, 0A20h, 2<<5|1Bh, 08529h, 0A22h, 2<<5|01h, 08429h, 0A22h, 2<<5|03h, 08529h
+        dw 0A22h, 2<<5|09h, 08428h, 0A22h, 2<<5|0Bh, 08528h, 0A22h, 2<<5|11h, 08428h, 0A22h, 2<<5|13h, 08528h
+        dw 0A20h, 3<<5|09h, 0E610h, 0A20h, 3<<5|0Ch, 0031Ah, 0A22h, 3<<5|03h, 0BC84h
+        dw 0A20h, 1<<5|09h, 0, 0A22h, 1<<5|09h, 0, 0A20h, 1<<5|0Ah, 0083h, 0A22h, 1<<5|0Ah, 0
+        dw 0
+%endif

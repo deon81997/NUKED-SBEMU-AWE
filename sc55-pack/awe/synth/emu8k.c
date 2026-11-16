@@ -5,6 +5,11 @@
  * integer arithmetic. Floating point is used only to build tables in
  * emu8k_init(); the per-sample loop is integer only.
  *
+ * Reverb and chorus (fx_*): the effect structure, register meanings and
+ * parameter scaling are 86Box's (src/sound/snd_emu8k.c, the 86Box/PCem
+ * contributors, GPL-2.0-or-later, as this file), in integer arithmetic,
+ * programmed by the INIT1-4 / HWCF4-5 values Creative's drivers write.
+ *
  * Engine rate: 44100 Hz, 32 voices. Modulation (envelopes, LFOs, targets)
  * is computed every EMU8K_CTRL samples (default 16, 1 = per sample like
  * 86Box); volume slides, pitch and filter apply per sample.
@@ -78,6 +83,9 @@ typedef struct {
     int16_t  rs_prev[2];
     int      ok;
     int      ext;               /* rom/ram belong to the caller (emu8k_init_mem) */
+    struct fx_t *fx;            /* reverb + chorus state (calloc) */
+    int      fx_off;            /* emu8k_set_fx(0) */
+    int32_t  rev_hold, cho_hold; /* samples reverb / chorus still run (their sends seen recently: the tails) */
 } emu8k_t;
 
 static emu8k_t E;
@@ -107,12 +115,18 @@ static const int16_t t_decay[128] = {
      553,  580,  602,  634,  660,  689,  721,  755,  780,  820,  849,  897,  932,  970, 1012, 1057,
     1106, 1160, 1219, 1285, 1321, 1399, 1441, 1534, 1585, 1640, 1698, 1829, 1902, 1981, 2068, 2162 };
 static int tables_done;
+static int16_t t_sin[4096];                /* chorus LFO, Q15 */
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 static void build_tables(void)
 {
     int i, q;
     if (tables_done)
         return;
+    for (i = 0; i < 4096; i++)
+        t_sin[i] = (int16_t) floor(sin(i * M_PI / 2048.0) * 32767.0 + 0.5);
     for (i = 0; i < 4096; i++)
         t_exp2[i] = (uint32_t) (pow(2.0, i / 4096.0) * 65536.0 + 0.5);
     for (i = 0; i <= 4096; i++)
@@ -392,6 +406,233 @@ static void lfo_reset(voice_t *v)
     v->lfo2_delay = (v->lfo2val & 0x8000) ? 0 : (int32_t) ((0x8000 - (v->lfo2val & 0x7FFF)) << 5);
 }
 
+/* ---- reverb and chorus (structure and scaling as 86Box's snd_emu8k.c) ---- */
+#define REV_STEP  242                       /* delay unit, samples */
+#define CHO_SIZE  16384                     /* chorus delay line, samples (power of 2) */
+#define FX_HOLD   (44100 * 4)               /* keep running this long after the last send (tails) */
+typedef struct { int32_t *b; int size, pos; int32_t fs, gain, fb, d1, d2; } comb_t;   /* Q12 coefficients */
+#define REV_SH 0   /* sends as they are, clamped to +-2^18 so the Q12 products stay in 32 bits (>> 3 cost 10 dB of tail) */
+typedef struct fx_t {
+    comb_t  refl[6], tail[2], diff[4], damper;  /* diff: tail L = 0,1  tail R = 2,3 */
+    int32_t out_mix, link_amp, in_amp;           /* 0..255 */
+    int     link_type;                           /* 1 = panned (0x8474 in INIT1 ch 7) */
+    int32_t cfb, central, depth;                 /* chorus: feedback 0..255, delay, LFO depth (samples) */
+    int32_t right16;                             /* right channel extra delay, 16.16 samples */
+    uint32_t lfo, lfo_inc;                       /* phase, 2^32 = one period */
+    int     w;
+    int32_t cl[CHO_SIZE], cr[CHO_SIZE];
+    int32_t mem[];                               /* comb/tail/diffuser lines */
+} fx_t;
+
+static inline int32_t mulq(int32_t a, int32_t b) { return (a * b) >> 12; }
+static int32_t q15(double x) { return (int32_t) floor(x * 4096.0 + 0.5); }   /* Q12 */
+
+/* The delay elements run over a whole block each, in at most two runs without a wrap check (every line is longer
+ * than a block); same arithmetic as per sample. d1 + d2 = 1, so the damped sum stays in 32 bits. */
+static void comb_blk(comb_t *c, const int32_t *in, int32_t *acc, int n)
+{
+    int32_t fs = c->fs;
+    const int32_t g = c->gain, fb = c->fb, d1 = c->d1, d2 = c->d2;
+    while (n > 0) {
+        int k = c->size - c->pos, i;
+        int32_t *p = c->b + c->pos;
+        if (k > n) k = n;
+        for (i = 0; i < k; i++) {
+            int32_t out = p[i];
+            fs = (out * d2 + fs * d1) >> 12;                 /* low-pass in the loop */
+            p[i] = in[i] - mulq(fs, fb);
+            acc[i] += mulq(out, g);
+        }
+        c->pos += k; if (c->pos >= c->size) c->pos = 0;
+        in += k; acc += k; n -= k;
+    }
+    c->fs = fs;
+}
+
+static void diff_blk(comb_t *c, int32_t *x, int n)     /* in place */
+{
+    const int32_t fb = c->fb;
+    while (n > 0) {
+        int k = c->size - c->pos, i;
+        int32_t *p = c->b + c->pos;
+        if (k > n) k = n;
+        for (i = 0; i < k; i++) {
+            int32_t bo = p[i], bi = mulq(bo, fb) - x[i];
+            p[i] = bi;
+            x[i] = bo - mulq(bi, fb);
+        }
+        c->pos += k; if (c->pos >= c->size) c->pos = 0;
+        x += k; n -= k;
+    }
+}
+
+/* tail: plain delay of (in + early reflections), two diffusers, added at link_amp */
+static void tail_blk(comb_t *t, comb_t *d, const int32_t *in, int32_t *acc, int32_t amp, int n)
+{
+    int32_t x[BLOCK], *b = t->b;
+    int pos = t->pos, size = t->size, i;
+    for (i = 0; i < n; i++) {
+        x[i] = b[pos];
+        b[pos] = in[i] + acc[i];
+        if (++pos >= size) pos = 0;
+    }
+    t->pos = pos;
+    diff_blk(&d[0], x, n);
+    diff_blk(&d[1], x, n);
+    for (i = 0; i < n; i++) acc[i] += (x[i] * amp) >> 8;
+}
+
+static void fx_reset(fx_t *f)
+{
+    static const int rs[6] = { 2, 4, 8, 13, 19, 26 };   /* reflection lengths x REV_STEP (6th: room size) */
+    int32_t *m = f->mem;
+    int i;
+    for (i = 0; i < 6; i++) { f->refl[i].b = m; m += 34 * REV_STEP; f->refl[i].size = rs[i] * REV_STEP; }
+    for (i = 0; i < 2; i++) { f->tail[i].b = m; m += 34 * REV_STEP; f->tail[i].size = 27 * REV_STEP; }
+    for (i = 0; i < 4; i++) {
+        f->diff[i].b = m; m += 8 * REV_STEP + 55;
+        f->diff[i].size = (i & 1) ? 4 * REV_STEP + 55 : 8 * REV_STEP + 55;   /* 86Box allpass[1], [2] */
+        f->diff[i].fb = 1 << 11;   /* 0.5 until INIT1 ch 5 */
+    }
+}
+#define FX_MEM ((6 * 34 + 2 * 34) * REV_STEP + 4 * (8 * REV_STEP + 55))
+
+static fx_t *fx_new(void)
+{
+    fx_t *f = (fx_t *) calloc(1, sizeof(fx_t) + FX_MEM * sizeof(int32_t));
+    if (f) fx_reset(f);
+    return f;
+}
+
+/* INIT1-4 (effect registers per "channel" index) and HWCF4/5 writes, as 86Box: ignored while INIT1[0]
+ * is 03FFh (the first two passes of the init sequence) */
+static void fx_reg(int reg, int ch, uint16_t w)
+{
+    fx_t *f = E.fx;
+    int i, mult;
+    if (!f || E.init1[0] == 0x03FF) return;
+    switch (reg) {
+    case EMU8K_INIT1:
+        switch (ch) {
+        case 0x03: f->out_mix = w & 0xFF; break;
+        case 0x05: for (i = 0; i < 4; i++) f->diff[i].fb = q15((w & 0xFF) / 255.0); break;
+        case 0x07: f->link_type = w == 0x8474; break;
+        case 0x0F: f->refl[0].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x17: f->refl[1].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x1F: f->refl[2].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x09: f->refl[0].fb = q15((w & 15) / 15.0); break;
+        case 0x11: f->refl[1].fb = q15((w & 15) / 15.0); break;
+        case 0x19: f->refl[2].fb = q15((w & 15) / 15.0); break;
+        }
+        return;
+    case EMU8K_INIT2:
+        switch (ch) {
+        case 0x14:
+            mult = ((w >> 8) & 15) + 18;
+            f->refl[5].size = mult * REV_STEP; f->refl[5].pos = 0;
+            f->tail[0].size = (mult + 1) * REV_STEP; f->tail[0].pos = 0;
+            if (!f->link_type) { f->tail[1].size = (mult + 1) * REV_STEP; f->tail[1].pos = 0; }
+            break;
+        case 0x16:
+            if (f->link_type) { f->tail[1].size = (((w >> 8) & 15) + 19) * REV_STEP; f->tail[1].pos = 0; }
+            break;
+        case 0x07: f->refl[3].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x0F: f->refl[4].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x17: f->refl[5].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x1D:
+            for (i = 0; i < 6; i++) { f->refl[i].d1 = q15((w & 0xFF) / 255.0); f->refl[i].d2 = q15((0xFF - (w & 0xFF)) / 255.0); f->refl[i].fs = 0; }
+            f->damper.d1 = f->refl[0].d1; f->damper.d2 = f->refl[0].d2; f->damper.fs = 0;
+            break;
+        case 0x01: f->refl[3].fb = q15((w & 15) / 15.0); break;
+        case 0x09: f->refl[4].fb = q15((w & 15) / 15.0); break;
+        case 0x11: f->refl[5].fb = q15((w & 15) / 15.0); break;
+        }
+        return;
+    case EMU8K_INIT3:
+        if (ch == 0x09) f->cfb = w & 0xFF;
+        else if (ch == 0x0C) f->central = w & 0x1FFF;
+        else if (ch == 0x01) f->in_amp = w & 0xFF;
+        return;
+    case EMU8K_INIT4:
+        if (ch == 0x03) f->depth = ((w & 0xFF) * f->central) >> 8;
+        else if (ch == 0x1F) f->link_amp = w & 0xFF;
+        return;
+    }
+}
+
+static void fx_hwcf(void)
+{
+    fx_t *f = E.fx;
+    if (!f || E.init1[0] == 0x03FF) return;
+    f->right16 = (int32_t) ((E.hwcf4 & 0x1FFFFF) << 8);                      /* 1/256 sample units */
+    f->lfo_inc = (uint32_t) (E.hwcf5 * (4294967296.0 / 1000.0 / 44100.0));  /* milli-Hz */
+}
+
+static inline int32_t cho_tap(const int32_t *b, int32_t p16)
+{
+    int i;
+    i = (p16 >> 16) & (CHO_SIZE - 1);   /* two's complement: a negative position wraps by itself */
+    return b[i] + (((b[(i + 1) & (CHO_SIZE - 1)] - b[i]) * ((p16 >> 8) & 0xFF)) >> 8);   /* 1/256 sample steps */
+}
+
+static int32_t lfo_off(fx_t *f, uint32_t ph)           /* chorus LFO offset, 16.16 samples */
+{
+    int32_t s0 = t_sin[ph >> 20], s1 = t_sin[((ph >> 20) + 1) & 4095];
+    return (s0 + (int32_t) (((int64_t) (s1 - s0) * ((ph >> 4) & 0xFFFF)) >> 16)) * f->depth * 2;
+}
+
+/* rv / cv: mono reverb and chorus sends for n (<= BLOCK) samples; the wet signal is added to mix */
+static void fx_run(fx_t *f, const int32_t *rv, const int32_t *cv, int32_t *mix, int n, int do_rev, int do_cho)
+{
+    int32_t in[BLOCK], in2[BLOCK], a[BLOCK], b[BLOCK], fs = f->damper.fs, o0, o1, step, base0;
+    const int32_t d1 = f->damper.d1, d2 = f->damper.d2, amp = f->in_amp, om = f->out_mix;
+    int i, w;
+    if (!do_rev) goto chorus;
+    /* reverb: input low-pass, 6 early reflections (combs), two tails (delay + 2 diffusers) */
+    for (i = 0; i < n; i++) {
+        int32_t x = rv[i] >> REV_SH;
+        x = x > 262143 ? 262143 : x < -262144 ? -262144 : x;   /* 8x full scale: the Q12 products fit */
+        fs = (x * d2 + fs * d1) >> 12;
+        in[i] = fs;
+        in2[i] = (fs * amp) >> 8;
+    }
+    f->damper.fs = fs;
+    memset(a, 0, sizeof(int32_t) * n);
+    if (f->link_type) {                                  /* panned: reflections 3 and 5 left, the rest right */
+        memset(b, 0, sizeof(int32_t) * n);
+        comb_blk(&f->refl[0], in2, b, n); comb_blk(&f->refl[1], in2, b, n); comb_blk(&f->refl[2], in2, a, n);
+        comb_blk(&f->refl[3], in2, b, n); comb_blk(&f->refl[4], in2, a, n); comb_blk(&f->refl[5], in2, b, n);
+    } else {
+        for (i = 0; i < 6; i++) comb_blk(&f->refl[i], in2, a, n);
+        memcpy(b, a, sizeof(int32_t) * n);
+    }
+    tail_blk(&f->tail[0], &f->diff[0], in, a, f->link_amp, n);
+    tail_blk(&f->tail[1], &f->diff[2], in, b, f->link_amp, n);
+    for (i = 0; i < n; i++) {
+        mix[2 * i] += (a[i] * om) >> (8 - REV_SH);
+        mix[2 * i + 1] += (b[i] * om) >> (8 - REV_SH);
+    }
+chorus:
+    if (!do_cho) return;
+    /* chorus: two taps around the central delay moved by a sine LFO (linear over the block), the right one
+       later by HWCF4; feedback into both lines */
+    o0 = lfo_off(f, f->lfo);
+    f->lfo += f->lfo_inc * (uint32_t) n;
+    o1 = lfo_off(f, f->lfo);
+    step = (o1 - o0) / n;
+    w = f->w;
+    base0 = (f->central << 16) + o0;
+    for (i = 0; i < n; i++) {
+        int32_t p = (w << 16) - base0 - step * i, l = cho_tap(f->cl, p), r = f->right16 ? cho_tap(f->cr, p - f->right16) : cho_tap(f->cr, p);
+        f->cl[w] = cv[i] + ((l * f->cfb) >> 8);
+        f->cr[w] = cv[i] + ((r * f->cfb) >> 8);
+        w = (w + 1) & (CHO_SIZE - 1);
+        mix[2 * i] += l;
+        mix[2 * i + 1] += r;
+    }
+    f->w = w;
+}
+
 /* ---- render ---- */
 static inline int32_t mul14(int32_t a, int32_t b)
 {
@@ -408,15 +649,19 @@ static inline int32_t mul14(int32_t a, int32_t b)
  * mem = sample memory with mem[pos] valid for the whole run (checked by
  * the caller), or NULL for the slow per-word lookup. */
 static inline __attribute__((always_inline)) void
-voice_run(voice_t *v, int32_t *mix, const uint16_t *mem, int m, const int FILT)
+voice_run(voice_t *v, int32_t *mix, int32_t *rv, int32_t *cv, const uint16_t *mem, int m, const int FILT, const int FX)
 {
     uint32_t pos = v->pos, frac = v->frac, pitch = v->cur_pitch, pt = v->pitch_t;
     uint32_t le = v->loop_end, span = v->loop_end - v->loop_start;
     int32_t vol = v->cur_vol, vt = v->vol_t, gl, gr;
     int32_t x1 = v->x1, x2 = v->x2, y1 = v->y1, y2 = v->y2;
     const int32_t *k = t_filt[v->q][v->cur_cut >> 8], *kt = t_filt[v->q][v->cut_t >> 8];
+    /* effect sends (FX): mono, after volume, before pan - PTRX bits 15-8 reverb, CSL bits 31-24 chorus */
+    const int32_t rs = (int32_t) ((v->ptrx >> 8) & 0xFF), cs = (int32_t) (v->csl >> 24);
+    int32_t grv = 0, gcv = 0;
     gl = (vol * v->pan_l) >> 9;
     gr = (vol * v->pan_r) >> 9;
+    if (FX) { grv = (vol * rs) >> 8; gcv = (vol * cs) >> 8; }
     while (m-- > 0) {
         if (vol) {
             int32_t d;
@@ -444,8 +689,13 @@ voice_run(voice_t *v, int32_t *mix, const uint16_t *mem, int m, const int FILT)
             }
             mix[0] += (d * gl) >> 15;
             mix[1] += (d * gr) >> 15;
+            if (FX) {
+                rv[0] += (d * grv) >> 16;
+                cv[0] += (d * gcv) >> 16;
+            }
         }
         mix += 2;
+        if (FX) { rv++; cv++; }
         frac += pitch << 2;
         pos = (pos + (frac >> 16)) & ADDR_MASK;
         frac &= 0xFFFF;
@@ -458,6 +708,7 @@ voice_run(voice_t *v, int32_t *mix, const uint16_t *mem, int m, const int FILT)
             else { vol -= 0x400; if (vol < vt) vol = vt; }
             gl = (vol * v->pan_l) >> 9;
             gr = (vol * v->pan_r) >> 9;
+            if (FX) { grv = (vol * rs) >> 8; gcv = (vol * cs) >> 8; }
         }
     }
     v->pos = pos; v->frac = frac; v->cur_pitch = pitch; v->cur_vol = vol;
@@ -500,7 +751,8 @@ static void advance_only(voice_t *v, int n)
     }
 }
 
-static void render_voice(voice_t *v, int32_t *mix, int n)
+/* fx = 1: this voice adds its own effect sends to rv / cv (more voices with different sends than send groups) */
+static void render_voice(voice_t *v, int32_t *mix, int32_t *rv, int32_t *cv, int n, int fx)
 {
     int out = (E.hwcf3 & 4) && !(v->ccca & 0x04000000);
     while (n > 0) {
@@ -518,40 +770,80 @@ static void render_voice(voice_t *v, int32_t *mix, int n)
             advance_only(v, m);
         else {
             const uint16_t *mem = mem_for(v, m);
-            if (v->q || v->cut_t != 0xFFFF || v->cur_cut != 0xFFFF)
-                voice_run(v, mix, mem, m, 1);
+            int filt = v->q || v->cut_t != 0xFFFF || v->cur_cut != 0xFFFF;
+            if (fx) {
+                if (filt) voice_run(v, mix, rv, cv, mem, m, 1, 1);
+                else voice_run(v, mix, rv, cv, mem, m, 0, 1);
+            } else if (filt)
+                voice_run(v, mix, NULL, NULL, mem, m, 1, 0);
             else
-                voice_run(v, mix, mem, m, 0);
+                voice_run(v, mix, NULL, NULL, mem, m, 0, 0);
         }
         mix += 2 * m;
+        if (fx) { rv += m; cv += m; }
         n -= m;
     }
 }
 
-/* Reverb/chorus: stub. The sends (PTRX bits 15-8 reverb, CSL bits 31-24
- * chorus) and INIT1-4/HWCF4-7 effect parameters are stored and read back;
- * a real effects stage would sum per-voice sends here. */
-static void fx_process(int32_t *mix, int n)
+/* Reverb + chorus over the block's sends; runs while any voice sends and FX_HOLD samples after (the tails) */
+static void fx_process(int32_t *mix, const int32_t *rv, const int32_t *cv, int n)
 {
-    (void) mix; (void) n;
+    if (!E.fx || E.fx_off || (E.rev_hold <= 0 && E.cho_hold <= 0))
+        return;
+    fx_run(E.fx, rv, cv, mix, n, E.rev_hold > 0, E.cho_hold > 0);
+    E.rev_hold -= n;
+    E.cho_hold -= n;
 }
+
+/* Voices with the same (reverb, chorus) send levels share a stereo sub-mix; the mono send is taken from it once per
+ * sample (L + R = the voice before pan), not per voice: MIDI drivers set the sends per channel, so a song has a few. */
+#define FX_GROUPS 8
+static int32_t g_mix[BLOCK * 2], g_rv[BLOCK], g_cv[BLOCK], g_sub[FX_GROUPS][BLOCK * 2];
 
 static void render_block(int16_t *dst, int n)
 {
-    int32_t mix[BLOCK * 2];
-    int i, c;
+    int32_t *mix = g_mix, *rv = g_rv, *cv = g_cv;
+    uint16_t gkey[FX_GROUPS];
+    int i, c, g, ng = 0, fx = E.fx && !E.fx_off, solo = 0;
     memset(mix, 0, sizeof(int32_t) * 2 * n);
     for (c = 0; c < 32; c++) {
         voice_t *v = &E.v[c];
+        uint16_t key;
         if (!v->cur_vol && !v->vol_t &&
             (!v->env_on || v->venv.state == ENV_STOPPED ||
              (v->venv.state == ENV_SUSTAIN && v->venv.db >= ENV_MAX))) {
             advance_only(v, n); /* silent or fully released: oscillator only */
             continue;
         }
-        render_voice(v, mix, n);
+        key = (uint16_t) ((v->ptrx & 0xFF00) | (v->csl >> 24));
+        if (!fx || !key) { render_voice(v, mix, NULL, NULL, n, 0); continue; }
+        for (g = 0; g < ng && gkey[g] != key; g++) ;
+        if (g == ng && ng < FX_GROUPS) { gkey[ng++] = key; memset(g_sub[g], 0, sizeof(int32_t) * 2 * n); }
+        if (g < ng) render_voice(v, g_sub[g], NULL, NULL, n, 0);
+        else {      /* more distinct sends than groups: this voice sends by itself */
+            if (!solo) { memset(rv, 0, sizeof(int32_t) * n); memset(cv, 0, sizeof(int32_t) * n); solo = 1; }
+            render_voice(v, mix, rv, cv, n, 1);
+        }
     }
-    fx_process(mix, n);
+    if (ng || solo) {
+        if (!solo) { memset(rv, 0, sizeof(int32_t) * n); memset(cv, 0, sizeof(int32_t) * n); }
+        for (g = 0; g < ng; g++) {
+            const int32_t *b = g_sub[g];
+            const int32_t rs = (gkey[g] >> 8) * 257, cs = (gkey[g] & 0xFF) * 257;   /* /255 of (L + R), Q16 */
+            for (i = 0; i < n; i++) {
+                int32_t l = b[2 * i], r = b[2 * i + 1], m = l + r;
+                mix[2 * i] += l;
+                mix[2 * i + 1] += r;
+                rv[i] += (int32_t) (((int64_t) m * rs) >> 16);
+                cv[i] += (int32_t) (((int64_t) m * cs) >> 16);
+            }
+            if (rs) E.rev_hold = FX_HOLD;
+            if (cs) E.cho_hold = FX_HOLD;
+        }
+        if (solo) E.rev_hold = E.cho_hold = FX_HOLD;
+    }
+    if ((E.rev_hold > 0 || E.cho_hold > 0) && !ng && !solo) { memset(rv, 0, sizeof(int32_t) * n); memset(cv, 0, sizeof(int32_t) * n); }
+    fx_process(mix, rv, cv, n);
     for (i = 0; i < 2 * n; i++)
         dst[i] = (int16_t) (mix[i] > 32767 ? 32767 : mix[i] < -32768 ? -32768 : mix[i]);
     E.wc = (uint16_t) (E.wc + n);
@@ -646,8 +938,8 @@ void emu8k_write(int reg, int ch, uint32_t val)
         return;
     case EMU8K_CFG1:
         switch (ch) {
-        case 9: E.hwcf4 = val; return;
-        case 10: E.hwcf5 = val; return;
+        case 9: E.hwcf4 = val; fx_hwcf(); return;
+        case 10: E.hwcf5 = val; fx_hwcf(); return;
         case 13: E.hwcf6 = val; return;
         case 14: E.hwcf7 = val; return;
         case 20: E.smalr = val & ADDR_MASK; return;
@@ -666,10 +958,10 @@ void emu8k_write(int reg, int ch, uint32_t val)
             E.smarw = (E.smarw + 1) & ADDR_MASK;
         }
         return;
-    case EMU8K_INIT1: E.init1[ch] = w; return;
-    case EMU8K_INIT2: E.init2[ch] = w; return;
-    case EMU8K_INIT3: E.init3[ch] = w; return;
-    case EMU8K_INIT4: E.init4[ch] = w; return;
+    case EMU8K_INIT1: E.init1[ch] = w; fx_reg(reg, ch, w); return;
+    case EMU8K_INIT2: E.init2[ch] = w; fx_reg(reg, ch, w); return;
+    case EMU8K_INIT3: E.init3[ch] = w; fx_reg(reg, ch, w); return;
+    case EMU8K_INIT4: E.init4[ch] = w; fx_reg(reg, ch, w); return;
     case EMU8K_ENVVOL: v->envvol = w; return;
     case EMU8K_DCYSUSV: {
         int was = v->env_on;
@@ -923,12 +1215,22 @@ uint16_t emu8k_io_read(int off)
 }
 
 /* ---- init ---- */
+static int fx_off_saved;   /* emu8k_set_fx() before/after emu8k_init */
+
+void emu8k_set_fx(int on)
+{
+    fx_off_saved = !on;
+    E.fx_off = !on;
+}
+
 static int init_with(int ram_kb, uint16_t *rom, uint16_t *ram)
 {
     int j, i;
     emu8k_close();
     build_tables();
     memset(&E, 0, sizeof(E));
+    E.fx_off = fx_off_saved;
+    E.fx = fx_new();           /* no memory: plays dry */
     E.ext   = rom != NULL;
     E.rom   = rom ? rom : (uint16_t *) calloc(0x80000 + PAD, 2);
     E.empty = (uint16_t *) calloc(0x10000, 2);
@@ -998,6 +1300,7 @@ void emu8k_close(void)
         free(E.rom);
         free(E.ram);
     }
+    free(E.fx);
     free(E.empty);
     memset(&E, 0, sizeof(E));
 }

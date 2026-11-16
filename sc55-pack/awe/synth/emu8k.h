@@ -68,6 +68,8 @@ void     emu8k_close(void);
 int      emu8k_init_mem(int ram_kb, uint16_t *rom, uint16_t *ram);
 uint32_t emu8k_rom_words(void);
 uint32_t emu8k_ram_words(int ram_kb);
+/* reverb + chorus (programmed through INIT1-4 / HWCF4-5 as on the card): 1 = on (default), 0 = dry */
+void     emu8k_set_fx(int on);
 void     emu8k_write(int reg, int channel, uint32_t value);
 uint32_t emu8k_read(int reg, int channel);
 /* addr = absolute EMU8000 word address (RAM starts at 0x200000). */

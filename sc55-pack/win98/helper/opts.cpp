@@ -90,6 +90,7 @@ void Options::parse(const std::string& text)
         else if (name == "AWERAM") aweram = num(val);
         else if (name == "AWEMPU") awempu = has ? num(val) : 1;
         else if (name == "AWEROM") awerom = val;
+        else if (name == "AWEFX") awefx = has ? num(val) : 1;
         else if (name == "VSF") sf = val;
         else if (name == "VSFVOICES") sfvoices = num(val);
         else if (name == "VMT32") mt32 = upper(val.empty() ? "AUTO" : val);
@@ -166,6 +167,7 @@ std::string Options::format() const
         if (aweram != d.aweram) add("/AWERAM:%d", aweram);
         if (awempu != d.awempu) add("/AWEMPU:%d", awempu);
         if (!awerom.empty()) add("/AWEROM:%s", awerom.c_str());
+        if (awefx != d.awefx) add("/AWEFX:%d", awefx);
     }
     if (!passthru.empty()) { s += (s.empty() ? "" : " "); s += passthru; }
     return s;

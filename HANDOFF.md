@@ -1,3 +1,30 @@
+## beta.130-awe.4 (2026-11-16, AWE session): EMU8000 reverb + chorus
+- awe/synth/emu8k.c fx_*: 86Box snd_emu8k.c's effect structure and register meanings (GPL-2.0-or-later, credited in the
+  file header): reverb = input damper, 6 damped reflection combs (2/4/8/13/19/18-33 x 242 samples, INIT2 ch 14h room),
+  2 tails (delay + 2 diffusers), panned link type (INIT1 ch 7 = 8474h); chorus = 2 interpolated taps around INIT3 ch 0Ch,
+  sine LFO (HWCF5 milli-Hz, depth INIT4 ch 3), right delay HWCF4/256, feedback INIT3 ch 9. Params ignored while INIT1[0]
+  = 03FFh (init passes), as 86Box. Integer: Q12 coefficients with int32 products (sends clamped to +-2^18; >>3 headroom
+  cost 10 dB of tail accuracy - not used), block-wise delay lines, LFO linear per 64-sample block, taps 1/256 sample.
+  Voices with the same (reverb, chorus) sends share a stereo sub-mix (8 groups) and the mono send is taken once
+  ((L+R)*send/255), else per-voice sends (voice_run FX path). Reverb / chorus run only while their sends were seen in the
+  last 4 s (tails). emu8k_set_fx(0) = dry (fx state: calloc ~370 KB, separate from E).
+- Switches: DOS /AWEFX:0|1 (main.c OPT_AWEFX, live when SBEMU runs again; SBSET keeps /AWEFX:0 on its line), Win98
+  Options awefx + Settings > AWE32 "Reverb and chorus" (awe_fx() from Engine::render; AWE options no longer restart the
+  synth: live_blank). The DOS-box AWE needed no VxD change (INIT/HWCF writes already went through the ring).
+- Tests: awe/synth/test: new t12_rev0..7 / t13_cho0..7 scripts (Creative's values, from Linux emu8000.c) vs 86Box's
+  engine (harness_ref): reverb 40.5-43 dB SNR, chorus 37-54 dB, tail -30 dB times equal (fxcmp.py); run_tests.sh PASS.
+  Duke 3D (music only, /tmp/dukemus.cfg = SoundToggle 0) vs 86Box's own AWE64 (testrig/awe/duke86.sh, wavetable.wav):
+  rests -12.0 vs -12.0 dB re median (dry -15.5), silent frames 0.2 vs 0.3% (dry 2.3%), -20 dB fall 390 vs 410 ms (dry
+  280), bands within ~1 dB to ~6 kHz (fxtail.py, cmp.py). Win98 DOS box (r98 d4): rests -11.3, silent 0.2%, fall 365 ms.
+  Speed PII-450 (duke.sh MHZ=450, SBDIAG): AWE render 2% -> 4% (longest block 0.44 -> 0.99 ms), /AWEFX:0 2%; SBEMU 3% ->
+  5% of the CPU. SC55LOG 0.47x, 22591 frames/s before and after. callgrind (16 voices, both effects): +17.5M instr/s
+  (first version +32.8M). Win98 helper load 3.0-3.5% -> 5.5% while Duke plays (86Box). routetest PASS.
+- testrig: awe/duke86.sh (86Box AWE64 reference), duke.sh MHZ=450, aweload.asm -DFX (AWEFX.COM: Hall 2 + Chorus 3, sends
+  FF), awe/fxtail.py, awe/synth/test/fxcmp.py. midi/perf.sh with EXTRA=ROMS lost the ROMS dir on the FreeDOS disk (SBDIAG
+  "Nothing measured" with /AWEROM:C:\SC55\AWE32.RAW) - used duke.sh MHZ=450 instead. A dead Xvfb :86 makes 86run.sh skip
+  starting it when Xvfb :9 runs (pgrep -x): no Win98 boot, no SC55W.LOG - start Xvfb :86 + openbox by hand.
+- Hardware to test (HWTEST top item): Duke AWE music with reverb (DOS + Win98 DOS box), /AWEFX:0 vs 1, SBDIAG AWE %.
+
 ## beta.130-awe.3 (2026-11-16, AWE session): AWE32 in Windows 98 DOS boxes
 - Win98 part now DIVERGES from MUXED (interface IF 10, AWE line only): future MUXED w98.N syncs must 3-way merge win98/
   (sc55wif.h SC55W_SHARED grew 16 bytes: awe_port/addr/size; SC55W_AWE block; EV_MIDI c=1 = from a DOS box) and rebuild.

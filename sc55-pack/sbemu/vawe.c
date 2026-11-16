@@ -23,6 +23,11 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "vawe.h"
+#ifdef __DJGPP__
+#define VAWE_SEP "\\"
+#else
+#define VAWE_SEP "/"   /* host tests (testrig/awe/awempu_host.sh) */
+#endif
 #include "../awe/synth/emu8k.h"
 #include "../awe/synth/awemidi.h"
 #include "vdiag.h"
@@ -102,7 +107,7 @@ static int VAWE_FindRom(const char* dir, char* out, int outlen)
     {
         char p[260];
         if(e->d_name[0] == '.') continue;
-        snprintf(p, sizeof p, "%s\\%s", dir, e->d_name);
+        snprintf(p, sizeof p, "%s" VAWE_SEP "%s", dir, e->d_name);
         if(VAWE_IsRom(p)) { snprintf(out, outlen, "%s", p); found = 1; }
     }
     closedir(d);
@@ -136,8 +141,10 @@ int VAWE_Init(int base, int ram_kb, const char* rom, int* rom_found, char* rom_u
     return 0;
 }
 
+static void VAWEM_Close(void);
 void VAWE_Close(void)
 {
+    VAWEM_Close();
     if(VAWE_On) emu8k_close();
     VAWE_On = 0;
 }
@@ -202,7 +209,7 @@ int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int descle
             char p[260], nm[64], u[16]; int kind = -1, rc, k;
             if(e->d_name[0] == '.') continue;
             ++files;
-            snprintf(p, sizeof p, "%s\\%s", dir, e->d_name);
+            snprintf(p, sizeof p, "%s" VAWE_SEP "%s", dir, e->d_name);
             if(!VAWEM_IsSbk(p)) continue;
             rc = awem_probe(p, &kind, nm, sizeof nm);
             if(rc != 1 && rc != 2) continue;
@@ -217,7 +224,8 @@ int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int descle
         }
         closedir(d);
     }
-    VAWEM_NBanks = 0;
+    VAWEM_On = 0;
+    while(VAWEM_NBanks > 0) awem_bank_free(VAWEM_Banks[--VAWEM_NBanks]);
     {
         int want[2] = { mode, mode != AWEM_GM ? AWEM_GM : -1 }, i, len = 0;
         desc[0] = 0;
@@ -227,6 +235,11 @@ int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int descle
             AwemBank* b;
             if(want[i] < 0 || !bestrc[want[i]]) continue;
             b = awem_bank_load(best[want[i]], (uint32_t)ram_kb * 512u, err, sizeof err);
+            if(b && VAWEM_NBanks && awem_bank_ram_used(b) && awem_bank_ram_used(VAWEM_Banks[0]))
+            {   /* both banks start their samples at the bottom of the sample RAM: the GM fallback would overwrite */
+                awem_bank_free(b);
+                continue;
+            }
             if(!b) { len += snprintf(desc + len, desclen > len ? desclen - len : 0, "%s%s: %s", len ? ", " : "", best[want[i]], err); continue; }
             VAWEM_Banks[VAWEM_NBanks++] = b;
             len += snprintf(desc + len, desclen > len ? desclen - len : 0, "%s%s (%s)", len ? " + " : "", best[want[i]], awem_bank_name(b));
@@ -250,6 +263,11 @@ int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int descle
     VAWEM_IdleFrames = 0;
     VAWEM_On = 1;
     return 0;
+}
+static void VAWEM_Close(void)
+{
+    VAWEM_On = 0;
+    while(VAWEM_NBanks > 0) awem_bank_free(VAWEM_Banks[--VAWEM_NBanks]);
 }
 int VAWE_MidiOn(void) { return VAWEM_On; }
 const char* VAWE_MidiKind(int mode) { return mode >= 0 && mode < 3 ? VAWEM_Kinds[mode] : "?"; }

@@ -93,14 +93,7 @@ static void find_paths()
 
 // Windows-only settings (not SBEMU options, so they stay out of SBOPTS.TXT)
 static int ini_int(const char* key, int def) { return GetPrivateProfileIntA("SC55W", key, def, g_inipath.c_str()); }
-// AWE32 reads: SC55W.INI [AWE] Mode=mirror (default, the VxD answers from its register mirror) or stall
-// (the DOS box waits for the helper's engine); measured in awe.3, see HANDOFF
-static int awe_mode_ini()
-{
-    char b[16];
-    GetPrivateProfileStringA("AWE", "Mode", "mirror", b, sizeof b, g_inipath.c_str());
-    return (b[0] == 's' || b[0] == 'S') ? AWE_STALL : AWE_MIRROR;
-}
+
 
 // Start-up step, kept in SC55W.INI [State] Step= and flushed to disk at once. If Windows
 // froze during a start, the step is still set at the next boot: that start is skipped
@@ -156,18 +149,14 @@ static void log_activity(const EngineStats& s, DWORD now, double load)
     static DWORD t; static unsigned m, o, p, a;
     if (now - t < 10000) return;
     t = now;
-    const SC55W_AWE* sb = awe_block();
-    if (sb && sb->mode == AWE_STALL && sb->rq_seq != sb->dbg_ans)
-        logf("AWE32 stall: request %u, answered %u, wakes %u, helper loops %u, seen %u", (unsigned)sb->rq_seq,
-             (unsigned)sb->dbg_ans, (unsigned)sb->dbg_wake, (unsigned)sb->dbg_loops, (unsigned)sb->dbg_seen);
     if (s.midi_bytes == m && s.opl_writes == o && s.pcm_frames == p && s.awe_writes == a) return;
     m = s.midi_bytes; o = s.opl_writes; p = s.pcm_frames; a = s.awe_writes;
     logf("activity: MIDI %u bytes, FM %u writes, digital %u frames, late %u, resyncs %u, MPU ignored %u, load %.1f%%", m, o, p,
          s.late_events, s.resyncs, g_sh ? (unsigned)g_sh->mpu_ignored : 0u, load * 100);
     const SC55W_AWE* aw = awe_block();
-    if (aw)   // AWE32: port writes / reads (stall mode: answered by the engine, total wait), sample RAM words
-        logf("AWE32: %u writes, %u reads (%u stalled, %u ms waited), RAM %u words written, %u read, ring lost %u, early %u%s",
-             (unsigned)aw->writes, (unsigned)aw->reads, (unsigned)aw->stalls, (unsigned)(aw->stall_us / 1000),
+    if (aw)   // AWE32: port writes / reads, sample RAM words, ring overflow, early drains (render thread behind)
+        logf("AWE32: %u writes, %u reads, RAM %u words written, %u read, ring lost %u, early %u%s",
+             (unsigned)aw->writes, (unsigned)aw->reads,
              (unsigned)aw->ram_writes, (unsigned)aw->ram_reads, (unsigned)aw->overflow, (unsigned)aw->pumped,
              s.awe_idle ? ", idle" : "");
 }
@@ -269,14 +258,12 @@ static DWORD vxd_attach(const Options& o)
     g_sh->size = sizeof *g_sh;
     g_sh->cfg = config_for(o);
     for (int i = 0x30; i <= 0x37; i++) g_sh->mixer[i] = 0xF8;
-    const AweInfo& ai = awe_prepare(o, resolve(o.scrom), g_sh, awe_mode_ini());
+    const AweInfo& ai = awe_prepare(o, resolve(o.scrom), g_sh);
     DWORD addr = (DWORD)g_sh;
     if (!DeviceIoControl(g_vxd, IOCTL_SC55W_ATTACH, &addr, 4, &st, 4, &got, NULL)) st = ST_ERR_LOCK;
-    awe_attached((void*)g_vxd, st);
+    awe_attached(st);
     if (o.awe)
-        logf("AWE32: EMU8000 %X, RAM %d KB, reads: %s, ROM: %s%s%s", o.awe, o.aweram,
-             ai.mode == AWE_STALL ? "stall (DOS box waits for the engine)" : "mirror (answered by SC55W.VXD)",
-             ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", ", ai.error.c_str());
+        logf("AWE32: EMU8000 %X, RAM %d KB, ROM: %s%s%s", o.awe, o.aweram, ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", ", ai.error.c_str());
     return st;
 }
 
@@ -353,9 +340,10 @@ static bool wave_open(int rate, int total_ms, std::string& err)
 
 // SC55W.INI [SC55W] RecordWav=C:\OUT.WAV: also write everything played to a
 // WAV file (troubleshooting). The file is restarted when the rate changes.
+// RecordSecs=N (AWE line, test rigs): close the file after N seconds, so it is complete on disk while a game runs on.
 static FILE* g_rec;
 static int g_rec_rate;
-static uint32_t g_rec_frames;
+static uint32_t g_rec_frames, g_rec_max;
 static void rec_close()
 {
     if (!g_rec) return;
@@ -378,6 +366,7 @@ static void rec_open(int rate)
     if (!g_rec) return;
     g_rec_rate = rate;
     g_rec_frames = 0;
+    g_rec_max = (uint32_t)ini_int("RecordSecs", 0) * (uint32_t)rate;
     char z[44] = {0};
     fwrite(z, 1, 44, g_rec);
 }
@@ -387,6 +376,7 @@ static void rec_write(const int16_t* d, int frames)
     fwrite(d, 4, frames, g_rec);
     g_rec_frames += frames;
     if ((g_rec_frames & 0xFFFF) < (uint32_t)frames) fflush(g_rec);
+    if (g_rec_max && g_rec_frames >= g_rec_max) rec_close();
 }
 
 // the options the engine sees: absolute paths, MIDI synth always present
@@ -2052,9 +2042,8 @@ static void awe_page_status(HWND p)
     char b[600];
     if (!g_opt.awe) snprintf(b, sizeof b, "AWE32 off.");
     else if (!ai.on) snprintf(b, sizeof b, "AWE32 %X: not running%s%s", g_opt.awe, ai.error.empty() ? "" : " - ", ai.error.c_str());
-    else snprintf(b, sizeof b, "AWE32 %X, %d KB sample RAM, reads %s%s%s.\r\nROM: %s\r\n%u port writes, %u reads, %u RAM words written.",
-                  ai.port, ai.ram_kb, ai.mode == AWE_STALL ? "answered by the engine (stall)" : "answered by SC55W.VXD (mirror)",
-                  ai.error.empty() ? "" : " - ", ai.error.c_str(),
+    else snprintf(b, sizeof b, "AWE32 %X, %d KB sample RAM%s%s.\r\nROM: %s\r\n%u port writes, %u reads, %u RAM words written.",
+                  ai.port, ai.ram_kb, ai.error.empty() ? "" : " - ", ai.error.c_str(),
                   ai.rom.empty() ? "none found: put a 1 MB EMU8000 ROM dump (awe32.raw) in the ROM folder - ROM instruments stay silent" : ai.rom.c_str(),
                   aw ? (unsigned)aw->writes : 0u, aw ? (unsigned)aw->reads : 0u, aw ? (unsigned)aw->ram_writes : 0u);
     SetDlgItemTextA(p, IDC_A_STAT, b);

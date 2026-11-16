@@ -1131,18 +1131,11 @@ static void untrap_range(u32 base, u32 n)
 /* ====================================================================== */
 /* AWE32 / EMU8000 (AWE line): ports base+0..3, +400h..403h, +800h..803h   */
 /* ====================================================================== */
-/* see sc55wif.h SC55W_AWE: writes -> AWE ring (helper's emu8k.c renders them); reads are answered here at
-   once from a register mirror (mode AWE_MIRROR) or by blocking the DOS box until the helper answers
-   (AWE_STALL). The sample-RAM streams and WC are the VxD's own in mirror mode. */
-extern u32  __cdecl vxd_sem_create(void);
-extern void __cdecl vxd_sem_destroy(u32 sem);
-extern void __cdecl vxd_sem_wait(u32 sem);
-extern void __cdecl vxd_sem_signal(u32 sem);
-
+/* see sc55wif.h SC55W_AWE: writes -> AWE ring (the helper's emu8k.c renders them); reads are answered here at
+   once from the register mirror. The sample-RAM streams and WC are the VxD's own. (awe.3 also measured blocking
+   the DOS box until the helper answered: 4-32x slower, WC wrong - see HANDOFF; mirror only.) */
 static SC55W_AWE *aw;
-static u32 aw_size, awe_base, aw_sem, aw_mode, trapped_awe;
-static u32 sem_ans, sem_req;   /* stall mode: VMM semaphores, made once and kept (a waiter may still hold one) */
-static volatile u32 aw_rq, aw_ans, aw_val;   /* stall mode, in VxD memory: valid after detach too */
+static u32 aw_size, awe_base, trapped_awe;
 static u16 *aw_rom, *aw_ram;
 static u32 aw_ram_end, aw_ram_alloc;       /* word addresses: end of RAM, end of the allocated blocks */
 static u32 aw_reg[4][8][32];               /* raw register file as written (Data0..Data3, reg, channel) */
@@ -1151,7 +1144,6 @@ static u32 aw_smalr, aw_smarr, aw_smalw, aw_smarw;
 static u16 aw_smld_buf, aw_smrd_buf;
 static u8  aw_ch, aw_rg, aw_rnd, aw_env[32];
 static u8  aw_wl[6], aw_rl[6], aw_rv[6];   /* byte I/O: low byte written / high byte read, per word port */
-static u16 awe_stall_read(u32 idx);
 
 #define AW_ADDR 0xFFFFFFUL
 
@@ -1159,12 +1151,7 @@ static void awe_ev(u32 idx, u16 v)
 {
     u32 h = aw->ev_head;
     SC55W_AWEEV *e;
-    if (h - aw->ev_tail >= AWERING_SIZE) {
-        if (aw_mode != AWE_STALL) { aw->overflow++; return; }
-        /* stall mode: let the helper drain the ring (a request with nothing to read) */
-        awe_stall_read(0xFF);
-        if (!aw) return;
-    }
+    if (h - aw->ev_tail >= AWERING_SIZE) { aw->overflow++; return; }
     e = &aw->ev[h & (AWERING_SIZE - 1)];
     e->time = vxd_time_us();
     e->val = v;
@@ -1251,32 +1238,11 @@ static u32 awe_read(u32 p, u32 r, u32 ch)
     }
 }
 
-static u16 awe_stall_read(u32 idx)
-{
-    u32 t0 = vxd_time_us();
-    aw_val = 0xFFFF;
-    aw->rq_idx = idx;
-    aw->rq_seq = ++aw_rq;
-    vxd_sem_signal(sem_req);            /* the helper's thread waits in IOCTL_SC55W_AWEWAIT */
-    while (aw_ans != aw_rq && aw_sem) { vxd_sem_wait(aw_sem); if (aw) aw->dbg_wake++; }
-    if (aw) { aw->stalls++; aw->stall_us += vxd_time_us() - t0; }
-    return (u16)aw_val;
-}
-
-/* IOCTL_SC55W_AWEANS: the helper's answer */
-static void awe_answer(u32 v)
-{
-    aw_val = v;
-    aw_ans = aw_rq;
-    if (aw) aw->dbg_ans++;
-    if (aw_sem) vxd_sem_signal(aw_sem);
-}
 
 static u16 awe_rd16(u32 idx)
 {
     u32 r = aw_rg, ch = aw_ch, d;
     aw->reads++;
-    if (aw_mode == AWE_STALL) return awe_stall_read(idx);
     switch (idx) {
     case 5: aw_rnd = (u8)((aw_rnd + 1) & 0x1F); return (u16)(((0x80 | aw_rnd) << 8) | (r << 5) | ch);
     case 0: case 1: d = awe_read(0, r, ch); return (u16)(idx == 1 ? d >> 16 : d);
@@ -1295,7 +1261,7 @@ static void awe_wr16(u32 idx, u16 w)
     u32 r = aw_rg, ch = aw_ch, p, d, *m;
     aw->writes++;
     if (idx == 5) { aw_ch = (u8)(w & 31); aw_rg = (u8)((w >> 5) & 7); awe_ev(idx, w); return; }
-    if (aw_mode != AWE_STALL && r == 1 && (idx == 2 || idx == 3)) {
+    if (r == 1 && (idx == 2 || idx == 3)) {
         /* sample-RAM streams: the VxD's own, never through the ring */
         if (idx == 2 && ch == 26) { awe_ram_wr(aw_smalw, w); aw_smalw = (aw_smalw + 1) & AW_ADDR; return; }
         if (idx == 3 && ch == 26) { awe_ram_wr(aw_smarw, w); aw_smarw = (aw_smarw + 1) & AW_ADDR; return; }
@@ -1306,7 +1272,7 @@ static void awe_wr16(u32 idx, u16 w)
         }
     }
     awe_ev(idx, w);
-    /* the mirror (stall mode keeps it too: cheap, and the hwcf/env rules stay in one place) */
+    /* the mirror */
     if (idx <= 1) {
         m = &aw_reg[0][r][ch];
         d = r == 0 ? awe_cpf(ch) : r == 2 ? awe_cvcf(ch) : *m;
@@ -1418,19 +1384,11 @@ static u32 awe_attach(SC55W_SHARED *s)
         return ST_ERR_AWEBLOCK;
     }
     aw = a; aw_size = s->awe_size; awe_base = s->awe_port;
-    aw_mode = a->mode;
     aw_rom = (u16 *)((u8 *)a + a->rom_off);
     aw_ram = (u16 *)((u8 *)a + a->ram_off);
     aw_ram_end = AWE_RAM_START + a->ram_words;
     aw_ram_alloc = AWE_RAM_START + a->ram_alloc;
     awe_reset_mirror();
-    aw_sem = 0;
-    if (aw_mode == AWE_STALL) {
-        if (!sem_ans) sem_ans = vxd_sem_create();
-        if (!sem_req) sem_req = vxd_sem_create();
-        if (sem_ans && sem_req) aw_sem = sem_ans; else aw_mode = AWE_MIRROR;
-    }
-    a->mode = aw_mode;
     if (trap_range(awe_base, 4)) {
         if (trap_range(awe_base + 0x400, 4)) {
             if (trap_range(awe_base + 0x800, 4)) { trapped_awe = 1; return ST_OK_AWE; }
@@ -1445,11 +1403,6 @@ static void awe_detach(void)
 {
     if (trapped_awe) awe_untrap();
     trapped_awe = 0;
-    if (aw_sem) {   /* a DOS box blocked on a read: let it go (answers 0FFFFh) */
-        aw_val = 0xFFFF; aw_ans = aw_rq; aw_sem = 0;
-        vxd_sem_signal(sem_ans);
-        vxd_sem_signal(sem_req);            /* and the helper's thread (it sees the detach) */
-    }
     if (aw) { vxd_unmap_block((u32)aw, aw_size); aw = 0; }
 }
 
@@ -1591,14 +1544,6 @@ int __cdecl sc_ioctl(u32 code, u8 *in, u32 inlen, u8 *out, u32 outlen)
         if (outlen >= 4) { *(u32 *)out = r; return 4; }
         return 0;
     }
-    case IOCTL_SC55W_AWEWAIT:   /* stall mode, the helper's AWE thread: blocks until a read waits; out: u32 rq_seq, 0 = detached */
-        if (!aw || !aw_sem) return -1;
-        vxd_sem_wait(sem_req);
-        if (outlen >= 4) { *(u32 *)out = (aw && aw_sem) ? 1 : 0; return 4; }
-        return 0;
-    case IOCTL_SC55W_AWEANS:
-        awe_answer(inlen >= 4 ? *(u32 *)in : 0xFFFF);
-        return 0;
     case IOCTL_SC55W_FOCUS: {
         SC55W_FOCUS *f = (SC55W_FOCUS *)out;
         u32 owner = vxd_kbd_owner();

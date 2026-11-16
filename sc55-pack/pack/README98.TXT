@@ -11,6 +11,13 @@ inside Windows 98:
     an MPU-401 at 330h. Their MIDI music is played by the SC-55 (or the
     MT-32 or a SoundFont), the FM music by the DOSBox or Nuked OPL3 core,
     and the digital sound effects through your sound card.
+  * AWE32 edition: DOS programs can also get a Sound Blaster AWE32 - the
+    EMU8000 wavetable at 620h (or 640/660/680h), 512 KB to 28 MB sample
+    RAM, the same engine as DOS SBEMU /AWE, mixed into the DOS box's
+    sound. Settings > AWE32, or SC55W /AWE:620 [/AWERAM:kb /AWEMPU:0|1];
+    the Sound Blaster becomes type 16 and BLASTER gets E620. The MPU-401
+    keeps its SC-55 (/AWEMPU:1). Needs the 1 MB AWE ROM (86Box's
+    awe32.raw) in C:\SC55\ROMS, found by content.
   * Windows programs (Media Player, MIDI sequencers, Windows games) get a
     MIDI device called "NUKED SB-EMU" played by the same synth. Its volume
     follows Windows (games' music sliders, midiOutSetVolume).
@@ -186,8 +193,12 @@ C:\SC55\WIN98\SC55W.INI and the uninstaller puts it back.
  3. SETTINGS
 -----------------------------------------------------------------------------
 
-Three tabs: "Sound and MIDI", "Joystick" and "Pad keys" (Ctrl+Tab goes to
-the next one). Save / Apply / Cancel are for all three.
+Four tabs: "Sound and MIDI", "Joystick", "Pad keys" and "AWE32" (Ctrl+Tab
+goes to the next one). Save / Apply / Cancel are for all four.
+
+"AWE32" (AWE32 edition): AWE32 on/off (/AWE), EMU8000 port 620/640/660/680,
+sample RAM 512 KB (AWE32) to 28 MB (/AWERAM), "MPU-401 keeps its synth"
+(/AWEMPU); below: which ROM was found and the port/RAM counters.
 
 "Sound and MIDI" has the same options as SETTINGS.BAT / SBSET, with the
 SBEMU switch they set:

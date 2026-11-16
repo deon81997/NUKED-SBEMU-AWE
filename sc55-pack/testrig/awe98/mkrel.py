@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU (AWE line, awe.3)
+# mkrel.py OLD.zip NEW.zip (repo root, after make + win98/buildall.sh): rezip.py (DOS EXEs, README.TXT, BATs), then the
+# Windows 98 part from sc55-pack/win98/out, both README98.TXT copies and a rebuilt FILES/WIN98/SOURCE.ZIP (old file
+# list with current files + the AWE engine and helper/awe.*). Run with -I.
+import zipfile, os, sys, subprocess, io
+old, new = sys.argv[1], sys.argv[2]; tmp = new + '.tmp'
+subprocess.check_call([sys.executable, '-I', 'sc55-pack/testrig/common/rezip.py', old, tmp])
+W = 'sc55-pack/win98/'; O = W + 'out/'
+swap = {'NUKEDSB/FILES/WIN98/' + n: O + n for n in ('SC55W.EXE', 'SC55W2.EXE', 'SC55WM.EXE', 'SC55W.VXD', 'SC55MIDI.DRV')}
+swap['NUKEDSB/FILES/WIN98/JOY/NUKEDJOY.VXD'] = O + 'JOY/NUKEDJOY.VXD'
+swap['NUKEDSB/FILES/WIN98/README98.TXT'] = swap['NUKEDSB/README98.TXT'] = 'sc55-pack/pack/README98.TXT'
+z = zipfile.ZipFile(tmp); w = zipfile.ZipFile(new, 'w', zipfile.ZIP_DEFLATED, compresslevel=9); n = 0
+for i in z.infolist():
+    if i.filename in swap: w.writestr(i, open(swap[i.filename], 'rb').read()); n += 1
+    elif i.filename == 'NUKEDSB/FILES/WIN98/SOURCE.ZIP':
+        sz = zipfile.ZipFile(io.BytesIO(z.read(i.filename))); b = io.BytesIO()
+        out = zipfile.ZipFile(b, 'w', zipfile.ZIP_DEFLATED, compresslevel=9)
+        names = [e.filename for e in sz.infolist() if not e.filename.endswith('/')]
+        names += ['win98/helper/awe.cpp', 'win98/helper/awe.h', 'awe/synth/emu8k.c', 'awe/synth/emu8k.h', 'awe/synth/emu8k_rom.c']
+        for f in names:
+            src = 'sc55-pack/' + f
+            if os.path.isfile(src): out.write(src, f)
+            else: out.writestr(f, sz.read(f))
+        out.close(); w.writestr(i, b.getvalue()); n += 1
+    else: w.writestr(i, z.read(i.filename))
+w.close(); os.remove(tmp); print('win98 swapped', n)

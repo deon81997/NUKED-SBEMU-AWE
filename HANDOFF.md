@@ -1,3 +1,40 @@
+## beta.130-awe.3 (2026-11-16, AWE session): AWE32 in Windows 98 DOS boxes
+- Win98 part now DIVERGES from MUXED (interface IF 10, AWE line only): future MUXED w98.N syncs must 3-way merge win98/
+  (sc55wif.h SC55W_SHARED grew 16 bytes: awe_port/addr/size; SC55W_AWE block; EV_MIDI c=1 = from a DOS box) and rebuild.
+- SC55W.VXD (vxd/sbcore.c "AWE32" section, sc55w.asm word-I/O path io_w -> sc_iow): traps base+0..3/+400h/+800h (620/640/
+  660/680), word I/O in one call. Reads answered from a mirror: raw register file (every write), RAM streams SMALR/SMARR/
+  SMALW/SMARW/SMLD/SMRD done in the VxD on the shared ROM+RAM (never through the ring), WC = VxD clock x 44.1 kHz, the
+  dynamic CPF/CVCF/CCCA from the helper's snapshot (taken after each render) unless written since (ring position).
+  HWCF1-3 / ID formulas and the DCYSUSV -> HWCF3=4 rule copied from emu8k.c. Writes -> AWE ring (16384 x 8 bytes).
+- SC55W.EXE: helper/awe.cpp (block = header + 1 MB ROM + RAM, VirtualAlloc, locked by the VxD; emu8k_init_mem() = new
+  in emu8k.c, DOS unchanged; ROM by content: /AWEROM, ROMS, ..\AWE), engine.cpp merges the AWE ring with the event ring by
+  time, renders emu8k into the mix at SB16 mixer MIDI x master x /VMIDIVOL (as DOS), awe idle after 2 s silence; a
+  watchdog thread drains the ring early if the render thread falls behind (synth start-up). Options /AWE /AWERAM
+  /AWEMPU /AWEROM (opts.cpp, SBOPTS.TXT shared with DOS, /AWE forces /T:6, BLASTER E620), command line SC55W /AWE:620
+  (saved, a running SC55W reloads: WM_REMOTE 6), Settings tab "AWE32" (IDD_PAGE_AWE). /AWEMPU:0 drops DOS-box MIDI (c=1).
+  SC55W.LOG "AWE32: n writes, n reads, RAM n words, ring lost n, early n" every 10 s; INI RecordSecs=N (test rigs).
+- Mirror vs stall measured (testrig/awe98/r98.sh, 86Box P3B-F PII-450 Win98 acpi VM, AWETIME.COM in a DOS box):
+  detection x100 1.8 vs 13.5 ms; 10000 reads 12.6 vs 406 ms (1.3 vs 41 us/read); AWEUTIL-style init 57 vs 382 ms;
+  512 KB upload 0.32 vs 1.30 s; DRAM sizing 0.33 vs 4.6 ms; WC over 110 ms 4851 (right) vs 448 (wrong: engine clock);
+  Duke: stall blocked the DOS box ~22% of the time (6.5k reads/s). Mirror kept, stall code removed (commit 8ecc5ef has
+  an early stall version; the one measured = VMM semaphores: the DOS box waits in the I/O trap, the helper thread
+  waits in a DIOC, answers with a second DIOC - not committed).
+- Tests: AWEDET in the DOS box = DOS SBEMU (ID/HWCF1/HWCF2/BYTE/RAM ok, 1234 5678 0000 0032 2E38). Duke 3D AWE32 music
+  (SoundToggle 0) in the DOS box vs DOS SBEMU awe.2 duke.sh: chroma corr 0.973 (same notes), bands within ~1 dB to ~5 kHz
+  (REC.WAV is 22050 Hz). CPU (IDLEMTR loops/tick in a DOS box): awe.2 1623728, awe.3 AWE off 1623663, AWE on idle
+  1622516 (-0.07%), 16 voices (AWELOAD) 1537792 (-5.3%). Release binaries + SC55W /AWE:620 command line: same numbers,
+  SBOPTS.TXT got /AWE:620. routetest PASS. DOS SBEMU rebuilt (awe.3 name, emu8k.c change): duke.sh vs awe.2 -0.0 dB,
+  same bands, 0.0% ticks lost, AWE 2%. 86Box Duke runs show resyncs ~5/s in SC55W.LOG (full-screen DOS box time slices,
+  known since w98 Blood work; not AWE).
+- Rig notes: r98.sh TAG WIN98DIR OPTS [SECS] (env SCROMS=folder with only AWE32.RAW: no SC-55 boot, which takes ~5 min
+  in 86Box and lost AWE writes before the watchdog; DUKEONLY, SFX=0, RECSECS, CMDARGS). Duke in a DOS box needs
+  [Comm Setup] RTSName etc. (empty name -> "Error opening : Permission denied"). Win98 CreateThread needs &tid (NULL
+  fails: cost 3 runs). Release: testrig/awe98/mkrel.py OLD NEW (rezip.py + win98/out + README98 + SOURCE.ZIP).
+- Test downloads: /tmp/dl/{djgpp,roms,86b (86Box 0935207 automation),duke,munt,jw,ow.tar.xz}; store-w98qi-86box,
+  store-86rig, store-personal, store-86box-roms, store-dos71.
+- Hardware to test (HWTEST.TXT top item): D810 + P5PE-VM, Win98: Settings > AWE32, Duke AWE32 music in a DOS box,
+  SC55W.LOG AWE32 line, CPU %, GM game on 330 still on the SC-55.
+
 ## beta.130-awe.2 (2026-11-16, AWE session): Windows 98 part = MUXED beta.130-w98.8
 - main = beta.130-awe.1 + MUXED v1.0.0-beta.130-usb..v1.0.0-beta.130-w98.8-usb (650e443) as a 3-way patch (git diff --binary),
   minus MUXED's README/HANDOFF/btn-awe32.gif. All files applied cleanly: the AWE line's win98/ was identical to MUXED beta.130,

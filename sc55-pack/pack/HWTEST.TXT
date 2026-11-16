@@ -1,6 +1,20 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.3)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.3 AWE32 in Windows 98 DOS boxes (D810 and P5PE-VM, Windows
+    98, SETUP98.BAT run again, Windows restarted, AWE32.RAW in C:\SC55\ROMS).
+    1) Tray icon > Settings > AWE32: tick it, 620, 512 KB, Save (or Start >
+    Run C:\SC55\WIN98\SC55W.EXE /AWE:620). The AWE32 tab shows the ROM file
+    found. Restart Windows (BLASTER gets E620). 2) DOS box: SET shows
+    BLASTER=... E620 T6; C:\SC55\WIN98\SC55W.EXE /VER says beta.130-awe.3.
+    3) Duke 3D in a DOS box, SETUP: music AWE32 (EMU 620), effects SB16:
+    music and effects play, sounds like Duke under DOS SBEMU /AWE:620, no
+    hangs at "Checking music inits". 4) 2 minutes of play, then tray >
+    Status: CPU % about the same as with General MIDI music; SC55W.LOG has
+    "AWE32: ... ring lost 0". 5) P5PE-VM: a General MIDI game on 330 with the
+    AWE32 on still plays the SC-55 (/AWEMPU:1). Send C:\SC55\WIN98\SC55W.LOG
+    (+ VERSIONS.TXT), and say which game/step failed.
 
 [ ] beta.130-w98.8 Windows 98 part (D810 and P5PE-VM, Windows 98 running,
     SETUP98.BAT run again and Windows restarted). 1) C:\SC55\WIN98\SC55W.EXE

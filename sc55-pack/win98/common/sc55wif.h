@@ -40,8 +40,6 @@ typedef int32_t  s32;
 #define IOCTL_SC55W_KEYS     0x16   /* in: set-1 scan codes for the DOS box with the keyboard;
                                        out: u32 1 = sent, 0 = Windows has the keyboard, 2 = queue full */
 #define IOCTL_SC55W_FOCUS    0x17   /* out: SC55W_FOCUS, the programs running in that DOS box */
-#define IOCTL_SC55W_AWEANS   0x18   /* AWE stall mode: in: u32 answer to the pending EMU8000 read (SC55W_AWE.rq_*) */
-#define IOCTL_SC55W_AWEWAIT  0x19   /* AWE stall mode: blocks the calling thread until a read waits; out: u32 1, 0 = detached */
 
 /* the program list of the DOS box that has the keyboard (IOCTL_SC55W_FOCUS) */
 #define SC55W_NPROG 4
@@ -213,17 +211,13 @@ typedef struct {
 
 /* ---- AWE32 / EMU8000 (AWE line) ----
    Writes to the EMU8000 ports go to the AWE ring (VxD -> helper, timed like the event ring); the helper's
-   emu8k.c (the DOS engine) renders them. Reads must be answered at once, two ways (SC55W_AWE.mode):
-   AWE_MIRROR: the VxD keeps the register file (every write), owns the sample-RAM streams (SMALR/SMARR/SMALW/
-     SMARW/SMLD/SMRD: it reads and writes the shared RAM itself, never through the ring), counts WC from its
-     clock, and answers the 3 registers the engine moves (CPF, CVCF, CCCA) from the helper's snapshot
-     unless the program wrote them after that snapshot.
-   AWE_STALL: the VxD posts the read (rq_*), wakes the helper's thread (waiting in IOCTL_SC55W_AWEWAIT on a VMM
-     semaphore) and blocks the DOS box until the helper drained the ring, asked the engine and answered with
-     IOCTL_SC55W_AWEANS. (awe.3: a ring-0 Win32 event set from the DOS box's I/O trap hung both sides.) */
+   emu8k.c (the DOS engine) renders them. Reads are answered at once by the VxD from a mirror: it keeps the
+   register file (every write), owns the sample-RAM streams (SMALR/SMARR/SMALW/SMARW/SMLD/SMRD: it reads and
+   writes the shared ROM/RAM itself, never through the ring), counts WC from its clock, and answers the 3
+   registers the engine moves (CPF, CVCF, CCCA) from the helper's snapshot unless the program wrote them
+   after that snapshot. (awe.3 measured the other way, blocking the DOS box until the helper's engine
+   answered each read: 4-32x slower and WC wrong; removed, see HANDOFF.) */
 #define SC55W_AWE_MAGIC 0x38454D45UL    /* "EME8" */
-#define AWE_MIRROR 0
-#define AWE_STALL  1
 #define AWERING_SIZE 16384u
 #define AWE_RAM_START 0x200000u         /* first sample-RAM word address (as emu8k.h) */
 /* port word index: 0 = base+0 (Data0 lo), 1 = base+2 (Data0 hi), 2 = base+400h (Data1), 3 = base+402h (Data2),
@@ -240,14 +234,13 @@ typedef struct {
     u32 ram_off;                /* byte offset of the sample RAM (u16 words), page aligned      */
     u32 ram_words;              /* words of sample RAM the card has (0 = none; 512 KB = 262144)  */
     u32 ram_alloc;              /* words allocated (64K-word blocks + read pad)                 */
-    u32 mode;                   /* AWE_MIRROR / AWE_STALL                                      */
-    u32 rq_event;               /* unused (awe.3 test: ring-0 Win32 event)                      */
+    u32 reserved0[2];
     u32 rom_off;                /* byte offset of the 1 MB ROM (0x80000 words + pad)           */
 
     /* VxD -> helper */
     volatile u32 ev_head, ev_tail;
     volatile u32 reads, writes, ram_writes, ram_reads, overflow;
-    volatile u32 stalls, stall_us;      /* stall mode: reads answered by the helper, time blocked */
+    volatile u32 reserved2[2];
     volatile u32 vm;                    /* the DOS box that touched the ports last                 */
     volatile u32 pumped;                /* helper: times the ring was drained early (render behind) */
 
@@ -255,10 +248,7 @@ typedef struct {
     volatile u32 snap_ev, snap_seq;
     volatile u32 cpf[32], cvcf[32], ccca[32];
 
-    /* stall mode: one read in flight */
-    volatile u32 rq_seq, rq_idx, ans_seq, ans_val;
-    volatile u32 dbg_ans, dbg_wake, dbg_loops, dbg_seen;   /* stall diagnostics (VxD: answers, wakes; helper: loops, rq seen) */
-    volatile u32 reserved1[3];
+    volatile u32 reserved1[11];
 
     SC55W_AWEEV ev[AWERING_SIZE];
     /* sample RAM follows at ram_off */

@@ -32,12 +32,6 @@ Destroy_VM_Msg              equ 000Ch
 @VDMAD_Set_Channel_Callbacks equ 001Fh
 VDMAD_Callbacks_ReadNotify  equ 0001h
 PAGEMAPGLOBAL               equ 40000000h
-@Create_Semaphore           equ 0025h
-@Destroy_Semaphore          equ 0026h
-@Wait_Semaphore             equ 0027h
-@Signal_Semaphore           equ 0028h
-Block_Svc_Ints              equ 0001h
-Block_Enable_Ints           equ 0004h
 Word_Input                  equ 0008h
 Word_Output                 equ 000Ch
 
@@ -52,7 +46,6 @@ public _vxd_dma_get, _vxd_dma_set, _vxd_timer_arm
 public _vxd_install_io, _vxd_remove_io, _vxd_virt_irq, _vxd_unvirt_irq
 public _vxd_virt_dma, _vxd_unvirt_dma, _vxd_map_block, _vxd_unmap_block
 public _vxd_min_period
-public _vxd_sem_create, _vxd_sem_destroy, _vxd_sem_wait, _vxd_sem_signal, _vxd_set_event
 public _vxd_sys_vm, _vxd_port_in, _vxd_port_out, _vxd_hook_int15
 public _vxd_hook_int21, _vxd_kbd_owner, _vxd_force_keys
 public _vxd_nest_begin, _vxd_nest_int21, _vxd_nest_end
@@ -772,71 +765,6 @@ _vxd_port_out proc near
         out     dx, al
         ret
 _vxd_port_out endp
-
-;---------------------------------------------------------------------------
-; AWE stall mode: VMM semaphores and the helper's Win32 event
-;---------------------------------------------------------------------------
-_vxd_sem_create proc near               ; u32 vxd_sem_create(void): 0 = failed
-        xor     ecx, ecx
-        int 20h
-        dd (VMM_DEVICE_ID shl 16) + @Create_Semaphore
-        jnc     @F
-        xor     eax, eax
-@@:     ret
-_vxd_sem_create endp
-
-_vxd_sem_destroy proc near              ; void vxd_sem_destroy(u32 sem)
-        mov     eax, [esp+4]
-        int 20h
-        dd (VMM_DEVICE_ID shl 16) + @Destroy_Semaphore
-        ret
-_vxd_sem_destroy endp
-
-_vxd_sem_wait proc near                 ; void vxd_sem_wait(u32 sem): blocks this VM / thread
-        push    ebx
-        push    esi
-        push    edi
-        push    ebp
-        mov     eax, [esp+20]
-        mov     ecx, Block_Svc_Ints or Block_Enable_Ints
-        int 20h
-        dd (VMM_DEVICE_ID shl 16) + @Wait_Semaphore
-        pop     ebp
-        pop     edi
-        pop     esi
-        pop     ebx
-        ret
-_vxd_sem_wait endp
-
-_vxd_sem_signal proc near               ; void vxd_sem_signal(u32 sem)
-        push    ebx
-        push    esi
-        push    edi
-        push    ebp
-        mov     eax, [esp+20]
-        int 20h
-        dd (VMM_DEVICE_ID shl 16) + @Signal_Semaphore
-        pop     ebp
-        pop     edi
-        pop     esi
-        pop     ebx
-        ret
-_vxd_sem_signal endp
-
-_vxd_set_event proc near                ; void vxd_set_event(u32 ring0_event)
-        push    ebx
-        push    esi
-        push    edi
-        push    ebp
-        mov     eax, [esp+20]
-        int 20h
-        dd (VWIN32_DEVICE_ID shl 16) + @_VWIN32_SetWin32Event
-        pop     ebp
-        pop     edi
-        pop     esi
-        pop     ebx
-        ret
-_vxd_set_event endp
 
 ; void vxd_min_period(int on): 1 ms timer resolution while attached
 _vxd_min_period proc near

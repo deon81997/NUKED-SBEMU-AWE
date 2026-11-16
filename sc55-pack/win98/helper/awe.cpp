@@ -12,14 +12,12 @@ static SC55W_AWE* B;
 static size_t B_bytes;
 static AweInfo info;
 static Options built;               // options the block was built for
-static int built_mode = -1;
 static std::string built_romdir;
 static CRITICAL_SECTION cs;
 static bool cs_init;
 static HANDLE ev_w32, th;
-static void* vxd_h;
 static volatile LONG th_stop;
-static const uint16_t woff[6] = { 0x000, 0x002, 0x400, 0x402, 0x800, 0x802 };
+static const uint16_t woff[6] = { 0x000, 0x002, 0x400, 0x402, 0x800, 0x802 };   // emu8k_io_write offsets
 
 static bool is_awe_rom(const std::string& p)
 {
@@ -54,7 +52,6 @@ void awe_lock() { if (cs_init) EnterCriticalSection(&cs); }
 void awe_unlock() { if (cs_init) LeaveCriticalSection(&cs); }
 SC55W_AWE* awe_block() { return info.on ? B : NULL; }
 const AweInfo& awe_info() { return info; }
-bool awe_stall_mode() { return info.on && B && B->mode == AWE_STALL; }
 
 void awe_apply(const SC55W_AWEEV& e)
 {
@@ -76,51 +73,24 @@ void awe_snapshot()
     B->snap_seq++;
 }
 
-static void drain_all()
-{
-    while (B->ev_tail != B->ev_head) {
-        awe_apply(B->ev[B->ev_tail & (AWERING_SIZE - 1)]);
-        B->ev_tail++;
-    }
-}
 
-// stall mode: answer the VxD's reads at once (the DOS box is blocked meanwhile).
-// Both modes: if the render thread is not draining the ring (the synth still starting, or starved), apply the
-// oldest writes at once before the ring fills up - a lost write would leave the EMU8000 state wrong for good.
+// If the render thread is not draining the ring (the synth still starting, or starved), apply the oldest
+// writes at once before the ring fills up - a lost write would leave the EMU8000 state wrong for good.
 static DWORD WINAPI awe_thread(LPVOID)
 {
-    const bool stall = B->mode == AWE_STALL;
-    SetThreadPriority(GetCurrentThread(), stall ? THREAD_PRIORITY_TIME_CRITICAL : THREAD_PRIORITY_ABOVE_NORMAL);
-    uint32_t done = B->rq_seq;
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
     while (!th_stop) {
-        if (!stall) {
-            WaitForSingleObject(ev_w32, 50);
-            if (th_stop) break;
-            if (B->ev_head - B->ev_tail > AWERING_SIZE / 2) {
-                awe_lock();
-                while (B->ev_head - B->ev_tail > AWERING_SIZE / 4) {
-                    awe_apply(B->ev[B->ev_tail & (AWERING_SIZE - 1)]);
-                    B->ev_tail++;
-                }
-                B->pumped++;
-                awe_unlock();
-            }
-            continue;
-        }
-        DWORD got = 0, rq = 0;
-        if (!DeviceIoControl((HANDLE)vxd_h, IOCTL_SC55W_AWEWAIT, NULL, 0, &rq, 4, &got, NULL) || !rq) break;  // detached
+        WaitForSingleObject(ev_w32, 50);
         if (th_stop) break;
-        B->dbg_loops++;
-        awe_lock();
-        drain_all();
-        rq = B->rq_seq;
-        B->dbg_seen = rq;
-        if (rq == done) { awe_unlock(); continue; }
-        uint32_t idx = B->rq_idx, v = 0xFFFF;
-        if (idx < 6) v = emu8k_io_read(woff[idx]);
-        done = rq;
-        awe_unlock();
-        DeviceIoControl((HANDLE)vxd_h, IOCTL_SC55W_AWEANS, &v, 4, NULL, 0, &got, NULL);
+        if (B->ev_head - B->ev_tail > AWERING_SIZE / 2) {
+            awe_lock();
+            while (B->ev_head - B->ev_tail > AWERING_SIZE / 4) {
+                awe_apply(B->ev[B->ev_tail & (AWERING_SIZE - 1)]);
+                B->ev_tail++;
+            }
+            B->pumped++;
+            awe_unlock();
+        }
     }
     return 0;
 }
@@ -145,15 +115,14 @@ static void free_block()
     info = AweInfo();
 }
 
-void awe_shutdown() { free_block(); built = Options(); built_mode = -1; }
+void awe_shutdown() { free_block(); built = Options(); }
 
-const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SHARED* sh, int mode)
+const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SHARED* sh)
 {
     if (!cs_init) { InitializeCriticalSection(&cs); cs_init = true; }
     if (!ev_w32) ev_w32 = CreateEventA(NULL, FALSE, FALSE, NULL);
     stop_thread();
-    bool same = B && o.awe == built.awe && o.aweram == built.aweram && o.awerom == built.awerom && mode == built_mode &&
-                romdir == built_romdir;
+    bool same = B && o.awe == built.awe && o.aweram == built.aweram && o.awerom == built.awerom && romdir == built_romdir;
     if (!o.awe) free_block();
     else if (!same) {
         free_block();
@@ -162,7 +131,7 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
         size_t ram_off = (rom_off + emu8k_rom_words() * 2 + pg - 1) & ~(pg - 1);
         size_t total = ram_off + (size_t)emu8k_ram_words(o.aweram) * 2;
         B = (SC55W_AWE*)VirtualAlloc(NULL, total, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        info.port = o.awe; info.ram_kb = o.aweram; info.mode = mode;
+        info.port = o.awe; info.ram_kb = o.aweram;
         if (!B) { info.error = "not enough memory for the AWE32 sample RAM"; }
         else {
             B_bytes = total;
@@ -172,7 +141,6 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
             B->ram_off = (u32)ram_off;
             B->ram_words = (u32)o.aweram * 512u;
             B->ram_alloc = o.aweram ? (u32)(((o.aweram * 512u) + 0xFFFF) >> 16) * 0x10000u : 0;
-            B->mode = (u32)mode;
             uint16_t* rom = (uint16_t*)((char*)B + rom_off);
             uint16_t* ram = o.aweram ? (uint16_t*)((char*)B + ram_off) : NULL;
             awe_lock();
@@ -194,16 +162,13 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
                 }
                 if (!p.empty() && emu8k_load_rom(p.c_str()) == 0) info.rom = p;
                 info.on = true;
-                built = o; built_mode = mode; built_romdir = romdir;
+                built = o; built_romdir = romdir;
             }
         }
     }
     if (B && info.on) {
         B->ev_head = B->ev_tail = 0;
         B->snap_ev = 0;
-        B->rq_seq = B->ans_seq = 0;
-        B->mode = (u32)mode;
-        B->rq_event = 0;
         awe_snapshot();
         sh->awe_port = (u32)info.port;
         sh->awe_addr = (u32)(uintptr_t)B;
@@ -214,12 +179,11 @@ const AweInfo& awe_prepare(const Options& o, const std::string& romdir, SC55W_SH
     return info;
 }
 
-void awe_attached(void* vxd, unsigned long st)
+void awe_attached(unsigned long st)
 {
-    vxd_h = vxd;
     if (!info.on || !B) return;
     if (!(st & ST_OK_AWE)) { info.error = (st & ST_ERR_AWEPORT) ? "EMU8000 ports in use" : "SC55W.VXD did not take the AWE32 block"; return; }
-    info.mode = (int)B->mode;      // the VxD falls back to the mirror if it can't block
     InterlockedExchange(&th_stop, 0);
-    th = CreateThread(NULL, 0, awe_thread, NULL, 0, NULL);
+    DWORD tid;                     // Windows 98: CreateThread fails with a NULL thread id
+    th = CreateThread(NULL, 0, awe_thread, NULL, 0, &tid);
 }

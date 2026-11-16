@@ -247,13 +247,6 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     ba.resize((size_t)frames * 2);
     ba16.resize((size_t)frames * 2);
     SC55W_AWE* aw = awe_block();
-    if (aw && awe_stall_mode()) {   // stall mode: the ring is applied at once (the reads need the state now)
-        awe_lock();
-        if (aw->ev_tail != aw->ev_head) wake_awe();
-        while (aw->ev_tail != aw->ev_head) { awe_apply(aw->ev[aw->ev_tail & (AWERING_SIZE - 1)]); aw->ev_tail++; st.awe_writes++; }
-        awe_unlock();
-        aw = NULL;                  // not timed below
-    }
     const double us_per_frame = 1e6 / rate;
     const uint32_t lat_us = (uint32_t)latency_ms * 1000u;
     const uint32_t target = now_us - lat_us;
@@ -305,7 +298,7 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
         if (dac_active && (int32_t)(win_start - dac_last) > 200000) dac_active = false;
     }
     render_sources(pos, frames);
-    if (aw) awe_snapshot();        // mirror mode: CPF/CVCF/CCCA for the VxD's reads
+    if (aw) awe_snapshot();        // CPF/CVCF/CCCA for the VxD's reads
     pcm_render(sh, bp.data(), frames);
 
     // levels: SB mixer registers (as the DOS program set them) x pack volumes

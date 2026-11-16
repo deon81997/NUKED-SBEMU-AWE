@@ -552,7 +552,8 @@ CONTENTS
   2. SETTINGS > MIDI synth > "AWE32 / AWE64 wavetable (EMU8000)". The line
      under it, "MPU-401 also plays", picks what plays the General MIDI that
      games and MIDPLAY send to port 330: SC-55 (the default), SoundFont,
-     MT-32, CM-32L, USB MIDI device, or off (AWE32 only). Save.
+     MT-32, CM-32L, USB MIDI device, off (AWE32 only), or "AWE32 itself"
+     GM / GS / MT-32 (see below). Save.
      Or only for one game: Games > Add / edit games > SBEMU options /AWE:620.
   3. In the game's setup choose "AWE32" (Sound Blaster 16 for the effects),
      EMU port 620. BLASTER gets E620 and the Sound Blaster type becomes 16.
@@ -573,6 +574,18 @@ CONTENTS
   needs a Pentium Pro / Pentium II or newer (like the SC-55). Differences to
   a real card (open work): no reverb or chorus yet, and the filter is a
   little brighter. AWE settings only change when SBEMU is loaded again.
+
+  The MPU-401 on the AWE32 itself (/AWEMPU:GM, GS or MT32, beta.130-awe.6):
+  like AWEUTIL /EM:GM on a real AWE32, General MIDI sent to port 330 plays
+  on the EMU8000 with Creative's own banks. Copy SYNTHGM.SBK (and SYNTHGS.SBK,
+  SYNTHMT.SBK) from your AWE32/AWE64 drivers into C:\SC55\ROMS, next to the
+  AWE ROM: they are found by content, any name. GS and MT-32 fall back to
+  the GM bank for sounds they lack; with no SBK, NUKED's own GM map over the
+  AWE ROM plays. Creative's AWEUTIL /EM does not work under SBEMU (it needs
+  the card's NMI to catch port 330): /AWEMPU replaces it - do not load
+  AWEUTIL /EM. A game's own AWE32 driver wins: as soon as it touches the
+  EMU8000 the MPU-401 music stops, and it comes back when MIDI notes arrive
+  3 s after the last AWE32 access (the next program). No SC-55 is loaded.
 
 
 =============================================================================
@@ -736,7 +749,9 @@ CONTENTS
      /AWEROM:path          1 MB EMU8000 ROM dump, or a folder searched by
                            content (default ROMS, then AWE)
      /AWEMPU:1             with /AWE the MPU-401 keeps its synth (SC-55,
-                           SoundFont, MT-32, USB MIDI); 0 = AWE32 only
+                           SoundFont, MT-32, USB MIDI); 0 = AWE32 only;
+                           GM | GS | MT32 = the MPU-401 plays on the
+                           EMU8000 (AWEUTIL /EM, SYNTHGM/GS/MT.SBK in ROMS)
 
   Selection and diagnostics
      /SCL                  list installed sound cards

@@ -73,6 +73,14 @@ int main(int argc, char** argv)
     CHECK(a > 200, "built-in map plays (rms %.0f)", a);
     VAWE_Init(0x620, 128, argv[1], &found, rn, sizeof rn);
     CHECK(VAWE_MidiStart(0, 128, argv[1], desc, sizeof desc) == 0 && strstr(desc, "left out"), "128 KB RAM: %s", desc);
+    VAWE_Init(0x620, 4096, argv[1], &found, rn, sizeof rn); VAWE_GetIODT(io);
+    VAWE_MidiStart(0, 4096, argv[2], desc, sizeof desc);
+    game_touch(); render(0.1);
+    mpu(0, 0xC0); mpu(0, 0); note(1, 60); a = render(0.5); note(0, 60);
+    VAWE_MidiStats(&rel, &rec, &released);
+    CHECK(a < 20 && released, "a game's AWE driver first: the player stays off the chip (rms %.1f)", a);
+    render(3.1); note(1, 62); a = render(0.5);
+    CHECK(a > 200, "...and starts 3 s after its last access (rms %.0f)", a);
     VAWE_Close();
     puts(fails ? "FAIL" : "PASS");
     return fails != 0;

@@ -166,6 +166,7 @@ uint32_t VAWE_Accesses(void) { return VAWE_Count; }
 static int VAWEM_On, VAWEM_Rate = 44100;
 static uint32_t VAWEM_SeenCnt, VAWEM_IdleFrames, VAWEM_Releases, VAWEM_Reclaims;
 static int VAWEM_Base, VAWEM_Ack;
+static int VAWEM_Started, VAWEM_Touched;   /* chip written by the player yet / a program used the EMU8000 */
 static AwemBank* VAWEM_Banks[4];
 static int VAWEM_NBanks;
 
@@ -176,6 +177,7 @@ static void VAWEM_Watch(int frames, int rate)
     {   /* a program touched the EMU8000 since the last interrupt: it is its chip now */
         VAWEM_SeenCnt = VAWE_Count;
         VAWEM_IdleFrames = 0;
+        VAWEM_Touched = 1;
         if(!awem_released()) { awem_release(); ++VAWEM_Releases; }
     }
     else if(VAWEM_IdleFrames < 0x40000000u) VAWEM_IdleFrames += (uint32_t)frames;
@@ -256,9 +258,12 @@ int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int descle
         }
     }
     (void)found;
+    /* nothing is written to the chip until the first note: a game that only uses its own AWE32 driver finds the
+       EMU8000 exactly as without /AWEMPU (awe.6 test: Duke's AWE music was 3 dB louder after a chip start) */
+    awem_release();
     awem_set_banks(VAWEM_Banks, VAWEM_NBanks, mode);
-    awem_start();
     awem_reset();
+    VAWEM_Started = VAWEM_Touched = 0;
     VAWEM_SeenCnt = VAWE_Count;
     VAWEM_IdleFrames = 0;
     VAWEM_On = 1;
@@ -297,9 +302,12 @@ uint32_t VAWE_MPU(uint32_t port, uint32_t val, uint32_t out)
         DIAG_Midi(0);
         if(VAWEM_On)
         {
-            if(awem_released() && (b & 0xF0) == 0x90 && VAWEM_IdleFrames >= (uint32_t)VAWEM_Rate * VAWEM_IDLE_S)
-            {   /* notes again, and no program has used the EMU8000 for a while: take it back */
-                awem_reclaim(); ++VAWEM_Reclaims;
+            if(awem_released() && (b & 0xF0) == 0x90
+                && (VAWEM_IdleFrames >= (uint32_t)VAWEM_Rate * VAWEM_IDLE_S || (!VAWEM_Started && !VAWEM_Touched)))
+            {   /* the first notes, or notes again after no program has used the EMU8000 for a while: (re)start it */
+                awem_reclaim();
+                if(VAWEM_Started) ++VAWEM_Reclaims;
+                VAWEM_Started = 1;
                 VAWEM_SeenCnt = VAWE_Count;
             }
             awem_byte(b);

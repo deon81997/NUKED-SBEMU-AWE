@@ -67,7 +67,7 @@
 
 <br><br>
 
-<a href="#-whats-new-"><img src="https://github.com/deon81997/NUKED-SBEMU-MUXED/releases/download/news-ticker/ticker-hd.gif" width="600" alt="The newest news, scrolling"></a>
+<a href="#-whats-new-"><img src="https://github.com/deon81997/NUKED-SBEMU/releases/download/news-ticker/ticker-hd.gif" width="600" alt="The newest news, scrolling"></a>
 
 <br><br>
 
@@ -1172,11 +1172,11 @@ unmodified files. Liked one? The full game is still sold today by its rights hol
 
 | Download | Game | By | Sound | Tests |
 |---|---|---|---|---|
-| [`PINBALL.ZIP`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/PINBALL.ZIP) | **Epic Pinball** | Epic MegaGames | Sound Blaster music + effects | SBEMU's Sound Blaster, DMA and mixing |
-| [`ELECTRO.ZIP`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/ELECTRO.ZIP) | **Electro Man** | Epic MegaGames / XLAND | SB + AdLib music | OPL3 (FM) music next to SB effects |
-| [`HEART.ZIP`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/HEART.ZIP) | **Heartlight** | Epic MegaGames / XLAND | SB + AdLib music | a light game for slow PCs, joystick |
-| [`GOT100.ZIP`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/GOT100.ZIP) | **God of Thunder** | Software Creations | SB effects + AdLib music | real-mode sound (SC55JEM) |
-| [`BATS20.ZIP`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/BATS20.ZIP) | **Invasion of the Mutant Space Bats of Doom** | Pop Software | Sound Blaster | sound + joystick |
+| [`PINBALL.ZIP`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/PINBALL.ZIP) | **Epic Pinball** | Epic MegaGames | Sound Blaster music + effects | SBEMU's Sound Blaster, DMA and mixing |
+| [`ELECTRO.ZIP`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/ELECTRO.ZIP) | **Electro Man** | Epic MegaGames / XLAND | SB + AdLib music | OPL3 (FM) music next to SB effects |
+| [`HEART.ZIP`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/HEART.ZIP) | **Heartlight** | Epic MegaGames / XLAND | SB + AdLib music | a light game for slow PCs, joystick |
+| [`GOT100.ZIP`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/GOT100.ZIP) | **God of Thunder** | Software Creations | SB effects + AdLib music | real-mode sound (SC55JEM) |
+| [`BATS20.ZIP`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/BATS20.ZIP) | **Invasion of the Mutant Space Bats of Doom** | Pop Software | Sound Blaster | sound + joystick |
 </details>
 
 <details open>
@@ -1184,11 +1184,11 @@ unmodified files. Liked one? The full game is still sold today by its rights hol
 
 | Download | Game | By | Sound | Tests |
 |---|---|---|---|---|
-| [`3dduke13.zip`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/3dduke13.zip) | **Duke Nukem 3D 1.3D** | 3D Realms | General MIDI + SB effects | Bobby Prince's MIDI score, fast timer |
-| [`1rott13.zip`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/1rott13.zip) | **Rise of the Triad: The HUNT Begins 1.3** | Apogee | General MIDI + SB effects | same sound library as Duke, older |
-| [`1rap12.zip`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/1rap12.zip) | **Raptor: Call of the Shadows 1.2** | Cygnus Studios / Apogee | General MIDI + SB effects | a good long music test |
-| [`htic_v12.zip`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/htic_v12.zip) | **Heretic 1.2** | Raven / id Software | General MIDI + SB effects | the same sound code as Doom |
-| [`desc14sw.exe`](https://github.com/deon81997/NUKED-SBEMU-MUXED/raw/main/testgames/desc14sw.exe) | **Descent 1.4** | Parallax / Interplay | General MIDI (HMI driver) | 3D with heavy CPU use + MIDI |
+| [`3dduke13.zip`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/3dduke13.zip) | **Duke Nukem 3D 1.3D** | 3D Realms | General MIDI + SB effects | Bobby Prince's MIDI score, fast timer |
+| [`1rott13.zip`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/1rott13.zip) | **Rise of the Triad: The HUNT Begins 1.3** | Apogee | General MIDI + SB effects | same sound library as Duke, older |
+| [`1rap12.zip`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/1rap12.zip) | **Raptor: Call of the Shadows 1.2** | Cygnus Studios / Apogee | General MIDI + SB effects | a good long music test |
+| [`htic_v12.zip`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/htic_v12.zip) | **Heretic 1.2** | Raven / id Software | General MIDI + SB effects | the same sound code as Doom |
+| [`desc14sw.exe`](https://github.com/deon81997/NUKED-SBEMU/raw/main/testgames/desc14sw.exe) | **Descent 1.4** | Parallax / Interplay | General MIDI (HMI driver) | 3D with heavy CPU use + MIDI |
 </details>
 
 **How to play:** unzip into a folder (the Apogee, 3D Realms, id and Descent archives hold an installer: unzip to a

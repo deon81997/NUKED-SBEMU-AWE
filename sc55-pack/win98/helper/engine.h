@@ -18,6 +18,8 @@ struct EngineStats {
     bool midi_idle = false, opl_idle = false;   // synth paused while silent
     bool awe_idle = false;                      // AWE32: EMU8000 paused while silent
     unsigned awe_writes = 0;
+    unsigned awe_midi_bytes = 0;                // "AWE32 MIDI Synth" bytes from Windows programs
+    int awe_midi_volume = 100;                  // its Windows volume, percent
     bool out_asleep = false;                    // sound output stopped while everything is silent
 };
 

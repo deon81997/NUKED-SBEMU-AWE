@@ -28,7 +28,7 @@ typedef int32_t  s32;
 #endif
 
 #define SC55W_MAGIC      0x57353543UL   /* "C55W" */
-#define SC55W_IF_VERSION 10   /* 10 = AWE line: EMU8000 (SC55W_AWE) */
+#define SC55W_IF_VERSION 11   /* 10 = AWE line: EMU8000 (SC55W_AWE); 11 = AWE32 MIDI Synth device */
 
 /* DeviceIoControl codes */
 #define IOCTL_SC55W_VERSION  0x10   /* out: u32 interface version            */
@@ -83,7 +83,7 @@ typedef struct {
 
 /* event types in the event ring */
 #define EV_OPL      1   /* a = register (low 8 bits), b = value, c = bank (0/1) */
-#define EV_MIDI     2   /* a = MIDI byte, c = 1 from a DOS box (else Windows)    */
+#define EV_MIDI     2   /* a = MIDI byte, c = 1 from a DOS box, 2 = Windows "AWE32 MIDI Synth", 0 = Windows "NUKED SB-EMU" */
 #define EV_DAC      3   /* a = 8-bit unsigned sample (DSP command 10h)          */
 #define EV_SPEAKER  4   /* a = 1 on, 0 off                                      */
 #define EV_PCMFMT   5   /* PCM stream rate change; rate in pcmfmt ring          */
@@ -202,11 +202,12 @@ typedef struct {
 
     /* w98.8 (IF 9): MPU intelligent-mode bytes the VxD ignored (sequencer data, stray status), for SC55W.LOG */
     volatile u32 mpu_ignored;
-    volatile u32 reserved9;
+    volatile u32 awe_midi_volume;   /* IF 11: Windows volume of "AWE32 MIDI Synth" (as midi_volume) */
 
     /* AWE line (IF 10): EMU8000 at awe_port (0x620/0x640/0x660/0x680, 0 = off); awe_addr = the helper's
        SC55W_AWE block (user address, page aligned), awe_size its bytes. The VxD maps it at ATTACH. */
-    u32 awe_port, awe_addr, awe_size, awe_reserved;
+    u32 awe_port, awe_addr, awe_size;
+    volatile u32 awe_midi_volume_set;   /* IF 11: 1 once SC55MIDI.DRV set awe_midi_volume */
 } SC55W_SHARED;
 
 /* ---- AWE32 / EMU8000 (AWE line) ----
@@ -240,8 +241,9 @@ typedef struct {
     /* VxD -> helper */
     volatile u32 ev_head, ev_tail;
     volatile u32 reads, writes, ram_writes, ram_reads, overflow;
-    volatile u32 reserved2[2];
-    volatile u32 vm;                    /* the DOS box that touched the ports last                 */
+    volatile u32 vm_gone;               /* IF 11: times the DOS box in vm was closed (vm -> 0)     */
+    volatile u32 reserved2;
+    volatile u32 vm;                    /* the DOS box that touched the ports last (0 = closed)    */
     volatile u32 pumped;                /* helper: times the ring was drained early (render behind) */
 
     /* helper -> VxD (mirror): dynamic registers as of AWE ring position snap_ev */

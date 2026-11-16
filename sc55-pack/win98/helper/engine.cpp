@@ -266,6 +266,8 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     pending_midi.clear();
 
     int pos = 0;
+    const bool awe_midi = awe_midi_ready();
+    if (awe_midi) { awe_lock(); awe_midi_poll(false); awe_unlock(); }
     if (sh) {
         const bool dos_mpu_off = opt.awe && !opt.awempu;   // /AWEMPU:0: the DOS boxes' MPU-401 has no synth
         for (;;) {
@@ -284,13 +286,21 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
             if (use_awe) {
                 wake_awe();
                 awe_lock();             // the AWE thread may have drained it meanwhile (overload)
+                if (awe_midi) awe_midi_poll(true);      // a DOS box takes the EMU8000 from the AWE32 MIDI Synth
                 if (aw->ev_tail != aw->ev_head) { awe_apply(aw->ev[aw->ev_tail & (AWERING_SIZE - 1)]); aw->ev_tail++; st.awe_writes++; }
                 awe_unlock();
                 continue;
             }
             switch (e.type) {
             case EV_OPL:  if (opl) { wake_opl(); opl->write(e.c, e.a, e.b); } st.opl_writes++; break;
-            case EV_MIDI: if (e.c == 1 && dos_mpu_off) break; midi_in(e.a, e.time + lat_us); st.midi_bytes++; break;
+            case EV_MIDI:
+                if (e.c == 2) {             // "AWE32 MIDI Synth" (Windows MIDI device 2): the EMU8000
+                    st.awe_midi_bytes++;
+                    if (awe_midi) { wake_awe(); awe_lock(); awe_midi_byte(e.a); awe_unlock(); }
+                    break;
+                }
+                if (e.c == 1 && dos_mpu_off) break;
+                midi_in(e.a, e.time + lat_us); st.midi_bytes++; break;
             case EV_DAC:  dac_value = e.a; dac_active = true; dac_last = e.time; break;
             case EV_RESET: dac_active = false; break;
             default: break;
@@ -321,7 +331,13 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
     const float pl = master * ml * vl * sbv, pr = master * mr * vr * sbv;
     const float ol = master * ml * fl * oplv, orr = master * mr * fr * oplv;
     // AWE32: the EMU8000 is music like the MPU in DOS SBEMU (SB16 mixer MIDI + master, /VMIDIVOL)
-    const float awv = opt.midivol / 100.0f, al = master * ml * fl * awv, ar = master * mr * fr * awv;
+    float awv = opt.midivol / 100.0f, al = master * ml * fl * awv, ar = master * mr * fr * awv;
+    if (awe_midi_windows()) {   // the AWE32 MIDI Synth has it: its Windows volume (midiOutSetVolume) x master
+        float vl2 = 1, vr2 = 1;
+        if (sh && sh->awe_midi_volume_set) { vl2 = (sh->awe_midi_volume & 0xFFFF) / 65535.0f; vr2 = (sh->awe_midi_volume >> 16) / 65535.0f; }
+        al = master * vl2; ar = master * vr2;
+        st.awe_midi_volume = (int)((vl2 + vr2) * 50 + 0.5f);
+    }
     const bool awe_on = awe_block() != NULL;
     // remove the SC-55's DC offset. CPU: while the synth sleeps its output is a constant, the filter's
     // output decays towards 0 and would end up as denormal floats (and stay there: 0.9995 x the smallest

@@ -38,11 +38,11 @@ static uint16_t calc_delay(int amount)
 {
     int delay, temp;
     if (amount <= -12000) return 0x8000;
-    delay = (amount + 0x30E4) << 16;
+    delay = (amount + 0x30E4) * 65536;
     delay /= 1200;
     temp = 0x10000 | (delay & 0xffff);
     delay >>= 16;
-    temp >>= 16 - (delay & 0xff);
+    temp >>= (16 - (delay & 0xff)) & 31;   /* x86 masks the count, as awesfx ran */
     delay = 0x8000 - temp;
     if (delay < -32768) delay = -32768;
     return (uint16_t)delay;
@@ -69,11 +69,11 @@ static int calc_hold(int amount)
 {
     int hold, temp;
     if (amount < -5368) return 127;
-    hold = (amount + 4130) << 16;
+    hold = (amount + 4130) * 65536;
     hold /= 1200;
     temp = 0x10000 | (hold & 0xffff);
     hold >>= 16;
-    temp >>= 16 - (hold & 0xff);
+    temp >>= (16 - (hold & 0xff)) & 31;
     hold = 127 - temp;
     if (hold < 0) hold = 0;
     return hold;
@@ -127,7 +127,7 @@ static uint8_t calc_cutoff_shift(int amount, int octave_shift)
 }
 static uint8_t calc_tremolo(int amount)
 {
-    int v = (amount << 7) / 0x78;
+    int v = (amount * 128) / 0x78;
     LIMIT(v, -128, 127);
     return (uint8_t)(v < 0 ? 0x100 + v : v);
 }
@@ -135,11 +135,11 @@ static uint8_t calc_freq(int amount)
 {
     int freq, temp;
     if (amount <= -16000) return 0;
-    freq = (amount + 0x23A6) << 16;
+    freq = (amount + 0x23A6) * 65536;
     freq /= 1200;
     temp = 0x10000 | (freq & 0xffff);
     freq >>= 16;
-    temp >>= 16 - (freq & 0xff);
+    temp >>= (16 - (freq & 0xff)) & 31;
     if (temp > 255) temp = 255;
     return (uint8_t)temp;
 }

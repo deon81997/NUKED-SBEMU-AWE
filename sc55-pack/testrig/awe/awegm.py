@@ -65,7 +65,7 @@ for n, (s, e) in enumerate(segs):
         p = 44100 / f0 if f0 > 0 and ap < 0.5 else 64
         loop = find_loop(x, p)
         if loop is None or loop[0] > 0.5: oneshot, loop = True, None
-    if loop: part = x[loop[1]:loop[2]] if loop[2] - loop[1] >= 512 else np.tile(x[loop[1]:loop[2]], 512 // max(1, loop[2] - loop[1]) + 1)
+    if loop: part = x[max(0, L - 4096):]      # (a repeated short loop is a comb at 44100/len: HPS would take that)
     fh = hps(part)
     if fh > 0 and ap < 0.5: f0 = fh   # harmonic product spectrum (YIN locks on harmonics of organ/guitar loops)
     if f0 > 0 and ap < 0.5: key = 69 + 12 * np.log2(f0 / 440)
@@ -105,8 +105,8 @@ FAM = [
  ("Charang", ORGAN, [57]), ("Voice Lead", SUST, [58]), ("Fifths Lead", ORGAN, [55]), ("Bass + Lead", ORGAN, [56]),
  ("New Age Pad", PAD, [50]), ("Warm Pad", PAD, [51]), ("Polysynth", SUST, [128]), ("Choir Pad", PAD, [128]),
  ("Bowed Pad", PAD, [49]), ("Metallic Pad", PAD, [68]), ("Halo Pad", PAD, [147]), ("Sweep Pad", PAD, [73]),
- ("Rain", FX, [107]), ("Soundtrack", PAD, [110]), ("Crystal", BELL, [126]), ("Atmosphere", PAD, [96]),
- ("Brightness", PAD, [99]), ("Goblins", PAD, [141]), ("Echoes", PAD, [133]), ("Sci-fi", PAD, [132]),
+ ("Rain", FX, [107]), ("Soundtrack", PAD, [110]), ("Crystal", BELL, [126]), ("Atmosphere", PAD, [129]),
+ ("Brightness", PAD, [132]), ("Goblins", PAD, [141]), ("Echoes", PAD, [133]), ("Sci-fi", PAD, [132]),
  ("Sitar", PLUCK, [42]), ("Banjo", PLUCK, [71]), ("Shamisen", PLUCK, [72]), ("Koto", PLUCK, [109]),
  ("Kalimba", PERC, [104]), ("Bagpipe", SUST, [76]), ("Fiddle", SLOW, [43]), ("Shanai", SUST, [84]),
  ("Tinkle Bell", BELL, [5]), ("Agogo", PERC, [98]), ("Steel Drums", PERC, [60]), ("Woodblock", PERC, [101]),

@@ -149,14 +149,23 @@ STYLE DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     AUTOCHECKBOX    "AWE32 (EMU8000 wavetable) for DOS programs - Sound Blaster type 16, BLASTER gets E620", IDC_A_ON, 4, 2, 370, 10
-    LTEXT           "EMU8000 port", -1, 14, 19, 60, 8
-    COMBOBOX        IDC_A_PORT, 80, 17, 70, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Sample RAM", -1, 14, 35, 60, 8
-    COMBOBOX        IDC_A_RAM, 80, 33, 110, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    AUTOCHECKBOX    "MPU-401 keeps its synth (SC-55 / SoundFont / MT-32), like an AWE32 with a Sound Canvas on its MIDI port", IDC_A_MPU, 14, 51, 370, 10
-    AUTOCHECKBOX    "Reverb and chorus (as the game or AWEUTIL sets them; off = dry, a little less CPU)", IDC_A_FX, 14, 63, 370, 10
-    LTEXT           "", IDC_A_STAT, 4, 78, 378, 44, SS_NOPREFIX | SS_SUNKEN
-    LTEXT           "ROM: a 1 MB EMU8000 ROM dump (for example 86Box's awe32.raw) in the ROM folder, found by its content. Games: run AWEUTIL /S or the game's AWE32 setup as on a real AWE32; command line: SC55W /AWE:620 /AWERAM:512 /AWEMPU:1.", -1, 4, 124, 378, 26
+    LTEXT           "EMU8000 port", -1, 14, 16, 50, 8
+    COMBOBOX        IDC_A_PORT, 66, 14, 50, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Sample RAM", -1, 130, 16, 44, 8
+    COMBOBOX        IDC_A_RAM, 176, 14, 100, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    AUTOCHECKBOX    "MPU-401 keeps its synth (SC-55 / SoundFont / MT-32), like an AWE32 with a Sound Canvas on its MIDI port", IDC_A_MPU, 14, 29, 370, 10
+    AUTOCHECKBOX    "Reverb and chorus (as the game or AWEUTIL sets them; off = dry, a little less CPU)", IDC_A_FX, 14, 40, 370, 10
+    LTEXT           "", IDC_A_STAT, 4, 52, 378, 27, SS_NOPREFIX | SS_SUNKEN
+    GROUPBOX        "AWE32 MIDI Synth - a Windows MIDI device next to NUKED SB-EMU, like Creative's AWE32 driver", -1, 2, 81, 382, 94
+    AUTOCHECKBOX    "On (Windows programs choose ""AWE32 MIDI Synth"")", IDC_M_ON, 8, 93, 170, 10
+    LTEXT           "Bank (AWEUTIL /EM)", -1, 186, 94, 70, 8
+    COMBOBOX        IDC_M_BANK, 258, 92, 60, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Reverb", -1, 8, 109, 26, 8
+    COMBOBOX        IDC_M_REV, 36, 107, 84, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Chorus", -1, 128, 109, 26, 8
+    COMBOBOX        IDC_M_CHO, 156, 107, 104, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Search for SBK files", IDC_M_SCAN, 270, 106, 108, 13
+    LTEXT           "", IDC_M_STAT, 8, 123, 372, 48, SS_NOPREFIX | SS_SUNKEN
 END
 
 IDD_PAGE_PAD DIALOGEX 0, 0, 386, 176

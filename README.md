@@ -693,9 +693,9 @@ file formats and 3D view, thousands of deliberately damaged music files, and an 
   4. C:\SC55\MENU      and have fun!!
 ```
 
-In each game's setup pick **Sound Blaster 16** and **General MIDI / Sound
-Canvas** (or **MT-32**) with the values the menu shows in the top right corner:
-usually 220, IRQ 7, DMA 1/5 and port 330. GAMETEST sets up Doom- and
+In each game's setup pick **Sound Blaster Pro** (the default type; set *Type* to SB16 in SETTINGS for
+**Sound Blaster 16**) and **General MIDI / Sound Canvas** (or **MT-32**) with the values the menu shows
+in the top right corner: usually 220, IRQ 7, DMA 1 (16-bit DMA 5 with SB16) and port 330. GAMETEST sets up Doom- and
 Duke-style games by itself.
 
 <details>

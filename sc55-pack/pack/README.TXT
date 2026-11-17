@@ -725,8 +725,8 @@ CONTENTS
 
   Joystick (section 10b)
      /JOY:0|1              USB Xbox 360 pad as the gameport joystick at port
-                           201h (default on; 0 if you use a USB keyboard or
-                           mouse in DOS)
+                           201h (default on; also runs USB keyboards and mice,
+                           /USBKB /USBMS; 0 = leave all USB to the BIOS)
      /JOYAX:a,a,a,a        pad axes for joystick A X, A Y, B X, B Y: LX LY
                            RX RY LT RT TR (RT minus LT) or -; ~ in front
                            inverts (default LX,LY,RX,RY)

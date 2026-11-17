@@ -44,9 +44,7 @@ export QEXTRA="-chardev socket,id=c1,host=127.0.0.1,port=$PORT,server=on,wait=of
 logger() {   # CASE: DBGLOG.PY on the VM's COM1 until logstop
   ( for i in $(seq 120); do [ -f $L/stop ] && break; python3 -I $P/pack/FILES/SC55/DBGLOG.PY socket://127.0.0.1:$PORT -o $L/$1.log -q \
       --timeout 1500 2>>$L/$1.err && break; sleep 2; done ) & }
-mpenter() {   # fresh VMs: Media Player's first-start dialog blocks START /W MPLAYER - Enter once MIDITEST closed its devices
-  ( for i in $(seq 200); do [ -f $L/stop ] && exit; [ "$(grep -c 'MIDI device .*closed' $L/main.log 2>/dev/null)" -ge 2 ] && break; sleep 3; done
-    sleep 15; QSOCK=/tmp/w98t/q.sock python3 /home/claude/vms/bin/q.py key ret > /dev/null 2>&1 ) & }
+# (awe.10: mpenter dropped - MPLAYER2 has no first-start dialog; its stray Enter cancelled a later CHOICE /T timeout)
 logstop() { touch $L/stop; pkill -f "DBGLOG.PY socket://127.0.0.1:$PORT"; sleep 5; rm -f $L/stop; }
 F=0
 chk() { c=$(grep -cE "$3" $L/$1.log 2>/dev/null); [ "$c" -ge "${4:-1}" ] && echo "  ok   $2 ($c)" || { echo "  FAIL $2 ($c)"; F=1; }; }
@@ -57,7 +55,7 @@ for c in $CASES; do
   case $c in
   main)  I=$W/$VM.img@@32256; mtype -i $I ::/SC55/WIN98/SC55W.INI > $W/i.ini; printf '[Debug]\r\nLink=COM1:1\r\n' >> $W/i.ini
          mcopy -o -i $I $W/i.ini ::/SC55/WIN98/SC55W.INI     # on from the start (SC55W.INI), the batch's /DBG: is then a level change
-         logger main; mpenter; BOOT=${BOOT:-200} sh $R98 t $VM TD1.BAT 900 > /dev/null; logstop
+         logger main; BOOT=${BOOT:-200} sh $R98 t $VM TD1.BAT 900 > /dev/null; logstop
          echo "main: $(grep -vc '^#' $L/main.log) lines"; r=$W/r-$VM-TD1
          for f in SC55/WIN98/SC55W.LOG DOSTEST.LOG MPUINT.LOG MIDITEST.LOG; do mcopy -o -n -i $I ::/$f $r/ 2>/dev/null; done
          chk main "link line (as DOS, port claimed)" "W98  [0-9.]+ VXD I Serial debug link: COM1 \(3F8\), 115200 baud, level 1, port claimed from Windows"

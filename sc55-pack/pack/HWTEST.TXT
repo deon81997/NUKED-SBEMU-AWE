@@ -1,6 +1,17 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.9)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.10)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.10 Windows 98 debug link left on (D810 or P5PE-VM, same
+    cable and setup as the awe.9 item below; do that one first if not done).
+    1) Settings > Debug: link on, level 1, keep it on. Duke 3D with AWE32
+    music in a DOS box (attract mode) 2 minutes: Status CPU % the same as
+    with the link off (2 minutes each; write both numbers down). 2) The S
+    lines still count: sb= and awe= in the thousands while Duke plays, "S
+    awe ... voices=N/32" lines. 3) Level 3, Duke 10 s, "Send capture": T
+    lines of 620-623 / A20-A23 / E20-E23 as before. 4) Any game that
+    stuttered with the link on in awe.9: retest with it on. Send the
+    dbg-*.log and the CPU numbers.
 
 [ ] beta.130-awe.9 Windows 98 serial debug link, AWE32 edition (D810 on its
     D/Port, or the P5PE-VM; null-modem cable to the main PC as in

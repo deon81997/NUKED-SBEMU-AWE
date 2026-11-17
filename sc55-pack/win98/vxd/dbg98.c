@@ -37,7 +37,7 @@ static u32  dbg_head, dbg_tail, dbg_lost, dbg_sent, dbg_next_s;
 static char *dbg_ring;                    /* VMM heap, at the first /DBG (the VxD image stays as small as before) */
 static u32  load_ms;                      /* when Windows loaded the VxD */
 static int  dbg_async;                    /* in the async time-out: never wait for the UART */
-/* counters for the S / F lines: port counts from sc_dbg_capture (link on only), virq/midi/dma bytes always (rare) */
+/* counters for the S / F lines: one add in sc_in/sc_out, awe_in8/awe_out8 and sc_iow (link on or off, no call); virq/midi/dma bytes always */
 static u32  c_sb, c_mpu, c_opl, c_joy, c_awe, c_virq, c_ack, c_midi, c_dmab;
 static struct { u32 sb, mpu, opl, joy, awe, virq, ack, midi, evlost, pcmlost, dmab, lost; } s_last, f_last;
 /* level 3: the last CAP_N trapped port accesses, sent on SC55W /DBG:DUMP */
@@ -173,7 +173,7 @@ static void dbg_frame(int idx)
     f_last.sb = c_sb; f_last.mpu = c_mpu; f_last.opl = c_opl; f_last.joy = c_joy; f_last.virq = c_virq; f_last.ack = c_ack;
 }
 
-u32 sc_dbg_cap;                          /* 1 = link on: the IO stub calls sc_dbg_capture (off: one compare per trap) */
+u32 sc_dbg_cap;                          /* 1 = level 3: the IO stub calls sc_dbg_capture (else one compare per trap) */
 static void cap_add(u32 port, u32 val, int out)
 {
     u32 i;
@@ -202,21 +202,15 @@ static void cap_pump(void)
     }
 }
 
-/* every trapped byte while the link is on: the S line's port counts (and the level 3 capture) */
+/* level 3 only (w98.10): every trapped byte into the capture; the S-line counts are in sc_in/sc_out */
 void __cdecl sc_dbg_capture(u32 val, u32 port, u32 out)
 {
-    if (port - cfg.sb_port < 16) { c_sb++; if (!out && (port & 0xE) == 0xE) c_ack++; }
-    else if (port - 0x388 < 4) c_opl++;
-    else if (port - cfg.mpu_port < 2) c_mpu++;
-    else if (port == joy_port) c_joy++;
-    else if (awe_port(port)) c_awe++;           /* AWE line: EMU8000 620-623/A20-A23/E20-E23 (+ base) */
     if (dbg_level == 3) cap_add(port, val, (int)out);
 }
 
-/* AWE line: an EMU8000 word access (IO_Stub io_w, link on): one count, captured as its two bytes */
+/* AWE line: an EMU8000 word access (IO_Stub io_w, level 3 only): captured as its two bytes; counted in sc_iow */
 void __cdecl sc_dbg_capw(u32 val, u32 port, u32 out)
 {
-    c_awe++;
     if (dbg_level == 3) { cap_add(port, val & 0xFF, (int)out); cap_add(port + 1, (val >> 8) & 0xFF, (int)out); }
 }
 
@@ -277,7 +271,7 @@ static u32 dbg_open(u32 port, u32 baud, u32 level, char *msg, u32 msgmax)
         if (baud && baud != dbg_baud) uart_init(dbg_base, baud);
         dbg_level = level;
         if (level == 3 && !cap) cap = vxd_heap_alloc(CAP_N * sizeof *cap);
-        sc_dbg_cap = 1;
+        sc_dbg_cap = (level == 3);
         dbg('I', "level %u, %u baud", level, dbg_baud);
         fmt(msg, (int)msgmax, "COM%u: level %u", port, level);
         return 0;
@@ -304,7 +298,7 @@ static u32 dbg_open(u32 port, u32 baud, u32 level, char *msg, u32 msgmax)
     dbg_head = dbg_tail = dbg_lost = dbg_sent = 0;
     dbg_base = base; dbg_port = port; dbg_level = level;
     if (level == 3 && !cap) cap = vxd_heap_alloc(CAP_N * sizeof *cap);
-    sc_dbg_cap = 1;
+    sc_dbg_cap = (level == 3);
     s_last.sb = c_sb; s_last.mpu = c_mpu; s_last.opl = c_opl; s_last.joy = c_joy; s_last.awe = c_awe; s_last.virq = c_virq;
     s_last.ack = c_ack; s_last.midi = c_midi; s_last.dmab = c_dmab; s_last.lost = 0;
     s_last.evlost = sh ? sh->ev_overflow : 0; s_last.pcmlost = sh ? sh->pcm_overflow : 0;

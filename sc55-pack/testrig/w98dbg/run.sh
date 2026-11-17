@@ -9,7 +9,8 @@
 #   fault  TD3.BAT: /DBG:FAULT - a ring-0 invalid opcode (UD2) in the VxD: the link must go on (10+ S lines after it)
 #   awe    (AWE line, awe.9) TD4.BAT with /AWE:620 + the AWE32 MIDI Synth on: level 3, TRAPB 620 + AWELOAD (16 voices),
 #          WSEQ on "AWE32 MIDI Synth" (device open/close + chip hand-over), /DBG:DUMP (T lines of 62x/A2x/E2x), then
-#          level 1 and Duke 3D with AWE32 music in the DOS box until the end (awe= in S, "S awe" voices/RAM, AWE lines)
+#          level 1 (awe= in S, "S awe" voices/RAM, AWE lines); DUKE=1 adds Duke 3D AWE32 music - it aborts QEMU (serial.c
+#          assert), so Duke AWE runs on 86Box: r86dbg.sh with AWE=1
 # Logs: /tmp/w98dbg/CASE.log (DBGLOG files), results /tmp/w98t/r-VM-TDn, screenshots /tmp/w98t/shots.
 ZIP=$1; VM=${2:-acpi}; CASES=${3:-main hang fault}
 H=$(cd "$(dirname "$0")" && pwd); P=$H/../..; R98=$H/../w98par/run.sh; W=/tmp/w98t; L=/tmp/w98dbg; PORT=${PORT:-4560}
@@ -25,7 +26,7 @@ w() { echo "CHOICE /T:Y,$1 /C:Y >NUL"; }
   echo 'START /W D:\T\COMHOLD.EXE COM1 0 D:\R\C1.TXT'
   echo 'D:\T\TRAPB.COM >> D:\R\TB.TXT'; echo 'D:\T\TRAPB.COM 331 >> D:\R\TB.TXT'
   echo 'D:\T\DOSTEST.EXE'; echo 'D:\T\MPUINT.EXE'
-  echo 'START /W D:\T\MIDITEST.EXE'; echo 'START /W C:\WINDOWS\MPLAYER.EXE /PLAY /CLOSE D:\T\TEST.MID'; w 5
+  echo 'START /W D:\T\MIDITEST.EXE'; echo 'START /W C:\PROGRA~1\WINDOW~1\MPLAYER2.EXE /play /close D:\T\TEST.MID'; w 5
   echo "START /W $S /DBG:COM1:3"; w 3; echo 'D:\T\TRAPB.COM >> D:\R\TB.TXT'
   echo "START /W $S /DBG:DUMP"; w 40
   echo "START /W $S /DBG:0"; w 3
@@ -37,7 +38,7 @@ w() { echo "CHOICE /T:Y,$1 /C:Y >NUL"; }
 { echo '@ECHO OFF'; echo "START $S /DBG:COM1:3"; w 25; echo 'D:\T\TRAPB.COM 620 >> D:\R\TB.TXT'; echo 'D:\T\AWELOAD.COM'; w 3
   echo 'START /W D:\T\WSEQ.EXE AWE32 D:\T\TEST.MID 50 8'; w 3
   echo "START /W $S /DBG:DUMP"; w 40; echo "START /W $S /DBG:${DUKELINK:-COM1:1}"; w 3
-  echo "${DUKEBOX:-}D:\T\DUKE.BAT"; } | sed 's/$/\r/' > $W/d/T/TD4.BAT
+  [ "${DUKE:-0}" = 1 ] && echo "${DUKEBOX:-}D:\T\DUKE.BAT" || { w 20; echo 'ECHO done> D:\R\DONE.TXT'; }; } | sed 's/$/\r/' > $W/d/T/TD4.BAT
 printf '@ECHO OFF\r\nECHO done> D:\\R\\DONE.TXT\r\nD:\r\nCD \\T\\DUKE\r\nDUKE3D.EXE\r\n' > $W/d/T/DUKE.BAT   # FXDevice 13: Duke's SB effects off (music only)
 export QEXTRA="-chardev socket,id=c1,host=127.0.0.1,port=$PORT,server=on,wait=off -serial chardev:c1"
 logger() {   # CASE: DBGLOG.PY on the VM's COM1 until logstop
@@ -60,7 +61,7 @@ for c in $CASES; do
          echo "main: $(grep -vc '^#' $L/main.log) lines"; r=$W/r-$VM-TD1
          for f in SC55/WIN98/SC55W.LOG DOSTEST.LOG MPUINT.LOG MIDITEST.LOG; do mcopy -o -n -i $I ::/$f $r/ 2>/dev/null; done
          chk main "link line (as DOS, port claimed)" "W98  [0-9.]+ VXD I Serial debug link: COM1 \(3F8\), 115200 baud, level 1, port claimed from Windows"
-         chk main "VxD load line" "VXD I VxD loaded: NUKED SB-EMU 1.0.0-beta.130-(w98.9|awe.[0-9]+)-usb"
+         chk main "VxD load line" "VXD I VxD loaded: NUKED SB-EMU 1.0.0-beta.[0-9]+-(w98|awe).[0-9]+-usb"
          chk main "attach + traps" "VXD I port traps: SB ok, OPL ok, MPU ok"
          chk main "DOS box start/stop" "VXD I DOS box (start|stop) vm=" 2
          chk main "DOS box programs" "VXD I vm=[0-9A-F]{8} runs .*(TRAPB|DOSTEST|MPUINT)" 3
@@ -70,6 +71,7 @@ for c in $CASES; do
          chk main "VxD stats once a second" "VXD S vm=[0-9A-F]{8} sb=[0-9]+ mpu=" 20
          chk main "helper stats" "SC55W S load=.* midi=.* late=.* early=.* resync=" 10
          chk main "helper log lines (synth start)" "SC55W [IE] (synth:|start-up complete)" 1
+         chk main "S lines count trapped ports (w98.10: counted in sc_in/sc_out)" "VXD S vm=[0-9A-F]{8} sb=[1-9][0-9]* mpu=" 1
          chk main "level 3 capture" "VXD I capture: [0-9]+ port accesses"
          chk main "capture records" "W98  T [0-9]+ [io] [0-9A-F]{3} [0-9A-F]{2}$" 1000
          chk main "capture end" "VXD I capture end"
@@ -105,6 +107,7 @@ for c in $CASES; do
          chk awe "awe= counted in the S line" "VXD S vm=[0-9A-F]{8} .* awe=[1-9][0-9]* virq=" 5
          chk awe "S awe line with 16 voices (AWELOAD)" "VXD S awe vm=[0-9A-F]{8} ports=[1-9][0-9]* voices=(1[6-9]|2[0-9]|3[0-2])/32 ramw=[0-9]+ ram=4096K"
          chk awe "capture of EMU8000 ports" "W98  T [0-9]+ [io] (62[0-3]|A2[0-3]|E2[0-3]) [0-9A-F]{2}$" 100
+         [ "${DUKE:-0}" = 1 ] || continue   # Duke in a QEMU Win98 DOS box aborts QEMU (serial.c assert): Duke AWE = r86dbg.sh AWE=1
          chk awe "Duke runs in the DOS box" "VXD I vm=[0-9A-F]{8} runs .*DUKE3D"
          n=$(sed -n '/runs .*DUKE3D/,$p' $L/awe.log | grep -cE "VXD S vm=.* awe=[1-9]")
          [ $n -ge 5 ] && echo "  ok   Duke uses the EMU8000 ($n S lines with awe>0)" || { echo "  FAIL Duke AWE use ($n)"; F=1; } ;;

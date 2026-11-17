@@ -275,7 +275,7 @@ io_in:
         push    edx
         push    ebx
         call    _sc_in
-        cmp     _sc_dbg_cap, 0          ; debug link on: count (and at level 3 record) the access (dbg98.c)
+        cmp     _sc_dbg_cap, 0          ; level 3: record the access (dbg98.c; S-line counts are in sc_in/sc_out)
         jne     io_capin
         add     esp, 8
         ret
@@ -311,7 +311,7 @@ io_w:   ; u32 sc_iow(vm, port, val, type): EMU8000 word I/O -> AX (input); bit 3
         add     esp, 16
         test    eax, eax
         js      io_w_split
-        cmp     _sc_dbg_cap, 0          ; debug link on: count / capture the EMU8000 word (dbg98.c sc_dbg_capw)
+        cmp     _sc_dbg_cap, 0          ; level 3: capture the EMU8000 word as 2 bytes (dbg98.c sc_dbg_capw; counted in sc_iow)
         jne     io_capw
         add     esp, 12
         ret

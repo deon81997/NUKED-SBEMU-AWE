@@ -44,7 +44,9 @@ inside Windows 98:
     Controllers), the pad as NUKED SB-EMU passes it on, and PCs whose
     sound card has no game port get a "NUKED SB-EMU Game Port" in Device
     Manager (see "Joystick" in section 3).
-  * A serial debug link, as SC55 /DBG in DOS (since beta.130-w98.9):
+  * A serial debug link, as SC55 /DBG in DOS (since beta.130-w98.9;
+    since w98.10 / awe.10 levels 1-2 cost nothing, EMU8000
+    ports included, so it can stay on):
     SC55W /DBG:COM1 (or Settings > Debug) sends what the driver and the
     program do as short text lines to a second PC (DBGLOG.PY, cable in
     C:\SC55\DBGLOG.TXT), also when Windows hangs. Off = no cost.

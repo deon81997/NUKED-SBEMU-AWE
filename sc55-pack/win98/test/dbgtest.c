@@ -123,18 +123,17 @@ int main(void)
     check(lines_matching("VXD I DOS box start vm=C2000000$") == 1, "DOS box line");
 
     cfg.sb_port = 0x220; cfg.mpu_port = 0x330;
-    { u32 sb = c_sb, ack = c_ack, mpu = c_mpu, opl = c_opl, joy = c_joy;
-      sc_dbg_capture(0xFF, 0x22E, 0); sc_dbg_capture(0x10, 0x22C, 1); sc_dbg_capture(0x80, 0x331, 0); sc_dbg_capture(0, 0x389, 1); sc_dbg_capture(0, 0x201, 1);
-      check(c_sb - sb == 2 && c_ack - ack == 1 && c_mpu - mpu == 1 && c_opl - opl == 1 && c_joy - joy == 1, "port counts from the IO stub hook"); }
-    /* AWE line: EMU8000 bytes (620/A22/E23) and words (io_w) count as awe=, the S line has it, stats hook called */
+    /* w98.10: the S-line port counts are one add in sc_in/sc_out; the IO stub calls sc_dbg_capture only at level 3 */
+    check(dbg_level == 1 && sc_dbg_cap == 0, "level 1: no capture call per trapped access");
+    /* AWE line: awe= = the trap counter (one add in awe_in8/awe_out8 per byte, sc_iow per word); capture/capw count nothing */
     { u32 a = c_awe, sb = c_sb, n = awe_stats_calls;
-      sc_dbg_capture(0x12, 0x620, 1); sc_dbg_capture(0x34, 0xA22, 0); sc_dbg_capture(0, 0xE23, 1); sc_dbg_capture(0, 0x624, 1);
-      sc_dbg_capw(0xBEEF, 0xA20, 1); sc_dbg_capw(0x1234, 0x622, 0);
-      check(c_awe - a == 5 && c_sb == sb, "EMU8000 bytes + words counted as awe= (624 is not an EMU8000 port)");
+      sc_dbg_capture(0x12, 0x620, 1); sc_dbg_capw(0xBEEF, 0xA20, 1);
+      check(c_awe == a && c_sb == sb, "capture/capw add no counts (counted in the trap paths)");
+      c_awe += 3 + 2;                              /* as awe_in8/awe_out8 (620, A22, E23) + sc_iow (A20, 622) */
       fake_ms += 1000; sc_dbg_timer(); drain();
       check(lines_matching("VXD S vm=C1000000 sb=[0-9]+ mpu=[0-9]+ opl=[0-9]+ joy=[0-9]+ awe=5 virq=") == 1 && awe_stats_calls == n + 1 &&
             awe_stats_acc == 5 && lines_matching("^[0-9.]+ VXD S awe vm=00000000 ports=5 voices=0/32 ramw=0 ram=512K$") == 1,
-            "S line awe=5 + EMU8000 stats line"); }
+            "S line awe=5 from the trap counter + EMU8000 stats line"); }
 
     /* UART stuck (cable / flow): the ring fills, lines are dropped and counted, nothing overruns */
     uart_ready = 0;
@@ -145,6 +144,7 @@ int main(void)
 
     /* level 3: capture + dump */
     r = dbg_open(1, 0, 3, msg, sizeof msg);
+    check(sc_dbg_cap == 1, "level 3: the IO stub calls the capture");
     for (i = 0; i < 5000; i++) cap_add(0x220 + (i & 15), i & 0xFF, i & 1);
     wire_n = 0;
     r = dbg_cmd(DBGCMD_DUMP, msg, sizeof msg);

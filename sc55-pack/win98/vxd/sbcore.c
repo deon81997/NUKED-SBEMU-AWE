@@ -75,7 +75,7 @@ static void trace(u32 code, u32 a, u32 b)
 }
 
 /* serial debug link (dbg98.c, #included below the DSP code): what the trap code uses before that */
-static u32 dbg_level, c_sb, c_mpu, c_opl, c_joy, c_virq, c_ack, c_midi, c_dmab;
+static u32 dbg_level, c_sb, c_mpu, c_opl, c_joy, c_awe, c_virq, c_ack, c_midi, c_dmab;
 static void dbg(char kind, const char *f, ...);
 static void dbg_frame(int idx);
 static void cap_add(u32 port, u32 val, int out);
@@ -972,11 +972,13 @@ u32 __cdecl sc_in(u32 vm, u32 port)
     u32 off;
     if (awe_port(port)) return awe_in8(port);
     if ((trapped & ST_OK_JOY) && port == joy_port) {
+        c_joy++;                                      /* debug link S-line counts: one add, link on or off */
         if (vm == sys_vm && !(cfg.joy & 8)) return vxd_port_in(port);
         return joy_read();
     }
     if ((trapped & ST_OK_SB) && port >= cfg.sb_port && port < (u32)cfg.sb_port + 16) {
         off = port - cfg.sb_port;
+        c_sb++;
         switch (off) {
         case 0x0: case 0x2: case 0x8: return cfg.opl ? opl_read_status() : 0xFF;
         case 0x1: case 0x3: case 0x9: return 0xFF;
@@ -985,15 +987,17 @@ u32 __cdecl sc_in(u32 vm, u32 port)
         case 0x6: return 0xFF;
         case 0xA: return dsp_read_data();
         case 0xC: dsp.ws = (u8)(dsp.ws + 0x80); return (u8)(dsp.ws | 0x7F);
-        case 0xE: ack_irq(0); return (u8)(dsp.outp < dsp.outn ? 0xFF : 0x7F);
-        case 0xF: ack_irq(1); return 0xFF;
+        case 0xE: c_ack++; ack_irq(0); return (u8)(dsp.outp < dsp.outn ? 0xFF : 0x7F);
+        case 0xF: c_ack++; ack_irq(1); return 0xFF;
         }
         return 0xFF;
     }
     if ((trapped & ST_OK_OPL) && port >= 0x388 && port <= 0x38B) {
+        c_opl++;
         return (port == 0x388) ? opl_read_status() : 0xFF;
     }
     if ((trapped & ST_OK_MPU) && (port == cfg.mpu_port || port == (u32)cfg.mpu_port + 1)) {
+        c_mpu++;
         return mpu_read(port);
     }
     (void)vm;
@@ -1006,12 +1010,14 @@ void __cdecl sc_out(u32 vm, u32 port, u32 val)
     u32 off;
     if (awe_port(port)) { awe_out8(port, v); return; }
     if ((trapped & ST_OK_JOY) && port == joy_port) {
+        c_joy++;
         if (vm == sys_vm && !(cfg.joy & 8)) vxd_port_out(port, val);
         else joy_t0 = vxd_time_us();
         return;
     }
     if ((trapped & ST_OK_SB) && port >= cfg.sb_port && port < (u32)cfg.sb_port + 16) {
         off = port - cfg.sb_port;
+        c_sb++;
         switch (off) {
         case 0x0: case 0x8: if (cfg.opl) opl_index[0] = v; return;
         case 0x1: case 0x9: if (cfg.opl) opl_write_data(0, v); return;
@@ -1031,12 +1037,13 @@ void __cdecl sc_out(u32 vm, u32 port, u32 val)
     }
     if ((trapped & ST_OK_OPL) && port >= 0x388 && port <= 0x38B) {
         int bank = (port >= 0x38A) ? 1 : 0;
+        c_opl++;
         if (port & 1) opl_write_data(bank, v);
         else opl_index[bank] = v;
         return;
     }
     if ((trapped & ST_OK_MPU) && (port == cfg.mpu_port || port == (u32)cfg.mpu_port + 1)) {
-        last_mpu_vm = vm;
+        last_mpu_vm = vm; c_mpu++;
         mpu_write(port, v);
         return;
     }
@@ -1358,6 +1365,7 @@ static u8 awe_in8(u32 port)
 {
     u32 i; int hi = awe_byteidx(port, &i);
     u16 w;
+    c_awe++;                                          /* debug link S-line awe=: one add, link on or off */
     if (hi < 0) return 0xFF;
     if (!hi) { w = awe_rd16(i); aw_rl[i] = (u8)(w >> 8); aw_rv[i] = 1; return (u8)w; }
     if (aw_rv[i]) { aw_rv[i] = 0; return aw_rl[i]; }
@@ -1367,6 +1375,7 @@ static u8 awe_in8(u32 port)
 static void awe_out8(u32 port, u8 v)
 {
     u32 i; int hi = awe_byteidx(port, &i);
+    c_awe++;
     if (hi < 0) return;
     if (!hi) { aw_wl[i] = v; if (i == 5) awe_wr16(5, v); }
     else awe_wr16(i, (u16)(aw_wl[i] | (v << 8)));
@@ -1384,7 +1393,7 @@ u32 __cdecl sc_iow(u32 vm, u32 port, u32 val, u32 type)
 {
     u32 i;
     if (!awe_port(port) || (port & 1) || awe_byteidx(port, &i) != 0) return 0x80000000UL;
-    aw->vm = vm;
+    aw->vm = vm; c_awe++;                             /* one count per word access (bytes counted in awe_in8/out8) */
     if (type == 0x0C) { awe_wr16(i, (u16)val); aw_rv[i] = 0; return 0; }
     return awe_rd16(i);
 }

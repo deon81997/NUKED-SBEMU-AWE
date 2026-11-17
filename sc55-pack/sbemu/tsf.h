@@ -692,7 +692,7 @@ static void tsf_region_operator(struct tsf_region* region, tsf_u16 genOper, unio
 						case GEN_FLOAT_LIMIT12K8K: vfactor =   1.0f; vmin = -12000.0f; vmax = 8000.0f; break;
 						case GEN_FLOAT_LIMIT1200:  vfactor =   1.0f; vmin =  -1200.0f; vmax = 1200.0f; break;
 						case GEN_FLOAT_LIMITPAN:   vfactor = 0.001f; vmin =     -0.5f; vmax =    0.5f; break;
-						case GEN_FLOAT_LIMITATTN:  vfactor = 0.004f; vmin =      0.0f; vmax =   5.76f; break;
+						case GEN_FLOAT_LIMITATTN:  vfactor =  0.04f; vmin =      0.0f; vmax =   57.6f; break; /* cB x 0.4 like EMU8000/fluidsynth (was 0.004: a 96 dB fade played as 3.8 dB) */
 						case GEN_FLOAT_MAX1000:    vfactor =   1.0f; vmin =      0.0f; vmax = 1000.0f; break;
 						case GEN_FLOAT_MAX1440:    vfactor =   1.0f; vmin =      0.0f; vmax = 1440.0f; break;
 						default: continue;

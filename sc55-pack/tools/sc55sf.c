@@ -274,6 +274,7 @@ static void envfit2(const uint8_t *d, int idx, double *peak, double *att, double
 
 /* TVF (libEmuSC tvf.cc): cutoff index = base<<8 + level init (env level x depth x velocity sens + key follow);
    TVFCutoffFreq is ~exponential (~93 cents per index), so the env maps to SF2 modEnv -> filterFc in cents. */
+static double tvf_c;   /* mean cutoff of TVF stages 1-4 (cents), set by tvf() */
 static double fc_cents(int acc) {
     unsigned v = be16(cpu + LUT[12] + 2 * clampi(acc >> 8, 0, 128)) * 2; double fc;
     if (v > 0xE600) v = 0xE600;
@@ -300,6 +301,8 @@ static void tvf(const uint8_t *d, int key, Buf *g, int *cnt) {
         L[i + 1] = lv >= 0x40 ? r + kf : kf - r;
     }
     for (i = 0; i < 6; i++) c[i] = fc_cents(clampi((base << 8) + L[i], 0, 0x7fff));
+    tvf_c = (c[1] + c[2] + c[3] + c[4]) / 4;
+    if (!g) return;
     if (getenv("SC55SF_DBG")) fprintf(stderr, "tvf base %d dep %d vs %d kf %d L %d %d %d %d %d c %.0f %.0f %.0f %.0f %.0f\n", base, d[44], vs, kf, L[1], L[2], L[3], L[4], L[5], c[0], c[1], c[2], c[3], c[4]);
     cmin = c[0]; for (i = 1; i < 5; i++) if (c[i] < cmin) cmin = c[i];
     cpk = c[1] > c[2] ? c[1] : c[2];
@@ -317,10 +320,86 @@ static void tvf(const uint8_t *d, int key, Buf *g, int *cnt) {
     gen(g, cnt, 30, (int)lrint(sec2tc(t5 < 0.001 ? 0.001 : t5)));
 }
 
+/* TVA from the firmware trace (testrig/sc55sf/ORACLE.md, docs/SC55ROM-trace.md): stage times from the traced
+   linear (bit 7) / exponential (time constant) tables, level bytes = squared amplitude. Used for drums (-o1, default)
+   or every zone (-o2). */
+static const double D_LIN[17] = {0, 60, 142, 258, 413, 626, 912, 1308, 1841, 2553, 3522, 4860, 6642, 9210, 12498, 17000, 23000};
+static const double D_TAU[17] = {0, 7.2, 17.3, 26.0, 36.1, 57.7, 83.7, 124.1, 170.2, 239.5, 334.7, 464.5, 639.1, 890.1, 1191.7, 1612.9, 2174};
+static int tva_mode = 2, hpf_on = 1; static double trace_off = 0, atten_cb = 25;
+static int max4(const uint8_t *p) { int m = p[0], i; for (i = 1; i < 4; i++) if (p[i] > m) m = p[i]; return m; }
+static double tab8(const double *t, int x) {
+    int i = x >> 3; double f = (x & 7) / 8.0;
+    if (x <= 0) return 0; if (i >= 16) return t[16];
+    if (t[i] <= 0) return t[i + 1] * f;
+    return exp(log(t[i]) * (1 - f) + log(t[i + 1]) * f);
+}
+static double stage_ms(int tb) { return (tb & 0x80) ? tab8(D_LIN, tb & 0x7f) : 4.6 * tab8(D_TAU, tb & 0x7f); }
+static double amp_lvl(int L) { return (L / 127.0) * (L / 127.0); }
+static double db_lvl(int L) { return L <= 0 ? -100 : 40 * log10(L / 127.0); }
+static double ms_s(double ms) { return ms < 1 ? 0.001 : ms / 1000.0; }
+static double env_at(const double *lv, const int *tb, double t) {
+    double a = lv[0]; int s;
+    for (s = 0; s < 4; s++) {
+        double d = stage_ms(tb[s]), b = lv[s + 1];
+        if (t <= d) {
+            if (tb[s] & 0x80) return d > 0 ? a + (b - a) * t / d : b;
+            { double tau = tab8(D_TAU, tb[s] & 0x7f); return tau > 0 ? b + (a - b) * exp(-t / tau) : b; }
+        }
+        t -= d; a = b;
+    }
+    return a;
+}
+static double todb(double a) { return a <= 1e-5 ? -100 : 20 * log10(a); }
+/* pp = partial bytes + 4; out: attack/hold/decay/release in s (hold/decay < 0 = none), sustain dB down */
+static void tva_trace(const uint8_t *pp, int nooff, double *att, double *hold, double *dec, double *sus, double *rel) {
+    double lv[5], pk = 1e-6, t, th, t0, tend, t30, r; int tb[4], i;
+    lv[0] = amp_lvl(pp[69]); for (i = 0; i < 4; i++) { lv[i + 1] = amp_lvl(pp[70 + i]); tb[i] = pp[74 + i]; }
+    for (i = 1; i < 5; i++) if (lv[i] > pk) pk = lv[i];
+    for (i = 0; i < 5; i++) lv[i] /= pk;
+    *att = ms_s((tb[0] & 0x80) ? stage_ms(tb[0]) : 2.3 * tab8(D_TAU, tb[0] & 0x7f));
+    t0 = stage_ms(tb[0]); tend = t0 + stage_ms(tb[1]) + stage_ms(tb[2]) + stage_ms(tb[3]);
+    *sus = -todb(lv[4]); if (*sus > 100) *sus = 100;
+    for (t = t0; t < tend && todb(env_at(lv, tb, t)) > -1.0; t += 2) ; th = t - t0;
+    if (*sus < 1.0) { *hold = -1; *dec = -1; }
+    else {
+        double target = *sus > 60 ? -30 : -*sus / 2, tx = -1;
+        for (t = t0 + th; t < tend + 1; t += 2) if (todb(env_at(lv, tb, t)) <= target) { tx = t; break; }
+        if (tx < 0) tx = tend;
+        *hold = ms_s(th); *dec = ms_s((tx - t0 - th) * 100.0 / -target);
+    }
+    { int b = pp[78]; double d = stage_ms(b);
+      t30 = (b & 0x80) ? d * (1 - pow(10, -1.5)) : tab8(D_TAU, b & 0x7f) * log(pow(10, 1.5));
+      r = t30 * 100.0 / 30.0;
+      if (nooff) { double nat = 0; for (i = 0; i < 4; i++) nat += stage_ms(tb[i]); if (nat > r) r = nat; }
+      *rel = ms_s(r < 5 ? 5 : r); }
+}
+
+/* High-pass TVF (type != 0, base > 0): SF2 has no high-pass, so take the level the filter removes off the zone
+   (2-pole SVF on the decoded sample at 32 kHz, cutoff from the base index; cached per sample + cutoff). */
+static void tvf(const uint8_t *d, int key, Buf *g, int *cnt);
+static double hpf_loss(int si, const uint8_t *d, int key) {
+    int base, res = d[38];
+    static struct { int si, base, res; double db; } c[512]; static int nc;
+    int i, n; float *x; double f, q, lo = 0, bp = 0, ein = 0, eout = 0, hz;
+    tvf(d, key, NULL, NULL); base = (int)lrint(tvf_c);
+    for (i = 0; i < nc; i++) if (c[i].si == si && c[i].base == base && c[i].res == res) return c[i].db;
+    n = decode(&smp[si], NULL); if (n <= 0) return 0;
+    x = malloc(n * sizeof *x); if (!x) return 0;
+    decode(&smp[si], x);
+    hz = 8.176 * pow(2, base / 1200.0);
+    f = 2 * sin(M_PI * (hz < 15000 ? hz : 15000) / 32000.0); q = 1.0 / (0.5 + res / 64.0);
+    for (i = 0; i < n; i++) { double hp = x[i] - lo - q * bp; bp += f * hp; lo += f * bp; ein += (double)x[i] * x[i]; eout += hp * hp; }
+    free(x);
+    f = ein > 0 && eout > 0 ? 10 * log10(eout / ein) : 0; if (f > 0) f = 0; if (f < -40) f = -40;
+    if (getenv("SC55SF_DBG")) fprintf(stderr, "hpf si %d cents %d (%.0f Hz) res %d loss %.1f\n", si, base, hz, res, f);
+    if (nc < 512) { c[nc].si = si; c[nc].base = base; c[nc].res = res; c[nc].db = f; nc++; }
+    return f;
+}
+
 /* one zone: partial pp of instrument, keys lo..hi, sample si, played as key K (drums: K fixed) */
 static void zone(const Inst *in, const Part *pp, int lo, int hi, int si, int dkey, const Drum *dr, int dn) {
     const uint8_t *d = pp->d; const Smp *m = &smp[si]; int sfi = sf_sample(si), kf, idx;
-    double st, T, peak, sus, t5, att, dec, pan;
+    double st, T, peak, sus, t5, att, dec, pan, hold;
     if (sfi < 0) return;
     put16(&ibag, nigen); put16(&ibag, 0); nibag++;
     genr(&igen, &nigen, 43, lo, hi);
@@ -333,7 +412,14 @@ static void zone(const Inst *in, const Part *pp, int lo, int hi, int si, int dke
     if (dr) idx -= cpu[LUT[25] + dr->vol[dn]];
     if (idx < 1) idx = 1;
     envfit(d, idx, &peak, &att, &dec, &sus, &t5, dr && !(dr->flg[dn] & 1));
-    gen(&igen, &nigen, 48, clampi((int)lrint(-(peak + gain_db) * 10), 0, 1440));
+    hold = -1;
+    if (tva_mode == 2 || (dr && tva_mode == 1)) {
+        tva_trace(d + 4, dr && !(dr->flg[dn] & 1), &att, &hold, &dec, &sus, &t5);
+        if (sus < 1.0) sus = 0;
+        peak = db_lvl(d[69]) + db_lvl(m->vol) + db_lvl(in->vol) + db_lvl(max4(d + 74)) + (dr ? db_lvl(dr->vol[dn]) : 0) + trace_off;
+    }
+    if (d[39] && d[37] && hpf_on) peak += hpf_loss(si, d, dr ? dkey : 60);
+    gen(&igen, &nigen, 48, clampi((int)lrint(-(peak + gain_db) * atten_cb), 0, 1440));   /* EMU/TSF play initialAttenuation x0.4 */
     pan = (d[9] - 0x40) * 500.0 / 64; if (dr && dr->pan[dn]) pan = (dr->pan[dn] - 0x40) * 500.0 / 64;
     if (pan) gen(&igen, &nigen, 17, clampi((int)lrint(pan), -500, 500));
     if (dr) {
@@ -343,6 +429,7 @@ static void zone(const Inst *in, const Part *pp, int lo, int hi, int si, int dke
     }
     if (d[39] == 0 && !nofilt) tvf(d, dr ? dkey : 60, &igen, &nigen);
     gen(&igen, &nigen, 34, (int)lrint(sec2tc(att)));
+    if (hold > 0) gen(&igen, &nigen, 35, (int)lrint(sec2tc(hold)));
     if (sus > 0.5) { gen(&igen, &nigen, 36, (int)lrint(sec2tc(dec))); gen(&igen, &nigen, 37, clampi((int)lrint(sus * 10), 0, 1440)); }
     gen(&igen, &nigen, 38, (int)lrint(sec2tc(t5)));
     {   int ct = (int)floor(T), ft = (int)lrint((T - ct) * 100);
@@ -545,6 +632,10 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[ai], "-k") && ai + 1 < argc) ramkb = atol(argv[++ai]);
         else if (!strncmp(argv[ai], "-r", 2)) envR_scale = atoi(argv[ai] + 2);
         else if (!strncmp(argv[ai], "-g", 2)) gain_db = atof(argv[ai] + 2);
+        else if (!strncmp(argv[ai], "-o", 2)) tva_mode = atoi(argv[ai] + 2);
+        else if (!strncmp(argv[ai], "-L", 2)) trace_off = atof(argv[ai] + 2);
+        else if (!strncmp(argv[ai], "-A", 2)) atten_cb = atof(argv[ai] + 2);
+        else if (!strcmp(argv[ai], "-nh")) hpf_on = 0;
         else if (!dir) dir = argv[ai]; else out = argv[ai];
     }
     if (!dir) { printf("SC55SF ROMDIR [OUT.SF2] [-s OUT.SBK [-k AWERAM_KB]] [-q] [-v]\n  builds an SF2 from your SC-55 (mk1 1.21 / mk2 1.01) ROMs, found by content\n"); return 2; }

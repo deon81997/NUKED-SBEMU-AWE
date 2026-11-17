@@ -41,7 +41,7 @@ def onset(x, r, start):
     a = int(start * r); e = np.abs(x[a:a + r]); th = max(e.max() * 0.05, 30)
     idx = np.argmax(e > th); return start + idx / r if e.max() > 30 else None
 def one(prog):
-    d = '/tmp/sc55sf_cmp_%d' % prog; os.makedirs(d, exist_ok=True)
+    d = '/tmp/sc55sf_cmp_%s_%d' % ('d' if DRUM else BANK, prog); os.makedirs(d, exist_ok=True)
     keys = DKEYS if DRUM else KEYS
     midi(prog, 0 if DRUM else int(BANK), d + '/t.mid', keys)
     # oracle script from the same events
@@ -50,7 +50,7 @@ def one(prog):
     if not DRUM and int(BANK): L.append('m %x 00 %x' % (0xb0 | ch, int(BANK)))
     L += ['m %x %x' % (0xc0 | ch, prog), 'w 1000']
     for k in keys: L += ['m %x %x 64' % (0x90 | ch, k), 'w %d' % ON, 'm %x %x 40' % (0x80 | ch, k), 'w %d' % OFF]
-    probe.run(L)
+    if not (os.environ.get('REUSE') and os.path.exists(d + '/ref.wav')): probe.run(L)  # REUSE=1: keep oracle renders
     probe.RUNOK = True
     if os.path.exists(d + '/sf.wav'): os.remove(d + '/sf.wav')
     if os.environ.get('RENDER', 'tsf') == 'fluid':

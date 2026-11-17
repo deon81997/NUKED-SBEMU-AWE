@@ -1,6 +1,20 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.7)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.8)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.8 SETTINGS > AWE32 options (D810 or P5PE-VM, DOS; AWE32.RAW in
+    C:\SC55\ROMS). 1) MENU > Settings > "AWE32 options" (or SETTINGS, MIDI
+    synth = AWE32, Enter): the page shows AWE ROM "auto: AWE32.RAW". 2) Port
+    640, Sample RAM 4 MB (AWE64 Gold), Reverb + chorus Off, MPU-401 also
+    plays = AWE32 itself, GM; Esc, S. The bottom line shows /AWE:640
+    /AWERAM:4096 /AWEMPU:GM /AWEFX:0. 3) Restart, SC55: the start line says
+    "AWE32 EMU8000 emulation at address 640, 4096 KB RAM, no reverb/chorus";
+    MENU's top right says "AWE32 + own GM". 4) Duke 3D set to AWE32 port
+    640: music plays, dry. 5) Sample RAM 28 MB on a PC with less free XMS:
+    the page's help line turns red ("only N KB free"). Move AWE32.RAW out of
+    ROMS: red "No AWE ROM found". 6) Windows 98: tray icon > Settings >
+    AWE32 shows port 640, 4 MB, MPU-401 plays on GM bank, reverb unticked;
+    Save there, then SETTINGS in DOS shows the same. Send SBOPTS.TXT.
 
 [ ] beta.130-awe.7 AWE32 bank manager in Windows 98 (D810 and P5PE-VM; AWE32.RAW
     in C:\SC55\ROMS, Settings > AWE32 > Sample RAM 8 MB or more). 1) Tray

@@ -28,6 +28,7 @@ printf '[SC55W]\r\nStartDelay=0\r\nJoystick=0\r\nJoyBios=0\r\nPadKeys=0\r\n' > $
 mcopy -o -i $I $W/T.BAT "::/WINDOWS/Start Menu/Programs/StartUp/T.BAT"
 k() { DISPLAY=:86 xdotool key --delay 120 "$@"; sleep 1; }
 shot() { w=$(DISPLAY=:86 xdotool search --name "86Box" | tail -1); [ -n "$w" ] && DISPLAY=:86 import -window "$w" "$1" 2>/dev/null; }
+pgrep -f 'Xvfb :86' >/dev/null || { Xvfb :86 -screen 0 1024x768x24 >/dev/null 2>&1 & sleep 2; }   # 86run.sh skips it when another Xvfb (:9) runs
 sh $V/bin/86run.sh $D; n=0; done=
 while [ $n -lt ${SECS:-900} ]; do sleep 15; n=$((n + 15))
   if [ -z "$done" ] && mcopy -n -i $I ::/STEP1.TXT $W/step 2>/dev/null; then

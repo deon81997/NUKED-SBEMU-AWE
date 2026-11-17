@@ -1,3 +1,36 @@
+## beta.130-awe.8 (2026-11-17, AWE sub-menu session): SETTINGS > AWE32 options (DOS SBSET + MENU; SBEMU unchanged)
+- tools/sbset.c: new fields F_AWEON/F_AWEPORT/F_AWERAM/F_AWEROM/F_AWEFX + F_AWEMPU on page M_AWE ("AWE32 options");
+  opened by Enter on the MIDI synth line while it is AWE32 (activate/open_menu F_SYNTH), SBSET /PAGE:AWE, MENU >
+  Settings > "AWE32 options" (sc55menu.c), 3D tab 7 "AWE32" (S3_TABS). awe_set(on) converts F_SYNTH <-> F_AWEMPU (off =
+  the MPU's synth, SC-55 if it was off/AWE itself); any other AWE field change turns the AWE32 on (awe_changed).
+  Saved only when != SBEMU default: /AWE:port always while on, /AWERAM (presets 512..28672, 0; other 0-28672 values
+  read from the file become a "N KB" choice), /AWEROM (g_awerom; "" = auto), /AWEMPU, /AWEFX:0 (g_awefx0 is gone).
+  Unknown options (opt_name/known_opt by name like opts.cpp) go to g_extra and are written at the end of the line
+  (a later same-name one replaces); SBSET line buffers 1200, MENU g_opts 1200. ROM shown by content (aw_is_rom =
+  vawe.c VAWE_IsRom copy, ROMS then AWE under the pack folder); red line (awe_problem: no ROM / /AWERAM+1300 KB > DPMI
+  free memory, skipped while SBEMU is loaded) on the page, in the 3D info line and as main-screen warning.
+  Win98 opts.cpp needed no change (splits /NAME at ':' - exact names; AWE32 tab cb_select adds unknown RAM sizes).
+- Release: awe.7 zip with SBSET.EXE + SC55MENU.EXE (makefile VERSION awe.8) + README.TXT + HWTEST.TXT swapped
+  (rezip.py); SBEMU.EXE and Win98 files as awe.7 (SBEMU still says awe.5 in its version line).
+- Tests: testrig/sbset/opts_host.sh (sbset.c HOSTTEST + real win98/helper/opts.cpp, ASan/UBSan): every field x value
+  round trip (SC-55 / AWE contexts), AWE defaults off the line, ports, 9 RAM presets + custom 3000, all 9 "MPU-401 also
+  plays", /AWEMPU:MT-32 alias, /AWEROM:C:\path and folder, AWE off, kept options (/VSCLPF /VMPU /DBG /FOO, no doubles,
+  /A220 no-colon form), disk save/load, red line (no ROM, AWE32.RAW name without signature = no ROM, ROM by content
+  under another name, RAM vs SBSET_FREEKB), Win98 reads 4x9x9x2 AWE lines with the same values and SBSET reads Win98's
+  line back: PASS 26541 checks. testrig/sbset/keys.py (QEMU MS-DOS 7.1, SETUP C, keypad keys - QEMU sends gray arrows
+  twice): AWE32 via Left, Enter -> page (auto: AWE32.RAW), 640 / 4 MB / fx off / GM, F3 style, S; /LINE = SBOPTS.TXT
+  = /AWE:640 /AWERAM:4096 /AWEMPU:GM /AWEFX:0 + kept /VSCLPF:1 /FOO:BAR; /PAGE:AWE reload shows the same; SC55 start
+  line "address 640, 4096 KB RAM, no reverb/chorus ... plays on the AWE32 (GM)"; MENU "AWE32 + own GM": PASS.
+  menustat 5/5. 86Box P2B-LS PII-400 mpu.sh (zip SBEMU, the saved AWE options, MIDPLAY busy song): SBDIAG "Synth:
+  AWE32 ... needs 19% of real time" (awe.6: Duke GM 17%), music audible. Win98 (testrig/sbset/w98read.sh, 86Box acpi,
+  the saved line): SC55W.LOG "AWE32: EMU8000 640, RAM 4096 KB, ROM: C:\SC55\ROMS\AWE32.RAW", MIDI Synth GM, /FOO:BAR kept,
+  SBOPTS.TXT untouched. Its AWE32-tab picture failed (Xvfb :9 from mpu.sh was running, so 86run.sh started no :86; fixed).
+- QEMU SBDIAG has no AWE32 line (AC97 "output 0 Hz" there) - use 86Box for SBDIAG AWE.
+- Next: 1) HWTEST top item. 2) Post wiki pages AWE32-and-AWE64 + MENU-and-Settings (priavte wiki/out/awe, ac364cd; the
+  built-in browser was offline in this session) 3) DOS /AWEBANK when it lands could get a field.
+- Test downloads: DJGPP gcc 12.2 (build-djgpp v3.4), 86Box 0935207 + xpad diff, store-dos71, store-personal,
+  store-86box-roms, store-w98qi-86box.
+
 ## beta.130-awe.7 (2026-11-16, AWE Win98 banks session): AWE32 bank manager in Windows 98 + /AWEMPU:GM|GS|MT32 for DOS boxes
 - awe/synth/awemidi.c bank API (host-neutral, plain C; DOS can use it): awem_ram_set (/AWERAM words; 0 KB = none),
   awem_ram_used/free/total, awem_ubank_load/put/remove (user banks 1-127), awem_preset_load/put/remove (one preset per

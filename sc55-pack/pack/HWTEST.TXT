@@ -1,8 +1,8 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.5)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.6)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
 
-[ ] @@TAG@@ General MIDI on the AWE32 in DOS (/AWEMPU:GM; D810 and P5PE-VM,
+[ ] beta.130-awe.6 General MIDI on the AWE32 in DOS (/AWEMPU:GM; D810 and P5PE-VM,
     AWE32.RAW + your SYNTHGM.SBK (and SYNTHGS/SYNTHMT.SBK) in C:\SC55\ROMS).
     1) SETTINGS > MIDI synth AWE32, "MPU-401 also plays" > "AWE32 itself, GM",
     save, SC55: the start lines say "MPU-401 330 plays on the AWE32 (GM)"

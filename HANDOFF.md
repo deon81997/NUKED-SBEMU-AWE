@@ -1,4 +1,4 @@
-## @@TAG@@ (2026-11-16, AWE DOS session): /AWEMPU:GM|GS|MT32 - the MPU-401 on the EMU8000 in DOS
+## beta.130-awe.6 (2026-11-16, AWE DOS session): /AWEMPU:GM|GS|MT32 - the MPU-401 on the EMU8000 in DOS
 - SBEMU /AWEMPU:GM|GS|MT32 (option value 2/3/4; parsed by name in main.c; 0/1 as before): MPU-401 bytes -> sbemu/vawe.c
   VAWE_MPU (UART front end: command ACKs, SBDIAG side channel) -> awe/synth/awemidi.c's player (awemidi.o now in
   AWE_OBJS). Banks: VAWE_MidiStart scans the AWE ROM's folder (else ROMS) flat by content (RIFF sfbk + awem_probe rc 1/2,
@@ -21,7 +21,7 @@
 - Win98 side NOT changed (owned by the Win98 banks chat): win98/helper/opts.cpp reads /AWEMPU with num() -> "GM" = 0
   = DOS boxes' MPU silent, and saving Win98 Settings would write /AWEMPU:0 over the user's /AWEMPU:GM in SBOPTS.TXT.
   Fix there: treat GM/GS/MT32 as 1 (keep the token as is).
-- @@BANKNOTE@@
+- /AWEBANK NOT in this release: the Win98 banks chat (bank API in awemidi.c, user banks 1-127) had no tag out after ~10 min of polling. Next DOS session: rebase onto its tag, then add /AWEBANK:file[,file...] (VAWE_MidiStart loads them as banks 1-127 via its API, /AWERAM limit, a clear "sample RAM full" line) + test MIDPLAY bank select.
 - Hardware (HWTEST top item): D810 + P5PE-VM with the user's SYNTHGM.SBK: Duke GM, MIDPLAY, Duke AWE32 music then a GM game.
 - Test downloads: DJGPP gcc 12.2 (build-djgpp v3.4), 86Box 0935207 + xpad diff, store-dos71, store-86box-roms,
   store-personal, rufus, apt qemu-system-x86 fluidsynth timgm6mb-soundfont.

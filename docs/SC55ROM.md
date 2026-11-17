@@ -1,5 +1,7 @@
 # SC-55 control ROM layout (for SC55SF)
 
+Oracle trace of the same tables (firmware reads + PCM-chip writes, measured curves, TSF checks): [SC55ROM-trace.md](SC55ROM-trace.md).
+
 Source: libEmuSC (LGPL-2.1+, github.com/skjelten/emusc, libemusc/src/control_rom.cc/.h, wave_rom.cc, pitch.cc, tva.cc, tvf.cc).
 All multi-byte values big-endian. "Control ROM" = 256 KB ROM2 (mk1: M1_ROM2.BIN), "CPU ROM" = 32 KB ROM1 (M1_ROM1.BIN).
 

@@ -1,3 +1,23 @@
+## wip SC55SF, parallel oracle chat (2026-11-16): firmware trace rig + TSF checks on wip/sc55sf-2026-11-16 (no release)
+- Ran beside "chat 2" on the same task (its commits landed first): adds only new files - testrig/sc55sf/ORACLE.md rig
+  (oracle = Nuked-SC55 + trace hooks on control-ROM reads / PCM-chip writes + ROM pokes; collect/exp/fit scripts),
+  tsfplay.c (renders through sbemu/tsf.h = the real /VSF engine), ocompare.py (oracle vs TSF per program), and
+  docs/SC55ROM-trace.md (each table field checked on the chip registers, stage-time / cutoff tables, pitch/level fits).
+  tools/sc55sf.c, probe.py, README.md, SETUP untouched; sc55sf_oracle.c = this chat's converter, reference only.
+- Numbers (128 GM programs, TSF): tools/sc55sf.c env 4.8 dB / bands 2.6 / level 2.6; oracle converter 4.5 / 3.1 / 2.7.
+  Drum kits: tools 10.9 / 3.5 / 4.3, oracle 6.1 / 3.4 / 1.5 (its kit levels, kit-key pitch, exp-stage times). avmidi
+  02/07 DTW chroma (60 s): 0.769/0.627 vs 0.764/0.613. Worst in both: 121 Breath Noise (+18 dB), 127 Gun Shot, 123 Bird.
+- Facts for tools/sc55sf.c (docs/SC55ROM-trace.md): TSF decay/release = 80 dB time (not 100; fluidsynth numbers do not
+  carry over); igen > 65535 crashes tsf.h (u16 bag indexes) - tools/sc55sf.c is at 52351; TVF type pp35: 0 = LPF,
+  1/3 = HPF (leave the filter out, or Woodblock/Taiko go silent); the chip SVF runs at 64 kHz; TVA levels are squared
+  amplitude; pitch key follow = (pp9-0x40)*10 % around key 60; "wave ROMs fit badly (0.0698)" on the user's set - the
+  oracle converter tells A/B/C apart by SHA-256 instead.
+- Next 3 (chat 3): 1) port the oracle converter's drum-kit + stage-time handling into tools/sc55sf.c, re-run
+  ocompare.py (TSF) + drum; 2) chat 2's next steps (zip/MENU, 86Box PII-450 speed, awemid SBK check); 3) release.
+- Resume: "Attach deon81997/priavte (push) and follow PLAYBOOK.md. Repo: deon81997/NUKED-SBEMU-AWE. Task: SC55SF - resume wip/sc55sf-2026-11-16 (HANDOFF top two sections)."
+- Test downloads: /tmp/dl/nsc55 (nukeykt/Nuked-SC55), /tmp/dl/kit (Kitrinx/SC55_Soundfont, read only: no licence),
+  store-personal, apt fluidsynth zstd mtools.
+
 ## wip SC55SF chat 2 (2026-11-16): SC55SF.EXE builds SC55.SF2 + SC55.SBK from the user's ROMs (no release)
 - Done: sc55-pack/tools/sc55sf.c (gcc + DJGPP, makefile output/sc55sf.exe): ROMs by content (mk1 1.21; mk2 1.01 tables
   untested), wave slots by loop fit, DPCM, per-key multisample zones, 5-phase TVA fitted to SF2 AHDSR, TVF env -> modEnv,

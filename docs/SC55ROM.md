@@ -60,4 +60,6 @@ env level n = TVALevel[idx - LI[Ln]].
 - TVA level: TVALevel[0xFF - LI[partial vol] - LI[sample vol] - LI[inst vol] (- LI[drum vol]) - LI[Ln]] is right to ~5 dB sd.
 - TVF: cutoff coef = 2*TVFCutoffFreq[(base<<8 + TVF env level init)>>8] (tvf.cc); the env term (L1-L5 through TVFEnvScale
   0x79f2 x TVFEnvDepth 0x7512 x velocity sens, + cutoff key follow 0x74d2) is large: base alone (~400 Hz for pianos) is
-  far too dark, so the SF2 has no filter yet (band error 3.1 dB without, 7.8 dB with base only). Next: modEnv -> filterFc.
+  far too dark (band error 7.8 dB with base only, 3.1 dB with no filter). Mapped: initialFilterFc = lowest of key follow +
+  L1-L4, modEnv attack T1 / decay T2-T4 / sustain L4 / release T5 -> modEnvToFilterFc = peak - lowest: band error 2.4 dB.
+  Mind the casts: be16() is unsigned, (km - 0x4000) must be int.

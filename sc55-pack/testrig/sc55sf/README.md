@@ -8,4 +8,4 @@
 - Measure: `python3 probe.py mid /tmp/r/probe.mid` (128 programs C4 + drum notes 35-81, dry), render it with nuked-sc55-render and
   `fluidsynth -ni -R 0 -C 0 -g 1.0 -r 44100 -F f.wav SC55.SF2 probe.mid`, then `python3 probe.py cmp n.wav f.wav 0 10`
   (per-item envelope dB, octave-band dB, pitch cents, worst list). Songs: `../awe/chromadtw.py n01.wav f01.wav`.
-- 2026-11-16 (default -t550 -r350, no TVF): env 4.1 dB, band 3.1 dB, pitch median 2 c over 175 items; avmidi 01 chroma DTW 0.690.
+- 2026-11-16 (default -t550 -r350, TVF as modEnv): env 4.2 dB, band 2.4 dB, pitch median 2 c over 175 items; avmidi 01 chroma DTW 0.688.

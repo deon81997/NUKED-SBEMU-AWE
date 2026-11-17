@@ -173,7 +173,7 @@ static void put32(Buf *o, uint32_t v) { uint8_t b[4] = { v & 255, (v >> 8) & 255
 static void putname(Buf *o, const char *s) { char n[20]; memset(n, 0, 20); strncpy(n, s, 19); put(o, n, 20); }
 
 static int envT_scale = 550, envR_scale = 350;   /* % calibration knobs (testrig/sc55sf) */
-static double gain_db = 0; static int nofilt = 1;   /* TVF not mapped yet: base cutoff alone is far too dark (-f to try) */
+static double gain_db = 0; static int nofilt;
 static Buf shdr, igen, ibag, inst_, pgen, pbag, phdr;
 static int nshdr, nigen, nibag, ninst_, npgen, npbag, nphdr;
 static int16_t *pcm; static long npcm, pcmcap;
@@ -271,6 +271,51 @@ static void envfit2(const uint8_t *d, int idx, double *peak, double *att, double
     (void)tt;
 }
 
+/* TVF (libEmuSC tvf.cc): cutoff index = base<<8 + level init (env level x depth x velocity sens + key follow);
+   TVFCutoffFreq is ~exponential (~93 cents per index), so the env maps to SF2 modEnv -> filterFc in cents. */
+static double fc_cents(int acc) {
+    unsigned v = be16(cpu + LUT[12] + 2 * clampi(acc >> 8, 0, 128)) * 2; double fc;
+    if (v > 0xE600) v = 0xE600;
+    fc = 32000.0 / M_PI * asin(v / 65536.0);
+    if (fc < 20) fc = 20;
+    return 1200 * log2(fc / 8.176);
+}
+static void tvf(const uint8_t *d, int key, Buf *g, int *cnt) {
+    int vel = ctrl[0x3D1E8 + clampi(d[36], 0, 9) * 128 + 100], cofvs = d[61] - 0x40, vs = 0x7fff, depth, kf = 0, L[6], i;
+    int kfrom = d[41] - 0x40, base = d[37];
+    double c[6], cmin, cpk, sus, t1, t25, t5, rng;
+    if (cofvs) vs -= ((127 - vel) * be16(cpu + LUT[10] + 2 * clampi(abs(cofvs), 0, 10))) & 0xffff;
+    depth = be16(cpu + LUT[11] + 2 * clampi(d[44], 0, 127)) * vs * 2;
+    if (kfrom) {
+        int kmi = be16(ctrl + (mk2 ? 0x3DD7C : 0x3DC72) + 2 * clampi(48 + d[40], 0, 135));
+        int km = (int)be16(ctrl + 0x30000 + kmi + key * 2);
+        kf = ((km - 0x4000) * (int)be16(cpu + LUT[9] + 2 * clampi(abs(kfrom), 0, 20))) >> 8;
+        if (kfrom < 0) kf = -kf;
+    }
+    L[0] = kf;
+    for (i = 0; i < 5; i++) {
+        int lv = d[45 + i], sc = cpu[LUT[18] + clampi(abs(lv - 0x40), 0, 63)];
+        int tmp = (sc * (int)(((unsigned)depth & 0xffff0000u) >> 16)) * 2, r = ((tmp & 0xff00) >> 8) + ((tmp & 0xff0000) >> 8);
+        L[i + 1] = lv >= 0x40 ? r + kf : kf - r;
+    }
+    for (i = 0; i < 6; i++) c[i] = fc_cents(clampi((base << 8) + L[i], 0, 0x7fff));
+    if (getenv("SC55SF_DBG")) fprintf(stderr, "tvf base %d dep %d vs %d kf %d L %d %d %d %d %d c %.0f %.0f %.0f %.0f %.0f\n", base, d[44], vs, kf, L[1], L[2], L[3], L[4], L[5], c[0], c[1], c[2], c[3], c[4]);
+    cmin = c[0]; for (i = 1; i < 5; i++) if (c[i] < cmin) cmin = c[i];
+    cpk = c[1] > c[2] ? c[1] : c[2];
+    rng = cpk - cmin;
+    if (cmin > 13400) return;
+    gen(g, cnt, 8, clampi((int)lrint(cmin), 1500, 13500));
+    if (rng < 20) return;
+    t1 = etime(d[50]) * envT_scale / 100; t25 = (etime(d[51]) + etime(d[52]) + etime(d[53])) * envT_scale / 100;
+    t5 = etime(d[54]) * envR_scale / 100;
+    if (c[2] > c[1] + 20) { t1 += etime(d[51]) * envT_scale / 100; t25 -= etime(d[51]) * envT_scale / 100; }
+    sus = (c[4] - cmin) / rng; if (sus < 0) sus = 0; if (sus > 1) sus = 1;
+    gen(g, cnt, 11, clampi((int)lrint(rng), 0, 12000));
+    gen(g, cnt, 26, (int)lrint(sec2tc(t1 < 0.001 ? 0.001 : t1)));
+    if (sus < 0.99) { gen(g, cnt, 28, (int)lrint(sec2tc(t25 / (1 - sus) < 0.001 ? 0.001 : t25 / (1 - sus)))); gen(g, cnt, 29, (int)lrint((1 - sus) * 1000)); }
+    gen(g, cnt, 30, (int)lrint(sec2tc(t5 < 0.001 ? 0.001 : t5)));
+}
+
 /* one zone: partial pp of instrument, keys lo..hi, sample si, played as key K (drums: K fixed) */
 static void zone(const Inst *in, const Part *pp, int lo, int hi, int si, int dkey, const Drum *dr, int dn) {
     const uint8_t *d = pp->d; const Smp *m = &smp[si]; int sfi = sf_sample(si), kf, idx;
@@ -295,12 +340,7 @@ static void zone(const Inst *in, const Part *pp, int lo, int hi, int si, int dke
         if (dr->cho[dn]) gen(&igen, &nigen, 15, dr->cho[dn] * 1000 / 127);
         if (dr->grp[dn]) gen(&igen, &nigen, 57, dr->grp[dn]);
     }
-    if (d[39] == 0 && !nofilt) {   /* LPF: base cutoff (TVF envelope not mapped yet) */
-        unsigned v = be16(cpu + LUT[12] + 2 * clampi(d[37], 0, 128)); double fc;
-        if (v > 0xE600) v = 0xE600;
-        fc = 32000.0 / M_PI * asin(v / 32768.0);
-        if (fc < 12000) gen(&igen, &nigen, 8, clampi((int)lrint(1200 * log2(fc / 8.176)), 1500, 13500));
-    }
+    if (d[39] == 0 && !nofilt) tvf(d, dr ? dkey : 60, &igen, &nigen);
     gen(&igen, &nigen, 34, (int)lrint(sec2tc(att)));
     if (sus > 0.5) { gen(&igen, &nigen, 36, (int)lrint(sec2tc(dec))); gen(&igen, &nigen, 37, clampi((int)lrint(sus * 10), 0, 1440)); }
     gen(&igen, &nigen, 38, (int)lrint(sec2tc(t5)));
@@ -374,7 +414,7 @@ int main(int argc, char **argv) {
     for (ai = 1; ai < argc; ai++) {
         if (!strcmp(argv[ai], "-v")) verbose = 1;
         else if (!strncmp(argv[ai], "-t", 2)) envT_scale = atoi(argv[ai] + 2);
-        else if (!strcmp(argv[ai], "-f")) nofilt = 0;
+        else if (!strcmp(argv[ai], "-nf")) nofilt = 1;
         else if (!strncmp(argv[ai], "-r", 2)) envR_scale = atoi(argv[ai] + 2);
         else if (!strncmp(argv[ai], "-g", 2)) gain_db = atof(argv[ai] + 2);
         else if (!dir) dir = argv[ai]; else out = argv[ai];

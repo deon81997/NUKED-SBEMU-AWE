@@ -7,7 +7,8 @@
 </tr>
 </table>
 
-<picture><img src="docs/90s/icon-book.gif" alt="book"></picture> <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/wiki">~ Read the WIKI!! ~</a></b> <sub>(quick start, AWE32 page, every switch, troubleshooting)</sub> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture>
+<picture><img src="docs/90s/icon-book.gif" alt="book"></picture> <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/wiki">~ Read the WIKI!! ~</a></b> <sub>(quick start, AWE32 page, every switch, troubleshooting)</sub> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture><br>
+<picture><img src="docs/90s/btn-awe32.gif" alt="AWE32"></picture> <b>Which one??</b> <a href="https://github.com/deon81997/NUKED-SBEMU">NUKED-SBEMU</a> = the main line (SC-55 / MT-32 / General MIDI pack) &middot; <a href="https://github.com/deon81997/NUKED-SBEMU-AWE">NUKED-SBEMU-AWE</a> = the AWE32 / AWE64 line (the same pack plus an emulated EMU8000 at 620h)
 
 <table>
 <tr>
@@ -530,8 +531,8 @@ something breaks please [sign my guestbook](#-sign-my-guestbook-) and tell me!
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **SC-55** (mk1 v1.00 – v2.00), **SC-55mkII** (v1.01), **SC-55ST**, **SC-155 / SC-155mkII** and **CM-300**: ROM sets found by content, the best one picked for you
 - <picture><img src="docs/90s/ball-blue.gif" width="14" alt="o"></picture> **Clean at any output rate**: a low-pass filter before the SC-55's 64-66 kHz sound is converted to your card's rate, so nothing whistles at 11025 or 22050 Hz (`/VSCLPF`, on by default; confirmed on a real Dell D810 at 22050 Hz)
 - <picture><img src="docs/90s/ball-red.gif" width="14" alt="o"></picture> **MT-32** and **CM-32L / LAPC-I** with Munt 2.8.5
-- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 / AWE64 wavetable**: the EMU8000 at 620h (`/AWE`), 512 KB to 28 MB sample RAM (`/AWERAM`), the 1 MB AWE ROM found by content (`/AWEROM`), reverb + chorus in all 16 Creative types (`/AWEFX`), and the SC-55 on the MPU-401 at the same time (`/AWEMPU`), in DOS and in Windows 98 DOS boxes
-- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 MIDI Synth** (Windows 98): a second MIDI device played by the EMU8000 with Creative's `SYNTHGM/GS/MT.SBK` (found by content) or NUKED's own GM map, GM / GS / MT-32 and Creative's 8 reverb + 8 chorus types in Settings, volume from Windows; DOS boxes get the chip when they use it
+- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 / AWE64 wavetable**: the EMU8000 at 620h (`/AWE`), 512 KB to 28 MB sample RAM (`/AWERAM`), the 1 MB AWE ROM found by content (`/AWEROM`), reverb + chorus in all 16 Creative types (`/AWEFX`), and the SC-55 on the MPU-401 at the same time (`/AWEMPU`) or General MIDI on the EMU8000 itself (`/AWEMPU:GM|GS|MT32`), in DOS and in Windows 98 DOS boxes
+- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 MIDI Synth** (Windows 98): a second MIDI device played by the EMU8000 with Creative's `SYNTHGM/GS/MT.SBK` (found by content) or NUKED's own GM map, GM / GS / MT-32 and Creative's 8 reverb + 8 chorus types in Settings, your own SF2 / SBK banks 1-127 (bank manager), volume from Windows; DOS boxes get the chip when they use it
 - <picture><img src="docs/90s/ball-blue.gif" width="14" alt="o"></picture> **SoundFont** (`.SF2`) with reverb and chorus, for slower PCs
 - <picture><img src="docs/90s/ball-green.gif" width="14" alt="o"></picture> MPU-401 on any port (330, 300, 310, 320, 332, 334)
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> Render-ahead buffer and automatic speed control keep the music smooth while games run
@@ -581,6 +582,8 @@ something breaks please [sign my guestbook](#-sign-my-guestbook-) and tell me!
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **Joysticks**: any pad Windows knows plays DOS games in DOS boxes; *Set up...* adds a NUKED SB-EMU Game Port and Joystick so Windows games get it too, even without a game port on your sound card
 - <picture><img src="docs/90s/ball-red.gif" width="14" alt="o"></picture> **Pad keys** per game in DOS boxes, and an Xbox 360 pad driver for Windows 98 (unofficial, with English install steps)
 - <picture><img src="docs/90s/ball-blue.gif" width="14" alt="o"></picture> Rests when nothing plays: about **0.25% CPU** while idle on a Pentium II
+- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 MIDI Synth** in Windows programs (since awe.5), with Creative's SBK banks or NUKED's GM map, and a **bank manager** for your own `.SF2` / `.SBK` banks 1-127 and single presets (since awe.7)
+- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **MIDI to** from the tray icon (or `SC55W /MOUT:USB`): send the music to the emulated synth or any Windows MIDI output (a USB MIDI cable to a real SC-55) while a game plays; MPU-401 intelligent mode, the SC-55 low-pass and the pad key filters as in DOS; `SC55W /VER` and `VERSIONS.TXT` show every Windows file's version (since beta.130-w98.8)
 - <picture><img src="docs/90s/ball-green.gif" width="14" alt="o"></picture> See [`README98.TXT`](sc55-pack/pack/README98.TXT)
 </details>
 

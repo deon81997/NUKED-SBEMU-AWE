@@ -14,7 +14,7 @@ inside Windows 98:
   * AWE32 edition: DOS programs can also get a Sound Blaster AWE32 - the
     EMU8000 wavetable at 620h (or 640/660/680h), 512 KB to 28 MB sample
     RAM, the same engine as DOS SBEMU /AWE (with its reverb and chorus),
-    mixed into the DOS box's sound. Settings > AWE32, or SC55W /AWE:620 [/AWERAM:kb /AWEMPU:0|1];
+    mixed into the DOS box's sound. Settings > AWE32, or SC55W /AWE:620 [/AWERAM:kb /AWEMPU:0|1|GM|GS|MT32];
     the Sound Blaster becomes type 16 and BLASTER gets E620. The MPU-401
     keeps its SC-55 (/AWEMPU:1). Needs the 1 MB AWE ROM (86Box's
     awe32.raw) in C:\SC55\ROMS, found by content.
@@ -28,7 +28,10 @@ inside Windows 98:
     SBK: NUKED's own GM map over the AWE ROM. Its volume follows Windows
     (midiOutSetVolume). A DOS box that uses the AWE32 gets the chip, as on
     a real card; the MIDI device plays again when that DOS box is closed
-    (or 10 seconds after it left the EMU8000 alone).
+    (or 10 seconds after it left the EMU8000 alone). Since awe.7 your own
+    .SF2/.SBK banks 1-127 (bank select), single presets and a sample RAM
+    gauge (Settings > AWE32), and /AWEMPU:GM|GS|MT32 plays DOS boxes'
+    MPU-401 on it.
   * Windows programs (Media Player, MIDI sequencers, Windows games) get a
     MIDI device called "NUKED SB-EMU" played by the same synth. Its volume
     follows Windows (games' music sliders, midiOutSetVolume).
@@ -217,6 +220,17 @@ Hall 1-2, Plate, Delay, Panning Delay; default Hall 2) and Chorus (Chorus 1-4,
 Feedback, Flanger, Short Delay, Short Delay FB; default Chorus 3) as in
 Creative's AWE Control, "Search for SBK files", and which bank plays. The
 sample RAM setting is shared with the DOS boxes' AWE32 (one EMU8000).
+Bank manager (since awe.7): the list shows Bank 0 (the GM / GS / MT-32 bank
+above) and your own banks 1-127: "Add / replace bank..." takes any .SF2 or
+.SBK file, "Replace one preset..." puts one preset of a file in place of a
+bank/program (or a drum kit), "Remove" takes it out - at once, kept in
+SC55W.INI [AWE32 MIDI] (Bank1=..., Preset0_0=...) and loaded again at start.
+MIDI programs pick bank N with bank select (CC0 = N, or CC32 = N with CC0 0);
+an empty bank plays bank 0. The gauge shows the sample RAM the banks use; a
+bank that doesn't fit is refused with "needs ... KB, ... KB free" (more RAM:
+Sample RAM above). "MPU-401 plays on" (/AWEMPU, as DOS SBEMU): the synth of
+the first tab (1), the AWE32 MIDI Synth with its GM / GS / MT-32 bank
+(GM / GS / MT32: General MIDI games get AWE32 music), or nothing (0).
 
 Where do I get the SBK files? They come with Creative's AWE32 / AWE64 /
 Sound Blaster 32 drivers; NUKED SB-EMU can't include them. Get a driver

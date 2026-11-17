@@ -1,6 +1,22 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.6)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.7)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.7 AWE32 bank manager in Windows 98 (D810 and P5PE-VM; AWE32.RAW
+    in C:\SC55\ROMS, Settings > AWE32 > Sample RAM 8 MB or more). 1) Tray
+    icon > Settings > AWE32 > "Add / replace bank...": Browse to any .SF2
+    (e.g. a GM SoundFont of 2-6 MB) as bank 1, OK: the list shows "Bank 1:
+    <name> - N KB" and the gauge moves. 2) Add a bigger one than the free
+    RAM: the dialog says "needs ... KB, ... KB free", nothing changes. 3) A
+    sequencer (or a .MID with bank select): CC0 = 1 on a channel plays bank
+    1's sounds; CC0 = 0 plays the GM bank again. 4) "Replace one preset...":
+    pick one preset of a file for bank 0 program 0: Media Player's piano
+    changes. 5) Restart Windows: the same list comes back. 6) Settings >
+    AWE32 > "MPU-401 plays on" = AWE32 MIDI Synth, GM bank, Save; Duke 3D
+    in a DOS box with Music = General MIDI, port 330: Duke's music on the
+    AWE32 (SC55W.LOG "DOS MPU-401: GM"). 7) Duke with AWE32 music, quit,
+    close the DOS box: bank 1 plays again. 8) Status CPU % while a song
+    plays from bank 1. Send C:\SC55\WIN98\SC55W.LOG.
 
 [ ] beta.130-awe.6 General MIDI on the AWE32 in DOS (/AWEMPU:GM; D810 and P5PE-VM,
     AWE32.RAW + your SYNTHGM.SBK (and SYNTHGS/SYNTHMT.SBK) in C:\SC55\ROMS).

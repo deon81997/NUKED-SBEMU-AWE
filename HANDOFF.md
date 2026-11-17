@@ -1,3 +1,40 @@
+## beta.130-awe.7 (2026-11-16, AWE Win98 banks session): AWE32 bank manager in Windows 98 + /AWEMPU:GM|GS|MT32 for DOS boxes
+- awe/synth/awemidi.c bank API (host-neutral, plain C; DOS can use it): awem_ram_set (/AWERAM words; 0 KB = none),
+  awem_ram_used/free/total, awem_ubank_load/put/remove (user banks 1-127), awem_preset_load/put/remove (one preset per
+  bank select slot 0-127 / 128 = drum kit + program; only its RAM samples are copied), awem_user_clear, awem_bank_preset,
+  awem_bank_loaded; AwemStats last_addr + user_notes. RAM layout: zones of RAM samples are bank-relative (Zone.ram),
+  relocated at note-on by owner->ram_base; layout order = GM/GS/MT-32 banks, user banks, presets; a bank that does not
+  fit is refused ("<name> needs N KB of sample RAM, M KB free of T KB (/AWERAM)"), after a RAM size cut it is left out
+  (loaded = 0). Bank select: user bank = CC0, or CC32 when CC0 = 0; program p = file bank 0/p, else any melodic p, else
+  bank 0; drum channel + CC0 N = bank N's kit. Only awem_start() uploads before the chip is started (S.started: was 3
+  uploads of 6.5 MB at attach; one VM run crashed the batch DOS box there - not seen again after). DOS awe.6's
+  awempu_host.sh PASS with this awemidi (its "bank RAM overlap guard" in vawe.c is no longer needed: banks get own RAM).
+- Win98 helper (awe.cpp): SC55W.INI [AWE32 MIDI] BankN=file, PresetS_P=src_bank,src_prog,file (no sscanf; Win98
+  GetPrivateProfileSection fails with a buffer > 32767 - cost one VM run); loaded at start (sync_users, files read
+  outside the lock), the dialog writes the INI at once. Settings > AWE32 (page now 256 dlu, Settings 334 dlu high):
+  bank list (Bank 0 = GM/GS/MT-32 as above, banks, single presets), Add / replace bank..., Replace one preset...,
+  Remove, sample RAM gauge + text, refusal message on top of the status box. Dialog IDD_AWEBANK (file + Browse, whole
+  file / one preset, bank, preset combo from the file, program, drum kit). "MPU-401 plays on" combo = /AWEMPU:1|GM|GS|
+  MT32|0 (opts.cpp parses + writes the names, AWEMPU_GM..=2..4 as DOS); engine.cpp routes DOS-box MPU bytes (EV_MIDI
+  c = 1) to awe_midi_dos_byte: that bank, a GM reset when a DOS box starts and when it stops (10 s idle; t1 showed
+  Windows' bank-select state leaking into Duke without it). The synth runs if the device is on OR /AWEMPU:GM etc.
+  SC55W.LOG "AWE32 MIDI Synth:" line: notes from user banks, sample RAM used, "DOS MPU-401: GM"; start line lists banks.
+- Release: DOS = awe.6 zip as is (mkrel.py --keepdos), Win98 EXEs rebuilt (VERSION awe.7), VXD/DRV/JOY from awe.6.
+- Tests: awe/synth/test/awemidi_tests.sh (section G + ASan/UBSan): SF2 + stand-in SBK as banks 1/2, CC0 1/2, CC32 2,
+  bank 0, empty bank 5, drum kit, RAM full (5.6 MB SBK refused), replace, remove, single preset 178 KB (program 1 stays
+  ROM), RAM cut to 512 KB and back, DOS box zeroing RAM -> banks back: PASS; chroma 0.86-0.96 as before.
+  Win98 VM testrig/awe98/b98.sh (86Box P3B-F PII-450, 8 MB, /AWEMPU:GM; run it from a copy - never edit a running sh
+  script): INI banks 1/2 + Preset0_0 loaded (6556 KB); BANKS.MID (banksmid.py) after SC55W restart: 96 notes, 80 from
+  user banks (= expected); AWELOAD in the DOS box: DOS took it 1x, back 1x, user notes after; dialog by keys: BIG.SBK
+  -> "Test bank needs 5646 KB of sample RAM, 1636 KB free of 8192 KB (/AWERAM)", STANDIN2.SBK -> bank 3, INI Bank3,
+  back after restart (7304 KB); Duke 3D DUKEGM.CFG (MPU 300) -> "DOS MPU-401: GM", 3995 notes, 0 stolen, 0 missing,
+  no user-bank notes leaked. CPU IDLEMTR idle 1532822, song on SF2 bank 1 1241556 (-19.0%; awe.5 ROM map -17.7%).
+- Not tested here: the dialog's "one preset" path in the VM (unit-tested), real hardware (HWTEST top item).
+- Next: 1) HWTEST results. 2) DOS /AWEBANK on this API (DOS chat's next step). 3) Post wiki (priavte wiki/out/awe
+  AWE32-and-AWE64 regenerated, not posted: no browser in this chat).
+- Test downloads: apt mingw-w64 win32, munt d885a95 (/home/claude/munt), 86Box 0935207 + xpad diff, store-86rig,
+  store-w98qi-86box, store-personal, store-86box-roms, Duke 3D from testgames, pefile/mido (pip), Win98 DLLs from the VM.
+
 ## beta.130-awe.6 (2026-11-16, AWE DOS session): /AWEMPU:GM|GS|MT32 - the MPU-401 on the EMU8000 in DOS
 - SBEMU /AWEMPU:GM|GS|MT32 (option value 2/3/4; parsed by name in main.c; 0/1 as before): MPU-401 bytes -> sbemu/vawe.c
   VAWE_MPU (UART front end: command ACKs, SBDIAG side channel) -> awe/synth/awemidi.c's player (awemidi.o now in

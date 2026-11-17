@@ -14,11 +14,12 @@ swap = {
     'NUKEDSB/FILES/WIN98/README98.TXT': P + '/pack/README98.TXT', 'NUKEDSB/README98.TXT': P + '/pack/README98.TXT',
     'NUKEDSB/README.TXT': P + '/pack/README.TXT', 'NUKEDSB/HWTEST.TXT': P + '/pack/HWTEST.TXT',
     'NUKEDSB/FILES/SC55/BUGREP.BAT': P + '/pack/FILES/SC55/BUGREP.BAT',
+    'NUKEDSB/FILES/SC55/DBGLOG.PY': P + '/pack/FILES/SC55/DBGLOG.PY', 'NUKEDSB/FILES/SC55/DBGLOG.TXT': P + '/pack/FILES/SC55/DBGLOG.TXT',
 }
 add_src = ['win98/VERSION', 'win98/common/nsbver.h', 'win98/helper/midiroute.cpp', 'win98/helper/midiroute.h',
            'win98/tools/mkver.sh', 'win98/test/routetest.cpp', 'win98/test/routetest.sh', 'win98/test/mpuint.c',
            'win98/test/mswitch.c', 'win98/test/w32shim/windows.h', 'win98/test/w32shim/mmsystem.h',
-           'win98/test/w32shim/fakemidi.cpp']
+           'win98/test/w32shim/fakemidi.cpp', 'win98/vxd/dbg98.c', 'win98/test/dbgtest.c', 'win98/test/dbgtest.sh']
 zi = zipfile.ZipFile(old)
 def fix_eol(data, like):
     if b'\0' in data[:4096]: return data

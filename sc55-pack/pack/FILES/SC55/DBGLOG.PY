@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED
-"""DBGLOG.PY - host side of SBEMU's serial debug link (SBEMU /DBG:COM1[,baud][,level]).
+"""DBGLOG.PY - host side of SBEMU's serial debug link (SBEMU /DBG:COM1[,baud][,level]) and of the Windows 98
+part's (SC55W /DBG:COM1[:level], SC55W.VXD sends the lines).
 
-Reads the DOS PC's lines from a serial port (null-modem cable, USB-serial adapter), shows them live and writes every
-line, with the host's time, to a log file. Windows and Linux, Python 3 + pyserial (pip install pyserial).
+Reads the retro PC's lines from a serial port (null-modem cable, USB-serial adapter), shows them live and writes every
+line, with the host's time and the side it came from (DOS or W98), to a log file. Windows and Linux, Python 3 +
+pyserial (pip install pyserial). DOS and Windows 98 captures read the same way; one log can hold both (a DOS game
+after Windows was shut down to MS-DOS mode, for example).
 
   python DBGLOG.PY COM3                     Windows: the USB-serial adapter's COM port (Device Manager > Ports)
   python3 DBGLOG.PY /dev/ttyUSB0            Linux
@@ -13,10 +16,12 @@ line, with the host's time, to a log file. Windows and Linux, Python 3 + pyseria
   python3 DBGLOG.PY --list                  the serial ports this PC has
   python3 DBGLOG.PY socket://localhost:4555 an emulator's serial port (QEMU -serial tcp::4555,server,nowait)
 
-Line format from the DOS PC: "<seconds.ms> <source> <kind> <text>"; source SB (SBEMU), MENU, MIDPLAY, GAMETEST, SBDIAG;
+Line format: "<seconds.ms> <source> <kind> <text>"; DOS sources SB (SBEMU), MENU, MIDPLAY, GAMETEST, SBDIAG;
+Windows 98 sources VXD (SC55W.VXD) and SC55W (the helper program) - shown and logged as side "W98", the rest as "DOS";
 kind E error, ! fatal, I event, S stats once a second, F per-frame summary (level 2), K keyboard byte
 (level 2: T read by the game through the trap, L looked at by SBEMU, I injected, U taken back), T capture record (level 3).
-The log file: "<host date time.ms>  <line>", default dbg-YYYYMMDD-HHMMSS.log next to this script (-o to choose).
+  python3 DBGLOG.PY COM3 --side W98       show only the Windows 98 lines
+The log file: "<host date time.ms>  <DOS|W98>  <line>", default dbg-YYYYMMDD-HHMMSS.log next to this script (-o to choose).
 Ctrl+C stops. If the DOS PC freezes, the last line in the file is the last thing it said.
 """
 import argparse
@@ -27,13 +32,14 @@ import sys
 import time
 
 KINDS = "E!ISFT"
+WIN_SOURCES = ("VXD", "SC55W")                          # Windows 98: SC55W.VXD and the SC55W helper
 COLOR = {"E": "\033[91m", "!": "\033[97;41m", "S": "\033[36m", "F": "\033[90m", "T": "\033[90m", "K": "\033[33m", "I": ""}
 
 
 def kind_of(line):
     """(source, kind) of a link line, kind '' for tool lines and anything else."""
     p = line.split(None, 3)
-    if len(p) >= 3 and p[1] == "SB" and len(p[2]) == 1 and p[2] in KINDS:
+    if len(p) >= 3 and p[1] in ("SB",) + WIN_SOURCES and len(p[2]) == 1 and p[2] in KINDS:
         return p[1], p[2]
     if p and p[0] == "T":                               # level-3 capture record: "T <us> <i|o> <port> <value>"
         return "SB", "T"
@@ -49,7 +55,8 @@ def main(argv=None):
     ap.add_argument("-f", "--filter", action="append", default=[], help="show only lines matching this regex (repeatable: any)")
     ap.add_argument("-x", "--exclude", action="append", default=[], help="hide lines matching this regex (repeatable)")
     ap.add_argument("-k", "--kind", action="append", default=[], help="show only these kinds of SBEMU lines, e.g. E! or S")
-    ap.add_argument("-s", "--source", action="append", default=[], help="show only these sources: SB MENU MIDPLAY GAMETEST SBDIAG")
+    ap.add_argument("-s", "--source", action="append", default=[], help="show only these sources: SB MENU MIDPLAY GAMETEST SBDIAG VXD SC55W")
+    ap.add_argument("--side", choices=["DOS", "W98", "dos", "w98"], help="show only the lines of one side")
     ap.add_argument("-q", "--quiet", action="store_true", help="no live display (file only)")
     ap.add_argument("--filter-file", action="store_true", help="the filters apply to the log file too")
     ap.add_argument("--until", help="stop when a line matches this regex (test rigs)")
@@ -79,7 +86,20 @@ def main(argv=None):
     if color and os.name == "nt":
         os.system("")                                   # enables ANSI colours in the Windows console
 
-    def shown(line):
+    cap_side = ["DOS"]                                  # T records: the side of the last "capture:" line
+
+    def side_of(line):
+        p = line.split(None, 2)
+        if p and p[0] == "T":
+            return cap_side[0]
+        s = "W98" if len(p) > 1 and p[1] in WIN_SOURCES else "DOS"
+        if "I capture:" in line:
+            cap_side[0] = s
+        return s
+
+    def shown(line, side):
+        if a.side and side != a.side.upper():
+            return False
         src, k = kind_of(line)
         if kinds and k not in kinds:
             return False
@@ -117,15 +137,16 @@ def main(argv=None):
                         continue
                     n += 1
                     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                    ok = shown(line)
+                    side = side_of(line)
+                    ok = shown(line, side)
                     if ok or not a.filter_file:
-                        f.write(f"{ts}  {line}\n")
+                        f.write(f"{ts}  {side}  {line}\n")
                         f.flush()                       # on disk now: the PC may freeze any moment
                     if ok and not a.quiet:
                         shown_n += 1
                         k = kind_of(line)[1]
                         c = COLOR.get(k, "") if color else ""
-                        print(f"{ts[11:]}  {c}{line}{chr(27) + '[0m' if c else ''}", flush=True)
+                        print(f"{ts[11:]}  {side}  {c}{line}{chr(27) + '[0m' if c else ''}", flush=True)
                     if until and until.search(line):
                         raise StopIteration
                 if a.timeout and now - t0 > a.timeout:
@@ -141,7 +162,8 @@ def main(argv=None):
             print(f"\nDBGLOG: {e}", file=sys.stderr)
             rc = 3
         if buf.strip():                                 # a line cut short by a freeze: keep it, marked
-            f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}  {buf.decode('latin-1').rstrip()}  [cut off]\n")
+            cut = buf.decode('latin-1').rstrip()
+            f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}  {side_of(cut)}  {cut}  [cut off]\n")
     print(f"DBGLOG: {n} lines ({shown_n} shown) in {out}", file=sys.stderr)
     return rc
 

@@ -431,6 +431,7 @@ static void midi_engine_down() { if (m_started) awem_release(); m_started = fals
 bool awe_midi_ready() { return m_started && info.on; }
 void awe_midi_byte(uint8_t b) { if (m_started) awem_byte(b); }
 bool awe_midi_windows() { return m_started && info.on && !awem_released(); }
+void awe_midi_counts(uint32_t& takeovers, uint32_t& takebacks) { takeovers = m_takeovers; takebacks = m_takebacks; }
 void awe_midi_poll(bool dos_wrote)
 {
     if (!m_started || !B || !info.port) return;

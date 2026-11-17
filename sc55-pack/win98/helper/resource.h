@@ -59,6 +59,7 @@
 #define IDD_PAGE_JOY    103
 #define IDD_PAGE_PAD    104
 #define IDD_PAGE_AWE    105
+#define IDD_PAGE_DBG    107
 #define IDC_TABS        1300
 #define IDC_J_PORTON    1301
 #define IDC_J_ADDR      1302
@@ -126,3 +127,11 @@
 #define IDC_B_PROG      1426
 #define IDC_B_DRUM      1427
 #define IDC_B_MSG       1428
+
+// Settings > Debug (w98.9 serial debug link)
+#define IDC_D_PORT      1360
+#define IDC_D_LEVEL     1361
+#define IDC_D_BAUD      1362
+#define IDC_D_STAT      1363
+#define IDC_D_DUMP      1364
+#define IDC_D_HANG      1365

@@ -9,11 +9,11 @@
 #   ini VM K=V..   add lines to C:\SC55\WIN98\SC55W.INI [SC55W] (VM off)
 #   t VM BAT [MAX] boot, Start > Run D:\T\BAT, wait for D:\R\DONE.TXT (or MAX s), copy D:\R to /tmp/w98t/r-VM-BAT
 #   uninstall VM   boot, Start > Run C:\SC55\WIN98\SC55W.EXE /UNINSTALL, Enter, Enter, shut down; check files
-# env: SHOTS (default /tmp/w98t/shots), BOOT (seconds to the desktop, default 150)
+# env: SHOTS (default /tmp/w98t/shots), BOOT (seconds to the desktop, default 150), QEXTRA (more QEMU args, e.g. -serial)
 W=/tmp/w98t; V=/home/claude/vms; Q="python3 $V/bin/q.py"; export QSOCK=$W/q.sock SHOTS=${SHOTS:-$W/shots}
 STAGE=$1; VM=$2; IMG=$W/$VM.img; BOOT=${BOOT:-150}
 boot() { pkill -f "qemu-system-i386.*$W/" 2>/dev/null; sleep 1
-  TESTIMG=$W/test.img SND=${SND:-ac97 sb16} setsid $V/bin/qrun.sh "$IMG" -no-reboot > $W/qemu.log 2>&1 < /dev/null &
+  TESTIMG=$W/test.img SND=${SND:-ac97 sb16} setsid $V/bin/qrun.sh "$IMG" -no-reboot $QEXTRA > $W/qemu.log 2>&1 < /dev/null &
   sleep "$BOOT"; }
 running() { pgrep -f "qemu-system-i386.*$IMG" > /dev/null; }
 run_cmd() { $Q key esc; $Q key ctrl-esc; sleep 2; $Q key r; sleep 3; $Q type "$1"; $Q key ret; }

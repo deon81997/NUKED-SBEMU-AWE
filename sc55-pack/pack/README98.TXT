@@ -44,6 +44,10 @@ inside Windows 98:
     Controllers), the pad as NUKED SB-EMU passes it on, and PCs whose
     sound card has no game port get a "NUKED SB-EMU Game Port" in Device
     Manager (see "Joystick" in section 3).
+  * A serial debug link, as SC55 /DBG in DOS (since beta.130-w98.9):
+    SC55W /DBG:COM1 (or Settings > Debug) sends what the driver and the
+    program do as short text lines to a second PC (DBGLOG.PY, cable in
+    C:\SC55\DBGLOG.TXT), also when Windows hangs. Off = no cost.
 
 It is made for the Dell Latitude D810 with the SigmaTel AC'97 WDM driver,
 but works with any sound card that has a Windows 98 driver. It runs on
@@ -418,6 +422,14 @@ nothing when it is silent.
 -----------------------------------------------------------------------------
  5. TROUBLESHOOTING
 -----------------------------------------------------------------------------
+
+  Windows freezes or shows a blue screen while a DOS game or MIDI plays
+     Watch it live over a null-modem cable (beta.130-w98.9): on the second
+     PC  python DBGLOG.PY COM3 , on this one  SC55W /DBG:COM1  (or Settings
+     > Debug). SC55W.VXD writes the serial port itself, so the last lines
+     arrive even when Windows stops; levels 1-3 as in DOS, SC55W /DBG:DUMP
+     sends the level-3 port capture. COM1 is Windows' no more while the
+     link is on; a port Windows uses (serial mouse, modem) is refused.
 
   "Port 220 is taken by another driver"
      Another Sound Blaster emulation has the port: SBEMUL (run Setup again

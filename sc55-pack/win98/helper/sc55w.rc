@@ -199,6 +199,23 @@ BEGIN
     PUSHBUTTON      "Cancel", IDCANCEL, 244, 117, 50, 14
 END
 
+IDD_PAGE_DBG DIALOGEX 0, 0, 386, 176
+STYLE DS_CONTROL | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "Serial debug link (as SC55 /DBG in DOS)", -1, 2, 0, 382, 112
+    LTEXT           "Port", -1, 8, 14, 50, 8
+    COMBOBOX        IDC_D_PORT, 60, 12, 70, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Level", -1, 8, 28, 50, 8
+    COMBOBOX        IDC_D_LEVEL, 60, 26, 200, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Baud", -1, 8, 42, 50, 8
+    COMBOBOX        IDC_D_BAUD, 60, 40, 70, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "", IDC_D_STAT, 8, 56, 370, 34, SS_NOPREFIX | SS_SUNKEN
+    PUSHBUTTON      "Send &capture", IDC_D_DUMP, 8, 94, 64, 13
+    PUSHBUTTON      "&Hang test...", IDC_D_HANG, 76, 94, 64, 13
+    LTEXT           "SC55W.VXD sends short text lines over a null-modem cable to a second PC (DBGLOG.PY in C:\\SC55). It writes the port itself, so the last lines arrive even when Windows hangs or shows a blue screen. Windows cannot use that COM port while the link is on. Off = no cost.", -1, 4, 118, 378, 40
+END
+
 IDD_PAGE_PAD DIALOGEX 0, 0, 386, 176
 STYLE DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"

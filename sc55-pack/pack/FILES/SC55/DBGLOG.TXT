@@ -1,5 +1,5 @@
-NUKED SB-EMU - SERIAL DEBUG LINK (SBEMU /DBG, beta.127)
-=======================================================
+NUKED SB-EMU - SERIAL DEBUG LINK (SBEMU /DBG, beta.127; Windows 98 SC55W /DBG, w98.9)
+=====================================================================================
 
 SBEMU sends what it is doing, live, as short text lines over a serial port to a
 second PC, which shows them and saves them to a file. When the DOS PC freezes,
@@ -105,6 +105,35 @@ TOOLS:  SBDIAG DBG               link status (port, baud, level, bytes sent)
         SBDIAG DBG HANG          TEST ONLY: SBEMU sends one "!" line, then
                                  stops the PC (interrupts off) - the line
                                  must be the last one in the log. Reset after.
+
+WINDOWS 98 (beta.130-w98.9)
+---------------------------
+The Windows 98 part has the same link: same cable, same DBGLOG.PY, same
+line format and levels. DBGLOG.PY marks every line DOS or W98 (in the log
+file and on screen; --side W98 shows only Windows). Start it with
+     C:\SC55\WIN98\SC55W.EXE /DBG:COM1        (or /DBG:COM2:2, /DBG:COM1:3)
+or Settings > Debug (port, level, baud; kept in SC55W.INI [Debug] Link=).
+Run it again while SC55W runs to change it: /DBG:0 = off.
+  Sources: VXD = SC55W.VXD (the Windows driver: port traps, DOS boxes),
+           SC55W = the program (synth, MIDI output, errors, SC55W.LOG lines).
+  Events:  VxD loaded, attach and port traps (E when another driver owns a
+           port), DOS box start/stop and the programs run in it, a DOS
+           program taking the Sound Blaster, DMA sound start, MPU-401 reset /
+           UART mode, Windows MIDI device opened/closed, synth start/asleep/
+           awake, MIDI output switches, every error.
+  S lines: VXD S vm= sb= mpu= opl= joy= (port accesses), virq/ack, midi
+           bytes, dma bytes, ev = events waiting for SC55W, evlost/pcmlost =
+           ring full (SC55W too slow, also an E line), lost = link lines that
+           did not fit. SC55W S load= midi= fm= pcm= late= (events older than
+           the render latency) early= (events far ahead: clock jump) resync=.
+  Level 3: SC55W /DBG:DUMP (or Settings > Debug > Send capture) sends the
+           last 4096 trapped port accesses as T lines.
+The driver writes the serial port itself (polled, no interrupt), also when
+Windows hangs (interrupts on) and after a driver crashes. Windows cannot use the port while the link is on (it is claimed from
+Windows): a port Windows already uses (serial mouse, modem, a program, a
+DOS box) is refused with a message - free it or use the other COM port.
+Tests: SC55W /DBG:HANG stops Windows for good after one "!" line (it must
+be the last line; press Reset). SC55W /DBG:STATUS shows the link.
 
 COST: off (no /DBG) = nothing. Level 1 = measured on a Pentium II 450 (see
 HANDOFF/README news). Level 2 and 3 are for hunting a bug, not for playing.

@@ -67,6 +67,7 @@ bool awe_midi_ready();                        // engine up and the device on
 void awe_midi_byte(uint8_t b);                // locked by the caller
 void awe_midi_poll(bool dos_wrote);           // DOS ownership; dos_wrote = an AWE ring write is applied now (locked)
 bool awe_midi_windows();                      // Windows has the EMU8000 (its volume applies)
+void awe_midi_counts(uint32_t& takeovers, uint32_t& takebacks);   // DOS box took / gave back the EMU8000 (debug link)
 void awe_midi_dos_byte(uint8_t b, int bank);  // /AWEMPU:GM|GS|MT32: a DOS box's MPU-401 byte, bank AWEM_GM.. (locked)
 // bank manager (Settings > AWE32, at once + SC55W.INI): "" = done, else the reason (e.g. the bank does not fit)
 std::string awe_bank_set(int slot, const std::string& path);                 // user bank 1-127: add / replace

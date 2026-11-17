@@ -40,6 +40,15 @@ typedef int32_t  s32;
 #define IOCTL_SC55W_KEYS     0x16   /* in: set-1 scan codes for the DOS box with the keyboard;
                                        out: u32 1 = sent, 0 = Windows has the keyboard, 2 = queue full */
 #define IOCTL_SC55W_FOCUS    0x17   /* out: SC55W_FOCUS, the programs running in that DOS box */
+/* serial debug link (w98.9, as DOS SBEMU /DBG): the VxD writes the COM port itself, polled, from ring 0 */
+#define IOCTL_SC55W_DBG      0x18   /* in: u32 port 1-4 (0 = off), baud (0 = 115200), level 1-3;
+                                       out: u32 status (0 ok, 1 Windows uses the port, 2 no UART, 3 bad) + text */
+#define IOCTL_SC55W_DBG_LINE 0x19   /* in: kind char (I E ! S F) + text: one "SC55W" line */
+#define IOCTL_SC55W_DBG_CMD  0x1A   /* in: u32 DBGCMD_*; out: u32 status + text */
+#define DBGCMD_STATUS 1
+#define DBGCMD_DUMP   2             /* level 3: send the port capture (T lines) */
+#define DBGCMD_HANG   3             /* TEST ONLY: one "!" line, then interrupts off for good */
+#define DBGCMD_FAULT  4             /* TEST ONLY: a ring-0 invalid opcode fault (blue screen) */
 
 /* the program list of the DOS box that has the keyboard (IOCTL_SC55W_FOCUS) */
 #define SC55W_NPROG 4

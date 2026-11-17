@@ -281,7 +281,10 @@ void Engine::render(SC55W_SHARED* sh, uint32_t now_us, int16_t* out, int frames)
             uint32_t t = use_awe ? ae->time : e.time;
             int32_t dt = (int32_t)(t - win_start);
             int epos = dt <= 0 ? 0 : (int)(dt / us_per_frame);
-            if (epos >= frames) break;                  // belongs to a later buffer
+            if (epos >= frames) {                       // belongs to a later buffer
+                if (dt > (int32_t)(4 * lat_us + 100000)) st.early_events++;
+                break;
+            }
             if (dt < -(int32_t)lat_us && !quiet_late) st.late_events++;
             if (epos > pos) { render_sources(pos, epos); pos = epos; }
             if (use_awe) {

@@ -1,8 +1,8 @@
 # SC-55 pack — handoff
 
-## NEW SESSION QUICK START (Win98 line, newest: beta.130-w98.8, 2026-11-16)
-- Newest Win98 section: root HANDOFF.md "beta.130-w98.8" (sections since beta.92 live there). Read "VERSION NAMES" below.
-- Since w98.8 the cross compiler is apt g++-mingw-w64-i686-win32 (Ubuntu 24.04, msvcrt) - build-gcc.sh only elsewhere. Tests: win98/test/routetest.sh (native), testrig/w98par (Win98 VMs).
+## NEW SESSION QUICK START (Win98 line, newest: beta.130-w98.9, 2026-11-17)
+- Newest Win98 section: root HANDOFF.md "beta.130-w98.9" (sections since beta.92 live there). Read "VERSION NAMES" below.
+- Since w98.8 the cross compiler is apt g++-mingw-w64-i686-win32 (Ubuntu 24.04, msvcrt) - build-gcc.sh only elsewhere. Tests: win98/test/routetest.sh + dbgtest.sh (native), testrig/w98par + testrig/w98dbg (Win98 VMs, serial link).
 - Nothing outside the repo survives a new session. Rebuild what you need:
   - DOS (SBEMU): DJGPP gcc 12.2 cross (github release andrewwutw/build-djgpp), `make -j16` in sc55-pack.
   - Win98 EXE: `sh win98/tools/build-gcc.sh` (GCC 13.2 msvcrt + win32 threads, ~30 min; sources cloned from

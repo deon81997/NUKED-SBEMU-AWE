@@ -40,7 +40,7 @@ static const char APP_TITLE[] = "NUKED SB-EMU for Windows 98";
 static const char WND_CLASS[] = "SC55W_Main";
 #define WM_TRAY      (WM_APP + 1)
 #define WM_STATECHG  (WM_APP + 2)
-#define WM_REMOTE    (WM_APP + 3)     // wParam: 1 settings, 2 status, 3 exit
+#define WM_REMOTE    (WM_APP + 3)     // wParam: 1 settings, 2 status, 3 exit, 4/5 MIDI out, 6 AWE opts, 8/9 /DBG
 
 // ---------------------------------------------------------------------------
 // paths
@@ -169,19 +169,183 @@ static void log_activity(const EngineStats& s, DWORD now, double load)
 // menu, the settings window and "SC55W /MOUT:x" set it; the audio thread hands it to the engine.
 static volatile LONG g_mout_req = -1;
 
-// SC55W.LOG next to the EXE: what happened at start-up, for troubleshooting
+// ---------------------------------------------------------------------------
+// serial debug link (w98.9, = DOS SC55 /DBG): SC55W /DBG:COM1|COM2[:level][:baud] or Settings > Debug.
+// SC55W.VXD owns the port and writes it from ring 0 (lines go out even when Windows hangs); our lines go
+// through it ("SC55W <kind> <text>"): every SC55W.LOG line, a stats line once a second, errors.
+struct DbgCfg { int port = 0, level = 1, baud = 115200; };
+static volatile LONG g_dbg_on;           // the VxD link is on (lines are worth sending)
+static DbgCfg g_dbg;                     // what is set now
+static std::string g_dbg_msg;            // the VxD's answer to the last change
+// "COM1", "COM2:2", "COM1,57600,3", "1", "0"/"OFF" (':' = ',' as in DOS); false = not a port spec
+static bool dbg_parse(const std::string& v0, DbgCfg& c)
+{
+    std::string v = v0;
+    for (auto& ch : v) ch = (char)toupper((unsigned char)ch);
+    if (v == "0" || v == "OFF") { c.port = 0; return true; }
+    size_t i = 0;
+    if (v.compare(0, 3, "COM") == 0) i = 3;
+    if (i >= v.size() || v[i] < '1' || v[i] > '4') return false;
+    c.port = v[i] - '0'; i++;
+    while (i < v.size()) {
+        if (v[i] != ':' && v[i] != ',') return false;
+        size_t e = v.find_first_of(":,", i + 1);
+        long n = strtol(v.substr(i + 1, e == std::string::npos ? std::string::npos : e - i - 1).c_str(), NULL, 10);
+        if (n >= 1 && n <= 3) c.level = (int)n; else if (n >= 300 && n <= 115200) c.baud = (int)n; else return false;
+        i = e == std::string::npos ? v.size() : e;
+    }
+    return true;
+}
+static std::string dbg_spec(const DbgCfg& c)
+{
+    if (!c.port) return "OFF";
+    char b[32];
+    snprintf(b, sizeof b, "COM%d:%d", c.port, c.level);
+    std::string r = b;
+    if (c.baud != 115200) r += ":" + std::to_string(c.baud);
+    return r;
+}
+static void dbg_send(char kind, const char* text)
+{
+    if (!g_dbg_on || g_vxd == INVALID_HANDLE_VALUE) return;
+    char b[200];
+    b[0] = kind;
+    size_t n = strlen(text);
+    if (n > sizeof b - 2) n = sizeof b - 2;
+    memcpy(b + 1, text, n);
+    DWORD got = 0;
+    DeviceIoControl(g_vxd, IOCTL_SC55W_DBG_LINE, b, (DWORD)n + 1, NULL, 0, &got, NULL);
+}
+static void dbg_line(char kind, const char* fmt, ...)
+{
+    if (!g_dbg_on) return;
+    char t[200];
+    va_list a;
+    va_start(a, fmt);
+    vsnprintf(t, sizeof t, fmt, a);
+    va_end(a);
+    dbg_send(kind, t);
+}
+// a SC55W.LOG line on the link: E when it reads like a failure
+static char dbg_kind_of(const char* t)
+{
+    static const char* bad[] = {"error", "fail", "could not", "cannot", "not found", "missing", "no sound", "did not",
+                                "ran dry", "underrun", "lost", "not loaded", "skipped", "no complete", "left out"};
+    std::string l = t;
+    for (auto& ch : l) ch = (char)tolower((unsigned char)ch);
+    if (l.compare(0, 9, "activity:") == 0 || l.compare(0, 6, "trace:") == 0) return 'I';
+    for (const char* b : bad) if (l.find(b) != std::string::npos && l.find("lost 0") == std::string::npos) return 'E';
+    return 'I';
+}
+// switch the link: 0 = on, else the VxD's status (1 Windows uses the port, 2 no UART, 3 bad value, 4 no VxD)
+static DWORD dbg_apply(const DbgCfg& c)
+{
+    if (g_vxd == INVALID_HANDLE_VALUE) { g_dbg_msg = "SC55W.VXD is not loaded"; return 4; }
+    DWORD in[3] = {(DWORD)c.port, (DWORD)c.baud, (DWORD)c.level}, out[40], got = 0;
+    memset(out, 0, sizeof out);
+    if (!DeviceIoControl(g_vxd, IOCTL_SC55W_DBG, in, sizeof in, out, sizeof out, &got, NULL) || got < 8) {
+        g_dbg_msg = "SC55W.VXD has no debug link (old VxD: restart Windows after updating)";
+        InterlockedExchange(&g_dbg_on, 0);
+        return 4;
+    }
+    ((char*)out)[sizeof out - 1] = 0;
+    g_dbg_msg = (const char*)(out + 1);
+    if (out[0] == 0) g_dbg = c;
+    InterlockedExchange(&g_dbg_on, out[0] == 0 && c.port ? 1 : 0);
+    return out[0];
+}
+static std::string dbg_cmd(DWORD cmd, DWORD* st = NULL)
+{
+    DWORD out[40], got = 0;
+    memset(out, 0, sizeof out);
+    if (g_vxd == INVALID_HANDLE_VALUE ||
+        !DeviceIoControl(g_vxd, IOCTL_SC55W_DBG_CMD, &cmd, 4, out, sizeof out, &got, NULL) || got < 8) {
+        if (st) *st = 4;
+        return "SC55W.VXD has no debug link";
+    }
+    ((char*)out)[sizeof out - 1] = 0;
+    if (st) *st = out[0];
+    return (const char*)(out + 1);
+}
+static DWORD WINAPI dbg_box_thread(LPVOID p)
+{
+    std::string* t = (std::string*)p;
+    MessageBoxA(NULL, t->c_str(), "NUKED SB-EMU for Windows 98 - serial debug link", MB_ICONEXCLAMATION | MB_SETFOREGROUND);
+    delete t;
+    return 0;
+}
+static void logf(const char* fmt, ...);
+// turn the link on/off and say why it did not work (a message box that does not stop the start)
+// AWE line: when the link comes on, what the AWE32 side loaded (its start-up lines went out before the link)
+static void dbg_awe_summary()
+{
+    const AweInfo& ai = awe_info();
+    if (ai.port || !ai.error.empty())
+        logf("AWE32: EMU8000 %X for DOS boxes %s, RAM %d KB, ROM: %s%s%s", ai.port, ai.on ? "ready" : "NOT ready", ai.ram_kb,
+             ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", error: ", ai.error.c_str());
+    if (!awe_midi_cfg().on) return;
+    AweMidiInfo mi = awe_midi_info();
+    logf("AWE32 MIDI Synth: banks %s, sample RAM %u of %u KB used%s%s", mi.using_.empty() ? "none" : mi.using_.c_str(),
+         mi.used_kb, mi.ram_kb, mi.note.empty() ? "" : "; ", mi.note.c_str());
+    for (int i = 1; i < 128; i++)
+        if (!mi.uerr[i].empty()) logf("AWE32 MIDI Synth: user bank %d not loaded: %s", i, mi.uerr[i].c_str());
+}
+static void dbg_switch(const DbgCfg& c, bool box)
+{
+    DWORD r = dbg_apply(c);
+    if (r == 0) { logf("serial debug link: %s", g_dbg_msg.c_str()); dbg_awe_summary(); }
+    else {
+        logf("serial debug link %s refused: %s", dbg_spec(c).c_str(), g_dbg_msg.c_str());
+        if (box) {
+            DWORD tid;
+            HANDLE t = CreateThread(NULL, 0, dbg_box_thread, new std::string("/DBG:" + dbg_spec(c) + " did not start:\r\n\r\n" + g_dbg_msg), 0, &tid);
+            if (t) CloseHandle(t);
+        }
+    }
+}
+// once a second from the audio thread: what SC55W did with the events (late / early / resyncs = ring trouble)
+static void dbg_stats(const EngineStats& s, DWORD now, double load)
+{
+    static DWORD t; static EngineStats l; static bool idle_seen, idle;
+    if (!g_dbg_on || now - t < 1000) return;
+    t = now;
+    dbg_line('S', "load=%.1f%% midi=%u fm=%u pcm=%u late=%u early=%u resync=%u synth=%s out=%s", load * 100,
+             s.midi_bytes - l.midi_bytes, s.opl_writes - l.opl_writes, s.pcm_frames - l.pcm_frames,
+             s.late_events - l.late_events, s.early_events - l.early_events, s.resyncs - l.resyncs,
+             s.midi_idle ? "asleep" : "awake", s.out_asleep ? "asleep" : "on");
+    if (s.late_events != l.late_events)
+        dbg_line('E', "%u events late (older than the %s latency when SC55W got them): SC55W ran behind", s.late_events - l.late_events, "render");
+    if (s.early_events != l.early_events)
+        dbg_line('E', "%u buffers saw events far in the future (clock jump)", s.early_events - l.early_events);
+    if (s.resyncs != l.resyncs) dbg_line('E', "%u clock/PCM resyncs (events dropped or skipped)", s.resyncs - l.resyncs);
+    {   // AWE line: the AWE32 MIDI Synth gives the EMU8000 to a DOS box / takes it back (awe.cpp counters)
+        static uint32_t tk, tb; uint32_t t2, b2;
+        awe_midi_counts(t2, b2);
+        if (t2 != tk) dbg_line('I', "AWE32 MIDI Synth: a DOS box took the EMU8000 (Windows MIDI on it paused)");
+        if (b2 != tb) dbg_line('I', "AWE32 MIDI Synth: has the EMU8000 again (no DOS box used it)");
+        tk = t2; tb = b2;
+    }
+    if (!idle_seen || s.midi_idle != idle) {
+        if (idle_seen) dbg_line('I', s.midi_idle ? "synth asleep (silent)" : "synth awake (MIDI)");
+        idle_seen = true; idle = s.midi_idle;
+    }
+    l = s;
+}
+
+// SC55W.LOG next to the EXE: what happened at start-up, for troubleshooting (also on the debug link)
 static void logf(const char* fmt, ...)
 {
     static bool first = true;
+    char t[512];
+    va_list a;
+    va_start(a, fmt);
+    vsnprintf(t, sizeof t, fmt, a);
+    va_end(a);
+    dbg_send(dbg_kind_of(t), t);
     FILE* f = fopen(path_join(g_exedir, "SC55W.LOG").c_str(), first ? "w" : "a");
     first = false;
     if (!f) return;
-    va_list a;
-    va_start(a, fmt);
-    fprintf(f, "[%8lu] ", GetTickCount());
-    vfprintf(f, fmt, a);
-    fputs("\r\n", f);
-    va_end(a);
+    fprintf(f, "[%8lu] %s\r\n", GetTickCount(), t);
     fclose(f);
 }
 
@@ -268,7 +432,7 @@ static DWORD vxd_attach(const Options& o)
     if (!DeviceIoControl(g_vxd, IOCTL_SC55W_ATTACH, &addr, 4, &st, 4, &got, NULL)) st = ST_ERR_LOCK;
     awe_attached(st);
     if (o.awe)
-        logf("AWE32: EMU8000 %X, RAM %d KB, ROM: %s%s%s", o.awe, o.aweram, ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", ", ai.error.c_str());
+        logf("AWE32: EMU8000 %X, RAM %d KB, ROM: %s%s%s", o.awe, o.aweram, ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", error: ", ai.error.c_str());
     return st;
 }
 
@@ -525,6 +689,7 @@ static DWORD WINAPI audio_main(LPVOID)
                 if (eng.st.out_asleep) { eng.st.out_asleep = false; eng.wake_output(); }
                 if (n > 0) { eng.render(sh, vxd_now(), tmp, n); rec_write(tmp, n); }
                 log_activity(eng.st, now, load);
+                dbg_stats(eng.st, now, load);
                 Sleep(25);
                 continue;
             }
@@ -696,6 +861,7 @@ static DWORD WINAPI audio_main(LPVOID)
         }
 
         log_activity(eng.st, now, load);
+        dbg_stats(eng.st, now, load);
         {   // MIDI output switches and failures, MPU intelligent-mode bytes ignored: SC55W.LOG
             static std::string lo = "emulated synth", le; static uint32_t li;
             std::string o = eng.out_name.empty() ? std::string("emulated synth") : eng.out_name;
@@ -1687,7 +1853,8 @@ static void settings_update(HWND d)
     SetDlgItemTextA(d, IDC_PREVIEW, t.c_str());
 }
 
-static HWND g_page[4];
+static HWND g_page[5];        // 0 = the dialog's own page; 1 joystick, 2 pad keys, 3 AWE32, 4 Debug
+static void dbg_page_save(HWND p);
 static bool joy_page_save(HWND p, std::string& note);
 static void awe_midi_page_read(HWND p, AweMidiCfg& c);
 static void pad_page_save(HWND p);
@@ -1707,6 +1874,7 @@ static void settings_apply(HWND d, bool save)
         if (save) awe_midi_save_cfg(g_inipath, mc);
         if (onoff) { EnterCriticalSection(&g_cs); g_force_attach = true; LeaveCriticalSection(&g_cs); }
     }
+    if (g_page[4]) dbg_page_save(g_page[4]);         // serial debug link: switched now, kept in SC55W.INI
     push_options(o);                                 // re-attaches when the game port changed
     {   // MIDI output: switched live, kept in SC55W.INI on Save
         int i = (int)SendDlgItemMessageA(d, IDC_MOUT, CB_GETCURSEL, 0, 0);
@@ -1740,7 +1908,7 @@ static BOOL CALLBACK tab_show_ctl(HWND c, LPARAM l)
     if (GetParent(c) != (HWND)l) return TRUE;                 // only the dialog's own controls
     int id = GetDlgCtrlID(c);
     for (int a : g_tab_always) if (id == a) return TRUE;
-    for (int i = 1; i < 4; i++) if (c == g_page[i]) return TRUE;
+    for (int i = 1; i < 5; i++) if (c == g_page[i]) return TRUE;
     ShowWindow(c, g_tab == 0 ? SW_SHOW : SW_HIDE);
     return TRUE;
 }
@@ -1749,7 +1917,7 @@ static void tab_show(HWND d)
 {
     g_tab = (int)SendDlgItemMessageA(d, IDC_TABS, TCM_GETCURSEL, 0, 0);
     EnumChildWindows(d, tab_show_ctl, (LPARAM)d);
-    for (int i = 1; i < 4; i++) if (g_page[i]) ShowWindow(g_page[i], g_tab == i ? SW_SHOW : SW_HIDE);
+    for (int i = 1; i < 5; i++) if (g_page[i]) ShowWindow(g_page[i], g_tab == i ? SW_SHOW : SW_HIDE);
 }
 
 static int ini_get(const char* sec, const char* key, int def) { return GetPrivateProfileIntA(sec, key, def, g_inipath.c_str()); }
@@ -2220,7 +2388,7 @@ static INT_PTR CALLBACK awebank_proc(HWND d, UINT m, WPARAM w, LPARAM l)
                 else e = awe_preset_set(drum ? 128 : slot, prog, f, a->sb[i], a->sp[i]);
             }
             g_awe_bankmsg = e.empty() ? "" : "Not loaded: " + e;
-            logf("AWE32 bank manager: %s %s: %s", checked(d, IDC_B_ONE) ? "preset" : "bank", f, e.empty() ? "loaded" : e.c_str());
+            logf("AWE32 bank manager: %s %s: %s%s", checked(d, IDC_B_ONE) ? "preset" : "bank", f, e.empty() ? "loaded" : "load failed: ", e.c_str());
             if (!e.empty()) { SetDlgItemTextA(d, IDC_B_MSG, e.c_str()); MessageBeep(MB_ICONEXCLAMATION); return TRUE; }
             EndDialog(d, IDOK);
             return TRUE;
@@ -2344,11 +2512,81 @@ static INT_PTR CALLBACK awe_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
     return FALSE;
 }
 
+// Settings > Debug: the serial debug link (SC55W.INI [Debug] Link=COM1:1, as /DBG:)
+static const int g_dbg_bauds[] = {115200, 57600, 38400, 19200, 9600};
+static void dbg_page_status(HWND p)
+{
+    std::string t = g_dbg_on ? "On: " + dbg_cmd(DBGCMD_STATUS) : "Off.";
+    if (!g_dbg_msg.empty() && !g_dbg_on && g_dbg.port == 0) t += "  " + g_dbg_msg;
+    SetDlgItemTextA(p, IDC_D_STAT, t.c_str());
+    EnableWindow(GetDlgItem(p, IDC_D_DUMP), g_dbg_on && g_dbg.level == 3);
+    EnableWindow(GetDlgItem(p, IDC_D_HANG), g_dbg_on);
+}
+static void dbg_page_load(HWND p)
+{
+    const char* ports[] = {"Off", "COM1", "COM2", "COM3", "COM4"};
+    const char* lv[] = {"1 - events, errors, stats once a second", "2 - also one line per sound IRQ",
+                        "3 - also capture port accesses (Send capture)"};
+    for (int i = 0; i < 5; i++) cb_add(p, IDC_D_PORT, ports[i], i);
+    for (int i = 0; i < 3; i++) cb_add(p, IDC_D_LEVEL, lv[i], i + 1);
+    for (int i = 0; i < 5; i++) cb_add(p, IDC_D_BAUD, std::to_string(g_dbg_bauds[i]).c_str(), g_dbg_bauds[i]);
+    DbgCfg c = g_dbg;
+    if (!g_dbg_on) {
+        char b[40];
+        GetPrivateProfileStringA("Debug", "Link", "OFF", b, sizeof b, g_inipath.c_str());
+        if (!dbg_parse(b, c)) c = DbgCfg();
+    }
+    SendDlgItemMessageA(p, IDC_D_PORT, CB_SETCURSEL, g_dbg_on ? c.port : 0, 0);
+    SendDlgItemMessageA(p, IDC_D_LEVEL, CB_SETCURSEL, c.level - 1, 0);
+    int bi = 0;
+    for (int i = 0; i < 5; i++) if (g_dbg_bauds[i] == c.baud) bi = i;
+    SendDlgItemMessageA(p, IDC_D_BAUD, CB_SETCURSEL, bi, 0);
+    dbg_page_status(p);
+}
+static void dbg_page_save(HWND p)
+{
+    DbgCfg c;
+    c.port = (int)SendDlgItemMessageA(p, IDC_D_PORT, CB_GETCURSEL, 0, 0);
+    c.level = (int)SendDlgItemMessageA(p, IDC_D_LEVEL, CB_GETCURSEL, 0, 0) + 1;
+    int bi = (int)SendDlgItemMessageA(p, IDC_D_BAUD, CB_GETCURSEL, 0, 0);
+    c.baud = g_dbg_bauds[bi >= 0 && bi < 5 ? bi : 0];
+    if (c.port < 0) c.port = 0;
+    if (c.level < 1) c.level = 1;
+    WritePrivateProfileStringA("Debug", "Link", dbg_spec(c).c_str(), g_inipath.c_str());
+    if (c.port != (g_dbg_on ? g_dbg.port : 0) || (c.port && (c.level != g_dbg.level || c.baud != g_dbg.baud)))
+        dbg_switch(c, true);
+    dbg_page_status(p);
+}
+static INT_PTR CALLBACK dbg_page_proc(HWND p, UINT m, WPARAM w, LPARAM l)
+{
+    (void)l;
+    switch (m) {
+    case WM_INITDIALOG:
+        dbg_page_load(p);
+        SetTimer(p, 1, 1000, NULL);
+        return TRUE;
+    case WM_TIMER:
+        if (IsWindowVisible(p)) dbg_page_status(p);
+        return TRUE;
+    case WM_COMMAND:
+        if (LOWORD(w) == IDC_D_DUMP) { logf("serial debug link: %s", dbg_cmd(DBGCMD_DUMP).c_str()); return TRUE; }
+        if (LOWORD(w) == IDC_D_HANG) {
+            if (MessageBoxA(p, "TEST ONLY: SC55W.VXD sends one \"!\" line, then stops Windows for good (interrupts off). "
+                            "That line must be the last one DBGLOG.PY shows. You must press Reset afterwards.\r\n\r\nStop Windows now?",
+                            APP_TITLE, MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING) == IDYES)
+                dbg_cmd(DBGCMD_HANG);
+            return TRUE;
+        }
+        return FALSE;
+    }
+    return FALSE;
+}
+
 static void pages_create(HWND d)
 {
     HWND tab = GetDlgItem(d, IDC_TABS);
-    const char* names[] = {"Sound and MIDI", "Joystick", "Pad keys", "AWE32"};
-    for (int i = 0; i < 4; i++) {
+    const char* names[] = {"Sound and MIDI", "Joystick", "Pad keys", "AWE32", "Debug"};
+    for (int i = 0; i < 5; i++) {
         TCITEMA it;
         memset(&it, 0, sizeof it);
         it.mask = TCIF_TEXT;
@@ -2362,7 +2600,8 @@ static void pages_create(HWND d)
     g_page[1] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_JOY), d, joy_page_proc, 0);
     g_page[2] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_PAD), d, pad_page_proc, 0);
     g_page[3] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_AWE), d, awe_page_proc, 0);
-    for (int i = 1; i < 4; i++)
+    g_page[4] = CreateDialogParamA(g_inst, MAKEINTRESOURCEA(IDD_PAGE_DBG), d, dbg_page_proc, 0);
+    for (int i = 1; i < 5; i++)
         SetWindowPos(g_page[i], HWND_TOP, r.left, r.top, r.right - r.left, r.bottom - r.top, SWP_HIDEWINDOW);
     SendMessageA(tab, TCM_SETCURSEL, g_tab, 0);
     tab_show(d);
@@ -2373,7 +2612,7 @@ static INT_PTR CALLBACK settings_proc(HWND d, UINT m, WPARAM w, LPARAM l)
     switch (m) {
     case WM_INITDIALOG:
         g_dlg_opt = g_opt;
-        g_page[1] = g_page[2] = g_page[3] = NULL;
+        g_page[1] = g_page[2] = g_page[3] = g_page[4] = NULL;
         pages_create(d);
         settings_fill_lists(d);
         settings_show(d, g_dlg_opt);
@@ -2436,7 +2675,7 @@ static INT_PTR CALLBACK settings_proc(HWND d, UINT m, WPARAM w, LPARAM l)
         return TRUE;
     case WM_DESTROY:
         g_settings_dlg = NULL;
-        g_page[1] = g_page[2] = g_page[3] = NULL;
+        g_page[1] = g_page[2] = g_page[3] = g_page[4] = NULL;
         return TRUE;
     }
     return FALSE;
@@ -2576,6 +2815,17 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         else if (w == 6) {   // SC55W /AWE... run again: SBOPTS.TXT changed, take it over
             load_options();
             push_options(g_opt);
+        } else if (w == 8) {                                // SC55W /DBG:COMn[:level][:baud] run again
+            DbgCfg c; c.port = (int)(l & 15); c.level = (int)((l >> 4) & 15); c.baud = (int)((l >> 8) & 0xFFFF) * 100;
+            if (c.baud == 115200 / 100 * 100) c.baud = 115200;
+            dbg_switch(c, true);
+        } else if (w == 9) {                              // SC55W /DBG:DUMP|HANG|STATUS run again
+            DWORD st = 0;
+            std::string t = dbg_cmd((DWORD)l, &st);
+            logf("serial debug link: %s", t.c_str());
+            if (l == DBGCMD_STATUS || st)
+                MessageBoxA(h, ("Serial debug link: " + t).c_str(), APP_TITLE, (st ? MB_ICONEXCLAMATION : MB_ICONINFORMATION) | MB_SETFOREGROUND);
+            return st;
         }
         return 0;
     case WM_STATECHG:
@@ -2649,11 +2899,39 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
         }
     }
 
+    // /DBG:COM1|COM2[:level][:baud] | 0 | DUMP | HANG | STATUS: serial debug link (DOS SC55 /DBG), also for a running SC55W
+    DbgCfg dbg_arg; DWORD dbg_cmd_arg = 0; bool dbg_given = false;
+    {
+        size_t p = c.find("/DBG:");
+        if (p != std::string::npos) {
+            size_t e = c.find(' ', p + 5);
+            std::string v = c.substr(p + 5, e == std::string::npos ? std::string::npos : e - p - 5);
+            if (v == "DUMP") dbg_cmd_arg = DBGCMD_DUMP;
+            else if (v == "HANG") dbg_cmd_arg = DBGCMD_HANG;
+            else if (v == "STATUS") dbg_cmd_arg = DBGCMD_STATUS;
+            else if (v == "FAULT") dbg_cmd_arg = DBGCMD_FAULT;     // TEST ONLY: blue screen
+            else if (dbg_parse(v, dbg_arg)) dbg_given = true;
+            else {
+                MessageBoxA(NULL, ("/DBG:" + v + " - use /DBG:COM1 or /DBG:COM2, optionally :level (1-3) and :baud, "
+                            "or /DBG:0, /DBG:DUMP, /DBG:STATUS").c_str(), APP_TITLE, MB_ICONEXCLAMATION);
+                return 1;
+            }
+        }
+    }
+
     // one copy only; a second start forwards its request to the first
     HANDLE mx = CreateMutexA(NULL, FALSE, "SC55W_Helper_Mutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         HWND other = FindWindowA(WND_CLASS, NULL);
-        if (other && awe_args) { PostMessageA(other, WM_REMOTE, 6, 0); return 0; }
+        if (other && awe_args) PostMessageA(other, WM_REMOTE, 6, 0);   // AWE options first, then /DBG
+        if (other && (dbg_given || dbg_cmd_arg)) {
+            DWORD_PTR r = 0;
+            if (dbg_cmd_arg) SendMessageTimeoutA(other, WM_REMOTE, 9, dbg_cmd_arg, SMTO_ABORTIFHUNG, 10000, &r);
+            else PostMessageA(other, WM_REMOTE, 8, (LPARAM)(dbg_arg.port | (dbg_arg.level << 4) | ((dbg_arg.baud / 100) << 8)));
+            return (int)r;
+        }
+        if (!other && dbg_cmd_arg) return 1;                // nothing to dump / stop
+        if (other && awe_args) return 0;
         if (other && !mout_arg.empty()) {
             DWORD_PTR cur = 0;
             SendMessageTimeoutA(other, WM_REMOTE, 5, 0, SMTO_ABORTIFHUNG, 2000, &cur);   // its current output (NEXT)
@@ -2727,8 +3005,18 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmd, int)
         }
     }
     set_step("vxd");
-    if (vxd_open()) logf("SC55W.VXD loaded, build %lu", g_vxd_build);
-    else logf("VxD: %s", g_vxd_error.c_str());
+    if (vxd_open()) {
+        // the debug link first, so the VxD's own start lines (traps, DOS boxes) are on it: /DBG: wins over SC55W.INI
+        DbgCfg dc;
+        if (dbg_given) dc = dbg_arg;
+        else {
+            char b[40];
+            GetPrivateProfileStringA("Debug", "Link", "OFF", b, sizeof b, g_inipath.c_str());
+            if (!dbg_parse(b, dc)) dc.port = 0;
+        }
+        if (dc.port) dbg_switch(dc, true);
+        logf("SC55W.VXD loaded, build %lu", g_vxd_build);
+    } else logf("VxD: %s", g_vxd_error.c_str());
     g_wev = CreateEventA(NULL, FALSE, FALSE, NULL);
     push_options(g_opt);
     DWORD tid;

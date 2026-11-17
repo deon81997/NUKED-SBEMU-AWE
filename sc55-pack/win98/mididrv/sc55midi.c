@@ -6,7 +6,7 @@
  * "AWE32 MIDI Synth" (the EMU8000 played with Creative's SBK banks, like
  * Creative's AWE32 driver). Every byte goes to SC55W.VXD through its
  * protected-mode API (INT 2Fh AX=1684h by name "SC55W"; AX=1/2 first
- * device, AX=3/4 second); SC55W.EXE turns the bytes into sound.
+ * device, AX=3/4 second; AX=5/6 open/close, DX = device); SC55W.EXE turns the bytes into sound.
  *
  * The VxD is loaded by SC55W.EXE, so the entry point is looked up at each
  * open: start SC55W.EXE (or let it start with Windows) before playing.
@@ -54,6 +54,7 @@ typedef struct {
 static CLIENT clients[MAX_CLIENTS];
 static void (FAR *api_ep)(void);
 static int opens;
+static unsigned dev_opens[2];   /* clients open per device (debug link lines) */
 
 /* ---- VxD protected-mode API ------------------------------------------ */
 static const char vxd_name[8] = {'S', 'C', '5', '5', 'W', ' ', ' ', ' '};
@@ -108,6 +109,15 @@ static unsigned api_version(void);
     "call dword ptr api_ep" \
     "pop bp" \
     value [ax] modify [ax bx cx dx si di es];
+
+/* AX=5 / AX=6: a client opened / closed device DX (0 "NUKED SB-EMU", 1 "AWE32 MIDI Synth"), CX = clients of it open
+   now (SC55W.VXD debug link, AWE line awe.9; 3/4 are the second device's bytes/volume here; an older VxD answers carry) */
+static void send_openclose(unsigned fn, unsigned n, unsigned dev);
+#pragma aux send_openclose = \
+    "push bp" \
+    "call dword ptr api_ep" \
+    "pop bp" \
+    parm [ax] [cx] [dx] modify [ax bx cx dx si di es];
 
 static DWORD volume[NDEV] = { 0xFFFFFFFFUL, 0xFFFFFFFFUL };     /* low word left, high word right */
 
@@ -232,6 +242,7 @@ DWORD FAR PASCAL __export __loadds modMessage(UINT dev, UINT msg, DWORD user, DW
         *(DWORD FAR *)user = (DWORD)i;
         opens++;
         send_volume(dev ? 4 : 2, LOWORD(volume[dev]), HIWORD(volume[dev]));   /* SC55W may have been restarted */
+        send_openclose(5, ++dev_opens[dev], dev);
         notify(c, MOM_OPEN, 0);
         return MMSYSERR_NOERROR;
     }
@@ -249,7 +260,10 @@ DWORD FAR PASCAL __export __loadds modMessage(UINT dev, UINT msg, DWORD user, DW
     case MODM_CLOSE:
         notify(c, MOM_CLOSE, 0);
         c->used = 0;
-        if (--opens == 0) api_ep = 0;       /* look the VxD up again next time */
+        --opens;
+        --dev_opens[c->dev];
+        if (api_ep) send_openclose(6, dev_opens[c->dev], c->dev);
+        if (opens == 0) api_ep = 0;         /* look the VxD up again next time */
         return MMSYSERR_NOERROR;
     case MODM_DATA:
         return short_msg(c, p1);

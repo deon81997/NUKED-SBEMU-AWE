@@ -1,3 +1,15 @@
+## wip SC55SF (2026-11-16, stopped early): SC-55 SoundFont/SBK from the user's ROMs
+- Done: research only. Control/CPU/wave ROM layout + SF2 mapping plan in docs/SC55ROM.md (from libEmuSC + Nuked unscramble);
+  LUT offsets checked sane on the user's M1_ROM1/M1_ROM2 (Ver1.21). Nuked-SC55 host renderer builds (testrig/sc55sf/README.md).
+- State: branch wip/sc55sf-2026-11-16, docs only; no code yet (sc55-pack/tools/sc55sf.c not started). No release, no tag.
+- Next 3: 1) write sc55-pack/tools/sc55sf.c (ROM find by content, parse per docs/SC55ROM.md, DPCM decode, per-key
+  sample zones, SF2 writer; SBK by porting testrig/awe/sf2sbk.py; /AWERAM 4096/8192/28672 trims) + testrig/sc55sf/build.sh.
+  2) render avmidi + Duke songs with nuked-sc55-render vs fluidsynth SC55.SF2; chromadtw.py, envelope + band dB; calibrate
+  envelope time units / TVA dB / tuning; worst 10. 3) DJGPP SC55SF.EXE, SETUP/MENU lines, 86Box PII-450 speed, docs, awe.7 tag.
+- /AWEBANK still pending (awe.6 section): test SC55.SBK via /AWEMPU:GM bank 0 only.
+- Resume: "Attach deon81997/priavte (push) and follow PLAYBOOK.md. Repo: deon81997/NUKED-SBEMU-AWE. Task: SC55SF - resume wip/sc55sf-2026-11-16 (HANDOFF top)."
+- Open bugs: none new. Test downloads: /tmp/dl/emusc (skjelten/emusc), apt librtmidi-dev libsdl2-dev zstd fluidsynth.
+
 ## beta.130-awe.6 (2026-11-16, AWE DOS session): /AWEMPU:GM|GS|MT32 - the MPU-401 on the EMU8000 in DOS
 - SBEMU /AWEMPU:GM|GS|MT32 (option value 2/3/4; parsed by name in main.c; 0/1 as before): MPU-401 bytes -> sbemu/vawe.c
   VAWE_MPU (UART front end: command ACKs, SBDIAG side channel) -> awe/synth/awemidi.c's player (awemidi.o now in

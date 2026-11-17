@@ -22,6 +22,9 @@
   = DOS boxes' MPU silent, and saving Win98 Settings would write /AWEMPU:0 over the user's /AWEMPU:GM in SBOPTS.TXT.
   Fix there: treat GM/GS/MT32 as 1 (keep the token as is).
 - /AWEBANK NOT in this release: the Win98 banks chat (bank API in awemidi.c, user banks 1-127) had no tag out after ~10 min of polling. Next DOS session: rebase onto its tag, then add /AWEBANK:file[,file...] (VAWE_MidiStart loads them as banks 1-127 via its API, /AWERAM limit, a clear "sample RAM full" line) + test MIDPLAY bank select.
+- Wiki: priavte wiki/out/awe regenerated (AWE32-and-AWE64, Switch-Reference) but NOT posted (no Chrome in this chat): post from the browser.
+- Next: 1) Win98 banks chat tag out -> /AWEBANK (see above). 2) Win98 opts.cpp /AWEMPU:GM fix (that chat). 3) HWTEST results.
+- Resume: "Attach deon81997/priavte (push) and follow PLAYBOOK.md. Repo: deon81997/NUKED-SBEMU-AWE. Task: /AWEBANK on top of the Win98 banks tag (HANDOFF top section)."
 - Hardware (HWTEST top item): D810 + P5PE-VM with the user's SYNTHGM.SBK: Duke GM, MIDPLAY, Duke AWE32 music then a GM game.
 - Test downloads: DJGPP gcc 12.2 (build-djgpp v3.4), 86Box 0935207 + xpad diff, store-dos71, store-86box-roms,
   store-personal, rufus, apt qemu-system-x86 fluidsynth timgm6mb-soundfont.

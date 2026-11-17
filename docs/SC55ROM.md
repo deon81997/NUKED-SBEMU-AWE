@@ -49,3 +49,15 @@ Prog LUTs in ctrl ROM: VelocityCurves 0x3D1E8 (10 x 128), KeyMapperIndex 0x3DC72
 User's M1_ROM1.BIN gives sane tables at these offsets (checked 2026-11-16).
 TVA level: idx = max(0xFF - LI[partVol] - LI[smpVol] - LI[instVol] - LI[velCurve(vel)], 1) (+/- bias);
 env level n = TVALevel[idx - LI[Ln]].
+
+## Calibration against Nuked-SC55 (tools/sc55sf.c, testrig/sc55sf/probe.py, 2026-11-16)
+- Pitch: SF2 rootKey 60, coarse/fine = (coarse-0x40) + 60 - sample rootKey + (pitchInit-1024)/1000 + (fine-0x40)/100 semitones,
+  scaleTuning = PitchParamScale[|kf|]*200/65536 (kf = pitchKeyFlw-0x40), 32 kHz samples: median error 2 cents. Confirmed.
+- Sample pick per key (breaks vs basePitchC - rootKeyOffset + 0x40) gives the right multisample zones.
+- Wave ROM slots: each 1 MB slot scored alone (loop-end continuity of the samples that live there) picks M1_WAVE1/2/3 right.
+- TVA times: EnvelopeTime*8/32000 s is ~5.5x too short vs Nuked for T1-T4 and ~3.5x for T5 (fitted -t550 -r350; cause
+  not traced - envelope update rate?). TVA phases: bit 7 of T set = linear, clear = exponential (2^-16 per phase = ~96 dB).
+- TVA level: TVALevel[0xFF - LI[partial vol] - LI[sample vol] - LI[inst vol] (- LI[drum vol]) - LI[Ln]] is right to ~5 dB sd.
+- TVF: cutoff coef = 2*TVFCutoffFreq[(base<<8 + TVF env level init)>>8] (tvf.cc); the env term (L1-L5 through TVFEnvScale
+  0x79f2 x TVFEnvDepth 0x7512 x velocity sens, + cutoff key follow 0x74d2) is large: base alone (~400 Hz for pianos) is
+  far too dark, so the SF2 has no filter yet (band error 3.1 dB without, 7.8 dB with base only). Next: modEnv -> filterFc.

@@ -1,3 +1,13 @@
+## wip SC55SF chat 2 (2026-11-16): sc55sf.c builds SC55.SF2 from the user's ROMs
+- Done: sc55-pack/tools/sc55sf.c (host gcc; ROMs by content, mk1 1.21 + mk2 1.01 tables, wave slots by loop fit, DPCM,
+  per-key multisample zones, 5-phase TVA fitted to SF2 AHDSR, drum kits with pan/reverb/chorus/exclusive groups, GS variation
+  banks). 2 s on the host, 8.9 MB SF2, 387 presets. testrig/sc55sf/probe.py measures vs Nuked-SC55 (README there).
+- Numbers (175 items): env 4.1 dB, band 3.1 dB, pitch median 2 c; avmidi 01 chroma DTW 0.690. Worst 10: P121 Breath Noise
+  (+19 dB loud), P123 Bird, P038/P039 Synth Bass (no TVF), P127 Gun Shot, P062 Synth Brass, D058, P060, D080, D066.
+- Not yet: TVF (cutoff env -> SF2 modEnv), LFO vibrato, velocity curves, SBK writer + /AWERAM trims, DJGPP SC55SF.EXE,
+  SETUP/MENU lines, 86Box speed, release. See docs/SC55ROM.md "Calibration".
+- Resume: "Attach deon81997/priavte (push) and follow PLAYBOOK.md. Repo: deon81997/NUKED-SBEMU-AWE. Task: SC55SF - resume wip/sc55sf-2026-11-16 (HANDOFF top)."
+
 ## wip SC55SF (2026-11-16, stopped early): SC-55 SoundFont/SBK from the user's ROMs
 - Done: research only. Control/CPU/wave ROM layout + SF2 mapping plan in docs/SC55ROM.md (from libEmuSC + Nuked unscramble);
   LUT offsets checked sane on the user's M1_ROM1/M1_ROM2 (Ver1.21). Nuked-SC55 host renderer builds (testrig/sc55sf/README.md).

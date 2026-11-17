@@ -32,7 +32,8 @@
   testrig/awe98/mkrel.py --keepdos (DOS EXEs unchanged = awe.8). Wiki: priavte wiki/post/awe-awe.9.json (post AFTER awe.json).
 - Toolchain this session: apt g++-mingw-w64-i686-win32 gcc-multilib librtmidi-dev openbox; OW snapshot (curl the
   release URL; gh release download is 403), JWasm (make -f GccUnix.mak), munt d885a95, ln -s sbemu-src/nopl3 to the repo.
-- Next: HWTEST top item (null-modem, Duke AWE in a DOS box); post wiki jobs.
+- Next: HWTEST top item (null-modem, Duke AWE in a DOS box); post wiki jobs; MUXED already has beta.130-w98.10 (debug link
+  cost-free even when on) - sync it next the same way (diff w98.9..w98.10, check io_w/sc_dbg_capw against its trap-path change).
 
 ## beta.130-awe.8 (2026-11-17, AWE sub-menu session): SETTINGS > AWE32 options (DOS SBSET + MENU; SBEMU unchanged)
 - tools/sbset.c: new fields F_AWEON/F_AWEPORT/F_AWERAM/F_AWEROM/F_AWEFX + F_AWEMPU on page M_AWE ("AWE32 options");

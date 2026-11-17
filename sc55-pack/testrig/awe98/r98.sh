@@ -11,13 +11,16 @@
 # env: SCROMS (ROM folder copied to C:\SC55\ROMS; awe.3 used one with only AWE32.RAW: no SC-55 boot in 86Box), WAIT (s
 # before the tests), RECSECS (REC.WAV closed after that much sound, default 90: complete on disk), DUKEONLY=1 (no
 # IDLEMTR/AWEDET/AWETIME/AWELOAD: REC.WAV starts with Duke's music), SFX=0 (Duke's effects off: music only),
-# SHOTEVERY=1 (screenshot every 20 s), CMDARGS (SC55W2.EXE switches, e.g. /AWE:620 instead of OPTS).
+# SHOTEVERY=1 (screenshot every 20 s), CMDARGS (SC55W2.EXE switches, e.g. /AWE:620 instead of OPTS), SERIALLOG (awe.9).
 T=$1; SRC=$2; OPTS=$3; SECS=${4:-600}
 H=$(cd "$(dirname "$0")" && pwd); V=/home/claude/vms; W=/tmp/w86; D=$W/acpi-$T
 export B86=${B86:-/home/claude/86box/src/build/src/86Box} ROMS=${ROMS:-/tmp/dl/roms/roms-6.0}
 SCR=${SCROMS:-/home/claude/tmp/p52/NUKEDSB/FILES/ROMS}
 mkdir -p $W && rm -rf $D && cp -r --sparse=always $V/w98-86box/acpi $D && cp --sparse=always $V/shared/test.img $W/d-$T.img
 sed -i "s#^hdd_02_fn = .*#hdd_02_fn = $W/d-$T.img#" $D/86box.cfg
+# awe.9: SERIALLOG=file = COM1 to that file (86Box "File (COM)", buffered: the last <4 KB are lost when the VM is killed);
+# with CMDARGS=/DBG:COM1 = the Windows 98 debug link during Duke (DBGLOG.PY -f can read the file afterwards)
+[ -n "${SERIALLOG:-}" ] && printf '\n[Ports (COM & LPT)]\nserial1_enabled = 1\nserial1_device = file\n\n[File (COM) #1]\npath = %s\n' "$SERIALLOG" >> $D/86box.cfg
 I="$D/win98.img@@32256"
 mmd -i $I ::/SC55 ::/SC55/WIN98 ::/SC55/ROMS 2>/dev/null
 for f in SC55W2.EXE SC55W.VXD; do mcopy -o -i $I $SRC/$f ::/SC55/WIN98/$f; done

@@ -1,3 +1,39 @@
+## beta.130-awe.9 (2026-11-17, AWE debug-link session): MUXED beta.130-w98.9 (Windows 98 serial debug link) on the AWE line
+- Sync: `git diff --binary v1.0.0-beta.130-w98.8-usb v1.0.0-beta.130-w98.9-usb -- . ':!release' | git apply -3 --index`;
+  conflicts in resource.h, sc55w.rc, w98main.cpp (8), sc55midi.c, sbcore.c, sc55w.asm (5), VERSION/nsbver.h, docs; binaries rebuilt.
+- Hand fixes: (1) sc55w.asm IO_Stub: the byte path already captured every trapped port (EMU8000 bytes too); the AWE word
+  path io_w now tests sc_dbg_cap after sc_iow and calls sc_dbg_capw (dbg98.c: one awe= count, level 3 = its two bytes
+  port/port+1); sc_dbg_capture counts awe_port() bytes as awe= (620-623/A20-A23/E20-E23 + base). (2) Settings: Debug is
+  tab 5 (g_page[5], [4] = Debug), IDD_PAGE_DBG 107 (105 = AWE, 106 = AWEBANK), IDC_D_* 1360-1365 (AWE 1400+). WM_REMOTE:
+  AWE keeps 6 (SBOPTS reload); /DBG moved to 8 (port) / 9 (DBGCMD); SC55W /AWE.. /DBG.. run again sends both.
+  (3) IOCTL 0x18-0x1A + DBGCMD_*: no clash (AWE IOCTLs end at 0x17), unchanged. (4) PM API: AWE uses AX=3/4 for the
+  second device's bytes/volume, so open/close = AX=5/6, DX = device (0 NUKED SB-EMU, 1 AWE32 MIDI Synth), CX = clients
+  of that device (sc55midi.c dev_opens[2]); VxD line "Windows MIDI device <name> opened (n open)". (5) Shared state:
+  mpu_out keeps c=1 (DOS box MIDI on the AWE line) + c_midi++; sc55midi volume[dev]; awe_detach sets aw = 0 BEFORE
+  unmapping (the async time-out reads aw). No F_SYNTH-like misuse found.
+- AWE events, level 1, all from the once-a-second S time-out (nothing runs while off): attach "AWE32: EMU8000 ports
+  ... trapped, sample RAM N KB" / E lines for ST_ERR_AWEPORT/AWEBLOCK; "AWE32: DOS box vm=X takes the EMU8000" /
+  "closed, the EMU8000 is free" (aw->vm changes; set by word I/O only); "S awe vm= ports= voices=N/32 ramw= ram=K" while
+  used + one line after (voices = DCYSUSV bits 7 and 15 clear = keys held); E on EMU8000 ring overflow. Helper: link-on
+  summary (AWE32 ROM/ready/error, AWE32 MIDI Synth banks + note + user banks not loaded), "AWE32 MIDI Synth: a DOS box
+  took the EMU8000" / "has the EMU8000 again" (awe_midi_counts), bank manager "load failed: ..." = E, "left out" = E.
+- Tests: dbgtest.sh PASS (new: awe= bytes+words, S awe line, level-3 word = 2 T records; interface 11), routetest PASS.
+  testrig/w98dbg/run.sh (QEMU acpi): main PASS (mpenter = Enter for Media Player's first-start dialog), hang PASS, fault
+  PASS (254 S lines after UD2), awe (new case: /AWE:620 + AWE32 MIDI Synth, TRAPB 620, AWELOAD, WSEQ on AWE32, DUMP):
+  traps/ready/banks/open-close/takes (VxD + SC55W)/awe= 133 S lines/16 voices/4096 T records of 62x-E2x all ok.
+  Duke 1.3D in a QEMU Win98 DOS box ABORTS QEMU (hw/char/serial.c:474 assert size == 1 && addr < 8, a word access at
+  COM1+7) - also with the link off and never used (/tmp/nolink.sh run): QEMU + Duke, not the link. Duke AWE therefore on
+  86Box: testrig/awe98/r98.sh (new SERIALLOG= file COM1, CMDARGS=/DBG:COM1:1, DUKEONLY=1): Windows + Duke AWE32 music
+  ran 4 min with the link on, takes/took lines, 101 S lines with awe>0 (~13.5k EMU8000 accesses/s), voices 1-2/32.
+  CPU 86Box P3B-F PII-450 cpu86.sh (new OPTS=/AWE:620, PORTS=24E 24E 301 301 620 620; 8M trapped INs, 55 ms ticks):
+  awe.8 155/159/183, awe.9 off 156/156/184 (noise), on COM1:1 171/175/208 (+10-13 % on a loop of only trapped INs,
+  ~160 ns per access while ON; Duke's 13.5k/s = 0.2 %).
+- Release: awe.8 zip + Win98 files, README98, README.TXT, HWTEST, DBGLOG.PY/TXT, SOURCE.ZIP (+dbg98.c, dbgtest) via
+  testrig/awe98/mkrel.py --keepdos (DOS EXEs unchanged = awe.8). Wiki: priavte wiki/post/awe-awe.9.json (post AFTER awe.json).
+- Toolchain this session: apt g++-mingw-w64-i686-win32 gcc-multilib librtmidi-dev openbox; OW snapshot (curl the
+  release URL; gh release download is 403), JWasm (make -f GccUnix.mak), munt d885a95, ln -s sbemu-src/nopl3 to the repo.
+- Next: HWTEST top item (null-modem, Duke AWE in a DOS box); post wiki jobs.
+
 ## beta.130-awe.8 (2026-11-17, AWE sub-menu session): SETTINGS > AWE32 options (DOS SBSET + MENU; SBEMU unchanged)
 - tools/sbset.c: new fields F_AWEON/F_AWEPORT/F_AWERAM/F_AWEROM/F_AWEFX + F_AWEMPU on page M_AWE ("AWE32 options");
   opened by Enter on the MIDI synth line while it is AWE32 (activate/open_menu F_SYNTH), SBSET /PAGE:AWE, MENU >

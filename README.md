@@ -428,6 +428,8 @@ This edition of NUKED SB-EMU puts one inside your PC!! SBEMU becomes a Sound Bla
    **Where do I get one??** 86Box's ROM set has it: [86Box/roms](https://github.com/86box/roms),
    file `sound/creative/awe32.raw`. Copy it as it is (1 MB, no renaming needed).
 2. `SETTINGS` > MIDI synth > **"AWE32 / AWE64 wavetable (EMU8000)"**, save. (Or just one game: `/AWE:620`.)
+   **Enter** on that line opens **AWE32 options** (port, sample RAM, ROM, reverb + chorus, what the MPU-401 plays; also
+   MENU > Settings > AWE32 options) since awe.8.
 3. In the game's setup pick **AWE32** music (Sound Blaster 16 for the effects), EMU port 620.
 
 <picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **Does it sound right??** I recorded Duke 3D and ROTT

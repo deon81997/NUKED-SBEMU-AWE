@@ -1,3 +1,31 @@
+## @@TAG@@ (2026-11-16, AWE DOS session): /AWEMPU:GM|GS|MT32 - the MPU-401 on the EMU8000 in DOS
+- SBEMU /AWEMPU:GM|GS|MT32 (option value 2/3/4; parsed by name in main.c; 0/1 as before): MPU-401 bytes -> sbemu/vawe.c
+  VAWE_MPU (UART front end: command ACKs, SBDIAG side channel) -> awe/synth/awemidi.c's player (awemidi.o now in
+  AWE_OBJS). Banks: VAWE_MidiStart scans the AWE ROM's folder (else ROMS) flat by content (RIFF sfbk + awem_probe rc 1/2,
+  kind from presets, else file name), loads mode bank + GM fallback (skipped when both use sample RAM: they would
+  overlap), else awem_bank_builtin. No VMPU (SC-55/SF/MT-32) is loaded; AMIS SYNTH=AWE; MAIN_SynthName "AWE32 GM".
+  It replaces Creative's AWEUTIL /EM (needs the card's NMI; README.TXT 6c says so).
+- Ownership: the player writes nothing to the chip until the first note-on (first test with awem_start at load made
+  Duke's own AWE music 3 dB louder and 10% vs 4% CPU). Any trapped EMU8000 access (VAWE_Count, checked in VAWE_MixInto)
+  -> awem_release; awem_reclaim on a note-on after >= 3 s without access (frames counted in VAWE_MixInto). A game
+  playing AWE music sends no MPU bytes, so its RAM samples are never overwritten while it runs.
+- SBSET: "MPU-401 also plays" + "AWE32 itself, GM/GS/MT-32" (values awegm/awegs/awemt, line /AWEMPU:GM...), warning
+  line; MENU status "AWE32 + own GM"; MIDPLAY's AWE-only message points at "AWE32 itself, GM".
+- Tests: testrig/awe/awempu_host.sh AWE32.RAW (vawe.c on the host with stub qemm.h/vdiag.h + stand-in SBKs with
+  neutral names, + ASan/UBSan): PASS (bank by content GM/GS/MT-32, MPU ACKs, note on/off, release on game access,
+  held while < 3 s, reclaim, built-in map without SBK, /AWERAM 128 KB -> "left out", game-first -> player stays off).
+  86Box P2B-LS (testrig/awe/duke.sh, HIMEM): Duke DUKEGM.CFG + /AWEMPU:GM: 212 MIDI B/s, AWE renders 17% (PII-400),
+  music audible from s19 (vs /AWEMPU:0: silent, AWE 1%); Duke AWE32 music + /AWEMPU:GM vs awe.5: 0.0 dB, 6% vs 6% CPU.
+  PII-450: Duke AWE music awe.5 5% / AWE 4% vs new 5% / 4% (0.0 dB); Duke GM on the AWE (built-in map, 30 voices)
+  16% / AWE 15%. SC55LOG PII-450 old 0.47x = new 0.47x. QEMU notetest (/AWEMPU:GM) avmidi 02/07: 0 dropped.
+- Win98 side NOT changed (owned by the Win98 banks chat): win98/helper/opts.cpp reads /AWEMPU with num() -> "GM" = 0
+  = DOS boxes' MPU silent, and saving Win98 Settings would write /AWEMPU:0 over the user's /AWEMPU:GM in SBOPTS.TXT.
+  Fix there: treat GM/GS/MT32 as 1 (keep the token as is).
+- @@BANKNOTE@@
+- Hardware (HWTEST top item): D810 + P5PE-VM with the user's SYNTHGM.SBK: Duke GM, MIDPLAY, Duke AWE32 music then a GM game.
+- Test downloads: DJGPP gcc 12.2 (build-djgpp v3.4), 86Box 0935207 + xpad diff, store-dos71, store-86box-roms,
+  store-personal, rufus, apt qemu-system-x86 fluidsynth timgm6mb-soundfont.
+
 ## beta.130-awe.5 (2026-11-16, AWE session): "AWE32 MIDI Synth" Windows MIDI device
 - SC55MIDI.DRV now has 2 devices: 0 "NUKED SB-EMU" (as before), 1 "AWE32 MIDI Synth" (MOD_SYNTH, 32 voices, own volume).
   VxD PM API AX=3/4 (bytes / volume of dev 1, EV_MIDI c = 2; AX=0 -> 0101h; the driver refuses dev 1 on an older VxD),

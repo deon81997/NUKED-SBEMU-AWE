@@ -2,6 +2,17 @@ NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.5)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
 
+[ ] @@TAG@@ General MIDI on the AWE32 in DOS (/AWEMPU:GM; D810 and P5PE-VM,
+    AWE32.RAW + your SYNTHGM.SBK (and SYNTHGS/SYNTHMT.SBK) in C:\SC55\ROMS).
+    1) SETTINGS > MIDI synth AWE32, "MPU-401 also plays" > "AWE32 itself, GM",
+    save, SC55: the start lines say "MPU-401 330 plays on the AWE32 (GM)"
+    with your SYNTHGM.SBK. 2) Duke 3D, music General MIDI: it plays on the
+    AWE32 (Creative's GM sound); SBDIAG after 2 minutes ("AWE32 needs" %).
+    3) MIDPLAY a .MID: plays, MENU shows "AWE32 + own GM". 4) Duke with AWE32
+    music: as before (the game's driver wins); quit, then MIDPLAY: the GM
+    music is back. 5) GS and MT32 (SBEMU /AWEMPU:GS at the next start).
+    Send SBDIAG.TXT and the SC55 start screen.
+
 [ ] beta.130-awe.5 "AWE32 MIDI Synth" in Windows 98 (D810 and P5PE-VM; SETUP98
     run again, Windows restarted, AWE32.RAW in C:\SC55\ROMS). 1) Copy your
     own SYNTHGM.SBK (and SYNTHGS.SBK / SYNTHMT.SBK if you have them) into any

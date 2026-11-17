@@ -385,8 +385,9 @@ CONTENTS
                        "USB MIDI device": a real synth on a USB MIDI
                        cable, /MUSB, section 10b, or "AWE32 / AWE64
                        wavetable", /AWE:620, section 6c; then "MPU-401
-                       also plays" picks the 330h synth), and the two sub-menus
-                       below
+                       also plays" picks the 330h synth, and Enter on
+                       the AWE32 line opens "AWE32 options"), and the two
+                       sub-menus below
      Output            Sample rate 22050/32000/44100/48000 Hz, and the
                        "Timing & advanced" sub-menu
   SC-55 options        ROM set (/VSCSET), volume (/VSCGAIN), reverb/chorus
@@ -403,6 +404,19 @@ CONTENTS
                        (/VCDA), protected / real mode support (/PM /RM),
                        sound card / FM card / MPU card (/SC /SCFM /SCMPU),
                        MIDI out COM port (/MCOM)
+  Joystick             USB pads, keyboard, mouse, sticks (section 10b)
+  AWE32 options        (Enter on the MIDI synth line while it says AWE32,
+                       or MENU > Settings > AWE32 options) AWE32 on/off and
+                       port 620/640/660/680 (/AWE; Off puts the MIDI synth
+                       line back to what the MPU-401 plays), sample RAM
+                       (/AWERAM: 512 KB AWE32, 4 MB AWE64 Gold, 8 MB ...
+                       28 MB, none), AWE ROM (/AWEROM: auto = the 1 MB ROM
+                       found by content in ROMS, then AWE - the page shows
+                       which file; Enter picks another file or a folder),
+                       reverb + chorus (/AWEFX), and "MPU-401 also plays"
+                       (/AWEMPU, the same line as on the main screen).
+                       A red line says when the ROM is missing or the
+                       sample RAM is more than the free memory (XMS).
   Not in the menus: /VMPU and /VSCROM (the launchers set them), the debug
   switches /DBG and /MDBG, and the one-off commands /SCL /COML /R.
   SETTINGS uses the style chosen in MENU (F3). The ROM sets are recognised
@@ -411,8 +425,8 @@ CONTENTS
   is checked again by itself. (Before beta.73 the file dates were misread
   on some starts, so all ROMs were checked again: about 6 s lost at
   350 MHz.)
-  SETTINGS /PAGE:SC, /PAGE:SF, /PAGE:VOL or /PAGE:ADV opens a sub-menu
-  (the MENU's SETTINGS entries do this).
+  SETTINGS /PAGE:SC, /PAGE:SF, /PAGE:VOL, /PAGE:ADV, /PAGE:JOY or
+  /PAGE:AWE opens a sub-menu (the MENU's SETTINGS entries do this).
 
   Keys
      Up / Down        choose a setting
@@ -426,9 +440,12 @@ CONTENTS
 
   A red line warns about combinations that are too heavy for a laptop CPU
   (the SC-55 at 44.1 or 48 kHz) or that hurt game music (render-ahead
-  off). Options that equal SBEMU's own default are left out of the saved
+  off), and when the AWE32 has no ROM or more sample RAM than free memory.
+  Options that equal SBEMU's own default are left out of the saved
   line; SoundFont settings are only saved while the SoundFont is chosen,
-  SC-55 settings only while the SC-55 is.
+  SC-55 settings only while the SC-55 is, AWE32 settings only while the
+  AWE32 is on. Options SETTINGS has no field for (typed by hand, or
+  Windows 98 Settings' own) stay on the saved line as they were.
 
   The bottom of the window shows the exact SBEMU options that will be saved.
   They go to C:\SC55\SBOPTS.TXT (and SBOPTS.BAT for old launchers), which
@@ -553,7 +570,8 @@ CONTENTS
      under it, "MPU-401 also plays", picks what plays the General MIDI that
      games and MIDPLAY send to port 330: SC-55 (the default), SoundFont,
      MT-32, CM-32L, USB MIDI device, off (AWE32 only), or "AWE32 itself"
-     GM / GS / MT-32 (see below). Save.
+     GM / GS / MT-32 (see below). Enter on the AWE32 line opens "AWE32
+     options": port, sample RAM, ROM, reverb + chorus (section 5). Save.
      Or only for one game: Games > Add / edit games > SBEMU options /AWE:620.
   3. In the game's setup choose "AWE32" (Sound Blaster 16 for the effects),
      EMU port 620. BLASTER gets E620 and the Sound Blaster type becomes 16.
@@ -571,9 +589,10 @@ CONTENTS
   Blaster 16 mixer (MIDI and master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
   (sample RAM in KB: AWE32 512, AWE64 Gold 4096, up to 28672), /AWEROM:file
   or folder. CPU: about 2-3% of a Pentium II 400 while Duke 3D's music plays;
-  needs a Pentium Pro / Pentium II or newer (like the SC-55). Differences to
-  a real card (open work): no reverb or chorus yet, and the filter is a
-  little brighter. AWE settings only change when SBEMU is loaded again.
+  needs a Pentium Pro / Pentium II or newer (like the SC-55). Reverb and
+  chorus: /AWEFX (on by default; 0 = dry). Differences to a real card
+  (open work): the filter is a little brighter. AWE settings (except
+  /AWEFX) only change when SBEMU is loaded again.
 
   The MPU-401 on the AWE32 itself (/AWEMPU:GM, GS or MT32, beta.130-awe.6):
   like AWEUTIL /EM:GM on a real AWE32, General MIDI sent to port 330 plays
@@ -752,6 +771,10 @@ CONTENTS
                            SoundFont, MT-32, USB MIDI); 0 = AWE32 only;
                            GM | GS | MT32 = the MPU-401 plays on the
                            EMU8000 (AWEUTIL /EM, SYNTHGM/GS/MT.SBK in ROMS)
+     /AWEFX:1|0            with /AWE the EMU8000's reverb and chorus, as
+                           the game or AWEUTIL sets them (default 1;
+                           0 = dry, a little less CPU); changes at once
+                           when SBEMU is run again while loaded
 
   Selection and diagnostics
      /SCL                  list installed sound cards

@@ -4,7 +4,7 @@
  * response file @SBOPTS.TXT, and SBOPTS.BAT ("SET SBOPTS=...") for older launchers. Only options that
  * differ from SBEMU's own defaults are written.
  *
- *   SBSET [folder] [/PAGE:SC|SF|VOL|ADV] default folder C:\SC55; /PAGE opens that sub-menu first
+ *   SBSET [folder] [/PAGE:SC|SF|VOL|ADV|JOY|AWE] default folder C:\SC55; /PAGE opens that sub-menu first
  *
  * Main screen: Sound Blaster, MIDI (port, synth), output rate, and three sub-menus:
  *   SC-55 options        ROM set, volume, reverb/chorus, note limit, speed control
@@ -12,6 +12,9 @@
  *   Volume               master, sound effects, FM music, MIDI music (+ SC-55 gain, CD audio)
  *   Timing & advanced    render-ahead, timer give-back, OPL, output jack, CD audio, PM/RM support,
  *                        sound card choice, MIDI out COM port
+ *   AWE32 options        on/off + port, sample RAM, ROM, reverb/chorus, what the MPU-401 plays (Enter on the
+ *                        AWE32 synth line)
+ * Options SBSET does not know (Win98 Settings' /VSCLPF, a hand-typed switch) are kept on the saved line.
  * Not here on purpose: /VMPU and /VSCROM (set by the launchers) and the debug switches /DBG /MDBG.
  *
  *   Up/Down choose   Left/Right change   Enter list / open   S or F2 save   D defaults   Esc quit
@@ -23,17 +26,21 @@
 #include <string.h>
 #include <strings.h>
 
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #ifndef HOSTTEST
 #include <conio.h>
 #include <pc.h>
 #include <keys.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/stat.h>
+#include <dpmi.h>
+#define SEP "\\"
+#else
+#define SEP "/"
 #endif
 #include "safewr.h"
-#include "sbemuchk.h"
 #ifndef HOSTTEST
+#include "sbemuchk.h"
 #include "theme.h"
 #endif
 #include "../sc55/sc55synth.h"
@@ -57,6 +64,8 @@ enum {
     F_VOL, F_SBVOL, F_OPLVOL, F_MIDIVOL,
     /* Joystick sub-menu (USB Xbox 360 pad on the gameport) */
     F_JOY, F_JOYMODE, F_JOYAX, F_JOYBT, F_JOYKEY, F_PADKEYS, F_JOYDZ, F_USBKB, F_USBMS, F_USBDISK,
+    /* AWE32 sub-menu (beta.130-awe.8; "MPU-401 also plays" = F_AWEMPU, shown on both screens) */
+    F_AWEON, F_AWEPORT, F_AWERAM, F_AWEROM, F_AWEFX,
     NF };
 
 #define LV11 { "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100" }, 11
@@ -82,7 +91,7 @@ static Field F[NF] = {
     { "16-bit DMA",      "/H",       { "5", "6", "7" }, 3, 0, 0, "16-bit DMA channel (SB16 only).", {0}, 0 },
     { "Type",            "/T",       { "1", "2", "3", "4", "5", "6" }, 6, 4, 4, "1/2/3 = Sound Blaster, 4/5 = Pro, 6 = SB16.", {0}, 0 },
     { "MPU-401 port",    "/P",       { "330", "300", "310", "320", "332", "334" }, 6, 0, 0, "Where games find General MIDI. 330 is the usual one.", {0}, "MIDI" },
-    { "MIDI synth",      0,          { "sc55", "sf", "mt32", "cm32l", "usb", "awe" }, 6, 0, 0, "SC-55 / MT-32 / CM-32L / AWE32 need their ROMs in ROMS; a SoundFont is lightest; USB: a real synth on a USB MIDI cable.", {0}, 0 },
+    { "MIDI synth",      0,          { "sc55", "sf", "mt32", "cm32l", "usb", "awe" }, 6, 0, 0, "SC-55 / MT-32 / CM-32L / AWE32 need their ROMs in ROMS; a SoundFont is lightest; USB: a real synth on a USB MIDI cable. AWE32: Enter opens its options.", {0}, 0 },
     { "MPU-401 also plays", 0,       { "sc55", "sf", "mt32", "cm32l", "usb", "off", "awegm", "awegs", "awemt" }, 9, 0, 0, "With the AWE32: what plays the MIDI games send to the MPU-401 - a Sound Canvas etc. on its MIDI port, or the AWE32 itself (as AWEUTIL /EM, your SYNTHGM/GS/MT.SBK in ROMS). Off = AWE only.", {0}, 0 },
     { "SC-55 options",   0,          { "" }, 1, 0, 0, "ROM set, volume, reverb/chorus, note limit, speed control. Enter opens.", {0}, 0 },
     { "SoundFont options", 0,        { "" }, 1, 0, 0, "SoundFont file, voices, reverb, chorus. Enter opens.", {0}, 0 },
@@ -141,10 +150,18 @@ static Field F[NF] = {
     { "USB keyboard",    "/USBKB",   { "1", "0" }, 2, 0, 0, "USB keyboard typed through the PC's keyboard controller (it stops working without this once SBEMU takes USB).", {0}, 0 },
     { "USB mouse",       "/USBMS",   { "1", "2", "0" }, 3, 0, 0, "USB mouse for CTMOUSE / MOUSE.COM loaded after SBEMU, next to the touchpad. With JEMM: Auto = plugged in at start.", {0}, 0 },
     { "USB sticks",      "/USBDISK", { "0", "1" }, 2, 0, 0, "USB sticks and card readers as DOS drive letters (FAT12/16/32, read and write; LASTDRIVE=Z in CONFIG.SYS). Takes effect at the next start of SBEMU. MENU > CD-ROM > USB drives lists them.", {0}, 0 },
+
+    /* AWE32 (the /AWE switch is written by build_line with the MPU-401 options; /AWERAM etc. only while it is on) */
+    { "AWE32",           0,          { "1", "0" }, 2, 0, 0, "The EMU8000 wavetable of an AWE32/AWE64 (an SB16, BLASTER gets E620). Off = the MPU-401 synth alone.", {0}, 0 },
+    { "Port",            "/AWE",     { "620", "640", "660", "680" }, 4, 0, 0, "Where games find the EMU8000 (BLASTER E620). 620 unless a game's setup wants another one.", {0}, 0 },
+    { "Sample RAM",      "/AWERAM",  { "512", "1024", "2048", "4096", "8192", "12288", "16384", "28672", "0" }, 9, 0, 0, "RAM for the samples games and SBKs load. AWE32 = 512 KB, AWE64 Gold = 4 MB; more for big SoundFonts. Taken from XMS.", {0}, 0 },
+    { "AWE ROM",         "/AWEROM",  { "" }, 1, 0, 0, "The 1 MB EMU8000 ROM dump (Creative's GM sounds). Auto = found by content in ROMS, then AWE. Enter: pick a file or folder.", {0}, 0 },
+    { "Reverb + chorus", "/AWEFX",   { "1", "0" }, 2, 0, 0, "The EMU8000's reverb and chorus, as the game or AWEUTIL sets them. Off = dry, a little less CPU.", {0}, 0 },
 };
 
 static char g_dir[160] = "C:\\SC55";
 
+#ifndef HOSTTEST
 /* F3 on any SBSET screen: the next style (saved in THEME.CFG for MENU and every other program); the screen
  * redraws in the new colours on the next pass of its loop */
 static int sb_getkey(void)
@@ -160,6 +177,7 @@ static int sb_getkey(void)
     }
 }
 #define getkey sb_getkey
+#endif
 static char g_sf[200] = "";           /* chosen SoundFont, "" = none */
 static int g_roms_found = -1;
 
@@ -252,6 +270,11 @@ static void set_labels(void)
     }
     for (i = 0; i < 5; i++) { F[F_SC].labels[i] = card[i]; F[F_SCFM].labels[i] = card[i]; F[F_SCMPU].labels[i] = card[i]; }
     { static const char* m[5] = { "None - hardware MPU only (default)", "COM1", "COM2", "COM3", "COM4" }; for (i = 0; i < 5; i++) F[F_MCOM].labels[i] = m[i]; }
+    onoff(F_AWEON, "On", "Off (the MPU-401 synth alone)");
+    F[F_AWEPORT].labels[0] = "620h (default)"; F[F_AWEPORT].labels[1] = "640h"; F[F_AWEPORT].labels[2] = "660h"; F[F_AWEPORT].labels[3] = "680h";
+    { static const char* r[9] = { "512 KB (AWE32, default)", "1 MB", "2 MB", "4 MB (AWE64 Gold)", "8 MB", "12 MB", "16 MB", "28 MB (most)", "None (ROM sounds only)" }; for (i = 0; i < 9; i++) F[F_AWERAM].labels[i] = r[i]; }
+    F[F_AWEROM].labels[0] = 0;
+    onoff(F_AWEFX, "On (default)", "Off (dry)");
 }
 
 /* what the MPU-401 plays: the MIDI synth, or with the AWE32 the "MPU-401 also plays" choice (5 = nothing) */
@@ -262,20 +285,124 @@ static int using_sf(void) { return mpu_synth() == 1; }
 static int using_sc55(void) { return mpu_synth() == 0; }
 static int is_sc_field(int i) { return i >= F_ROMSET && i <= F_SCAUTO; }
 static int is_sf_field(int i) { return i >= F_SF && i <= F_SEND; }
+static int is_awe_field(int i) { return i >= F_AWEON && i <= F_AWEFX; }
 
-static int g_awefx0;    /* /AWEFX:0 seen: kept on the line while the AWE32 is on (no field for it) */
+/* AWE32 on: the synth the MPU-401 had stays on it ("MPU-401 also plays"); off: the MPU-401 keeps that synth
+ * (or the SC-55 when it was "off" / the AWE32 itself) */
+static void awe_set(int on)
+{
+    if (on && !awe_on()) { F[F_AWEMPU].cur = F[F_SYNTH].cur; F[F_SYNTH].cur = 5; }
+    else if (!on && awe_on()) F[F_SYNTH].cur = F[F_AWEMPU].cur < 5 ? F[F_AWEMPU].cur : 0;
+    F[F_AWEON].cur = awe_on() ? 0 : 1;
+}
+/* after a change on the AWE32 page: on/off converts the synth lines; any other AWE32 option turns it on */
+static void awe_changed(int f)
+{
+    if (f == F_AWEON) awe_set(F[F_AWEON].cur == 0);
+    else if (f == F_AWEMPU && !awe_on()) { int k = F[F_AWEMPU].cur; awe_set(1); F[F_AWEMPU].cur = k; }
+    else if (is_awe_field(f)) awe_set(1);
+}
+static void awe_sync(void) { F[F_AWEON].cur = awe_on() ? 0 : 1; }
+
+static int g_sbemu_loaded;          /* SBEMU is loaded now: its own memory is taken, no free-memory warning */
+static char g_awerom[200] = "";       /* /AWEROM: "" = auto (by content in ROMS, then AWE) */
+static char g_extra[600] = "";        /* options SBSET has no field for: kept as they were, at the end of the line */
+
+/* a 1 MB EMU8000 ROM dump, by content as SBEMU's VAWE_IsRom: "1MGM" at word 2 (raw) or word 3 (AWE-DUMP image) */
+static int aw_is_rom(const char* path)
+{
+    struct stat st; unsigned char h[12]; FILE* f; int ok = 0;
+    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) return 0;
+    if (st.st_size != 1048576 && st.st_size != 1048578) return 0;
+    if (!(f = fopen(path, "rb"))) return 0;
+    if (fread(h, 1, 12, f) == 12) ok = !memcmp(h + 4, "M1MG", 4) || !memcmp(h + 6, "M1MG", 4);
+    fclose(f);
+    return ok;
+}
+static int aw_find_rom(const char* dir, char* out, int outlen)
+{
+    DIR* d = opendir(dir); struct dirent* e; int found = 0;
+    if (!d) return 0;
+    while (!found && (e = readdir(d)) != NULL)
+    {
+        char p[300];
+        if (e->d_name[0] == '.') continue;
+        snprintf(p, sizeof p, "%s" SEP "%s", dir, e->d_name);
+        if (aw_is_rom(p)) { snprintf(out, outlen, "%s", p); found = 1; }
+    }
+    closedir(d);
+    return found;
+}
+/* the ROM SBEMU will use (SC55RUN starts it in the pack folder: ROMS and AWE are relative to it), "" = none */
+static int aw_rom(char* out, int outlen)
+{
+    char d[420]; struct stat st;
+    out[0] = 0;
+    if (g_awerom[0])
+    {
+        int dir;
+        if (g_awerom[1] == ':' || g_awerom[0] == '\\' || g_awerom[0] == '/') snprintf(d, sizeof d, "%s", g_awerom);
+        else snprintf(d, sizeof d, "%s" SEP "%s", g_dir, g_awerom);
+        dir = stat(d, &st) == 0 && S_ISDIR(st.st_mode);
+        if (dir) return aw_find_rom(d, out, outlen);
+        if (aw_is_rom(d)) { snprintf(out, outlen, "%s", d); return 1; }
+        return 0;
+    }
+    snprintf(d, sizeof d, "%s" SEP "ROMS", g_dir);
+    if (aw_find_rom(d, out, outlen)) return 1;
+    snprintf(d, sizeof d, "%s" SEP "AWE", g_dir);
+    return aw_find_rom(d, out, outlen);
+}
+/* free extended memory in KB (what SBEMU's /AWERAM comes from); -1 = unknown */
+static long free_kb(void)
+{
+#ifdef HOSTTEST
+    const char* e = getenv("SBSET_FREEKB");
+    return e ? atol(e) : -1;
+#else
+    __dpmi_free_mem_info fi;
+    if (__dpmi_get_free_memory_information(&fi) != 0) return -1;
+    if (fi.total_number_of_free_pages != 0xFFFFFFFFUL) return (long)(fi.total_number_of_free_pages * 4);
+    return fi.largest_available_free_block_in_bytes == 0xFFFFFFFFUL ? -1 : (long)(fi.largest_available_free_block_in_bytes / 1024);
+#endif
+}
+/* the AWE32's red line: sample RAM bigger than free memory, or no ROM; "" = fine */
+static const char* awe_problem(void)
+{
+    static char w[220]; char rom[260]; long fk, need;
+    if (!awe_on()) return "";
+    if (!aw_rom(rom, sizeof rom))
+    {
+        if (g_awerom[0]) snprintf(w, sizeof w, "AWE ROM: %.60s is not a 1 MB EMU8000 ROM (or has none in it): Creative's GM sounds stay silent.", g_awerom);
+        else snprintf(w, sizeof w, "No AWE ROM found (by content) in ROMS or AWE: put AWE32.RAW (1 MB) into ROMS, or games' own samples only.");
+        return w;
+    }
+    fk = free_kb(); need = atol(F[F_AWERAM].vals[F[F_AWERAM].cur]) + 1300;
+    if (fk >= 0 && need > fk && !g_sbemu_loaded)
+    {
+        snprintf(w, sizeof w, "Sample RAM %s KB needs about %ld KB, only %ld KB free now (XMS): SBEMU will refuse it. Pick less.",
+                 F[F_AWERAM].vals[F[F_AWERAM].cur], need, fk);
+        return w;
+    }
+    return "";
+}
+
 static void build_line(char* out)
 {
     int i; out[0] = 0;
     for (i = 0; i < NF; i++)
     {
-        char t[260];
-        if (!F[i].opt) continue;
+        char t[300];
+        if (!F[i].opt || is_awe_field(i)) continue;     /* (AWE32 options: written with the MPU-401 below) */
         if (is_sf_field(i) && !using_sf()) continue;      /* SoundFont settings only with the SoundFont */
         if (is_sc_field(i) && !using_sc55() && !(i == F_SCGAIN && !using_sf())) continue; /* SC-55 settings only with the SC-55 (its gain also sets the MT-32's) */
         if (i == F_MPU && awe_on())                      /* AWE32: EMU8000 at 620h, SB16; the MPU-401 keeps its synth */
-        {
-            sprintf(t, "%s/AWE:620%s%s", out[0] ? " " : "", mpu_synth() == 5 ? " /AWEMPU:0" : mpu_synth() == 6 ? " /AWEMPU:GM" : mpu_synth() == 7 ? " /AWEMPU:GS" : mpu_synth() == 8 ? " /AWEMPU:MT32" : "", g_awefx0 ? " /AWEFX:0" : "");
+        {   /* only what differs from SBEMU's defaults (512 KB, ROM by content, MPU keeps its synth, reverb/chorus on) */
+            sprintf(t, "%s/AWE:%s", out[0] ? " " : "", F[F_AWEPORT].vals[F[F_AWEPORT].cur]);
+            if (F[F_AWERAM].cur != F[F_AWERAM].def) sprintf(t + strlen(t), " /AWERAM:%s", F[F_AWERAM].vals[F[F_AWERAM].cur]);
+            if (g_awerom[0]) sprintf(t + strlen(t), " /AWEROM:%s", g_awerom);
+            strcat(t, mpu_synth() == 5 ? " /AWEMPU:0" : mpu_synth() == 6 ? " /AWEMPU:GM" : mpu_synth() == 7 ? " /AWEMPU:GS" : mpu_synth() == 8 ? " /AWEMPU:MT32" : "");
+            if (F[F_AWEFX].cur != F[F_AWEFX].def) strcat(t, " /AWEFX:0");
             strcat(out, t);
         }
         if (i == F_MPU && mpu_synth() == 4)              /* USB MIDI device: SBEMU's USB host sends the MPU-401's MIDI */
@@ -307,15 +434,56 @@ static void build_line(char* out)
         sprintf(t, "%s%s:%s", out[0] ? " " : "", F[i].opt, F[i].vals[F[i].cur]);
         strcat(out, t);
     }
+    if (g_extra[0]) { if (out[0]) strcat(out, " "); strcat(out, g_extra); }
+}
+
+/* an option's name: "/AWERAM:4096" -> "AWERAM", "/A220" -> "A" (as SBEMU and Win98 Settings split them) */
+static void opt_name(const char* tok, char* nm, int sz)
+{
+    int i = 0; const char* p = tok + 1;
+    const char* c = strpbrk(p, ":=");
+    if (c) { while (p < c && i < sz - 1) nm[i++] = (char)toupper((unsigned char)*p++); }
+    else while (isalpha((unsigned char)*p) && i < sz - 1) nm[i++] = (char)toupper((unsigned char)*p++);
+    nm[i] = 0;
+}
+/* SBSET reads (and writes) this option itself */
+static int known_opt(const char* nm)
+{
+    static const char* other[] = { "VSF", "VMT32", "MUSB", "AWEMPU", 0 };
+    int i;
+    for (i = 0; other[i]; i++) if (!strcmp(nm, other[i])) return 1;
+    for (i = 0; i < NF; i++) if (F[i].opt && !strcasecmp(nm, F[i].opt + 1)) return 1;
+    return 0;
+}
+/* keep an unknown option (a later one with the same name replaces it, as SBEMU would use the later one) */
+static void keep_extra(const char* tok)
+{
+    char nm[24], o[24], buf[sizeof g_extra], *q, *save = 0; int dup = 0;
+    if (tok[0] != '/' && tok[0] != '-') return;           /* (not an option: "@ECHO", "SET" ...) */
+    opt_name(tok, nm, sizeof nm);
+    buf[0] = 0;
+    { char tmp[sizeof g_extra]; strcpy(tmp, g_extra);
+      for (q = strtok_r(tmp, " ", &save); q; q = strtok_r(0, " ", &save))
+      {
+          opt_name(q, o, sizeof o);
+          if (!strcmp(o, nm)) { q = (char*)tok; dup = 1; }
+          if (strlen(buf) + strlen(q) + 2 < sizeof buf) { if (buf[0]) strcat(buf, " "); strcat(buf, q); }
+      } }
+    if (!dup && strlen(buf) + strlen(tok) + 2 < sizeof buf) { if (buf[0]) strcat(buf, " "); strcat(buf, tok); }
+    strcpy(g_extra, buf);
 }
 
 static int g_awempu0;   /* /AWEMPU:0 seen (the order of /AWE, /AWEMPU, /VMT32, /VSF, /MUSB on the line does not matter) */
 static void parse_tokens(char* s)
 {
-    char* tok = strtok(s, " \r\n");
+    char* save = 0;
+    char* tok = strtok_r(s, " \t\r\n", &save);
     while (tok)
     {
         int i, j;
+        char nm[24];
+        opt_name(tok, nm, sizeof nm);
+        if (!known_opt(nm)) { keep_extra(tok); tok = strtok_r(NULL, " \t\r\n", &save); continue; }
         if (!strncasecmp(tok, "/VMT32:", 7))
         {
             if (!strcasecmp(tok + 7, "CM32L")) { if (!g_awempu0) set_mpu_synth(3); }
@@ -330,8 +498,12 @@ static void parse_tokens(char* s)
         if (!strcasecmp(tok, "/AWEMPU:0")) { g_awempu0 = 1; F[F_AWEMPU].cur = 5; }
         if (!strcasecmp(tok, "/AWEMPU:GM")) { g_awempu0 = 1; F[F_AWEMPU].cur = 6; }   /* beta.130-awe.6: the EMU8000 plays it */
         if (!strcasecmp(tok, "/AWEMPU:GS")) { g_awempu0 = 1; F[F_AWEMPU].cur = 7; }
-        if (!strcasecmp(tok, "/AWEMPU:MT32")) { g_awempu0 = 1; F[F_AWEMPU].cur = 8; }
-        if (!strcasecmp(tok, "/AWEFX:0")) g_awefx0 = 1;
+        if (!strcasecmp(tok, "/AWEMPU:MT32") || !strcasecmp(tok, "/AWEMPU:MT-32") || !strcasecmp(tok, "/AWEMPU:MT")) { g_awempu0 = 1; F[F_AWEMPU].cur = 8; }
+        if (!strncasecmp(tok, "/AWEROM:", 8))
+        {
+            strncpy(g_awerom, tok + 8, sizeof g_awerom - 1);
+            g_awerom[sizeof g_awerom - 1] = 0;
+        }
         if (!strncasecmp(tok, "/VSF:", 5))
         {
             strncpy(g_sf, tok + 5, sizeof g_sf - 1);
@@ -340,21 +512,34 @@ static void parse_tokens(char* s)
         }
         for (i = 0; i < NF; i++)
         {
-            size_t ol;
-            if (!F[i].opt || i == F_SF) continue;
+            size_t ol; int hit = 0;
+            if (!F[i].opt || i == F_SF || i == F_AWEROM) continue;
             ol = strlen(F[i].opt);
             if (!strncasecmp(tok, F[i].opt, ol) && tok[ol] == ':')
+            {
                 for (j = 0; j < F[i].n; j++)
-                    if (!strcasecmp(tok + ol + 1, F[i].vals[j])) F[i].cur = j;
+                    if (!strcasecmp(tok + ol + 1, F[i].vals[j])) { F[i].cur = j; hit = 1; }
+                if (!hit && i == F_AWERAM && F[i].n < MAXVAL)
+                {   /* a size the list does not have (SBEMU takes any 0-28672): offered as it is */
+                    char* e; long kb = strtol(tok + ol + 1, &e, 10);
+                    if (!*e && e != tok + ol + 1 && kb >= 0 && kb <= 28672)
+                    {
+                        char* v = (char*)malloc(32); char* l = (char*)malloc(32);
+                        sprintf(v, "%ld", kb); sprintf(l, "%ld KB", kb);
+                        F[i].vals[F[i].n] = v; F[i].labels[F[i].n] = l; F[i].cur = F[i].n++;
+                    }
+                }
+            }
         }
-        tok = strtok(NULL, " \r\n");
+        tok = strtok_r(NULL, " \t\r\n", &save);
     }
+    F[F_AWEON].cur = awe_on() ? 0 : 1;
 }
 
 /* read the saved settings: SBOPTS.TXT, or an older SBOPTS.BAT */
 static void load(void)
 {
-    char path[200], line[512]; FILE* f; char* p;
+    char path[200], line[1200]; FILE* f; char* p;
     {   /* what SBEMU uses when the settings do not say: BLASTER (the running SBEMU writes its own there) */
         const char* b = getenv("BLASTER"); const char* c;
         static const char* keys = "AIDHTP"; static const char* opts[6] = { "/A", "/I", "/D", "/H", "/T", "/P" };
@@ -388,7 +573,7 @@ static void load(void)
 
 static int save(void)
 {
-    char path[200], tmp[210], line[512]; FILE* f;
+    char path[200], tmp[210], line[1200]; FILE* f;
     build_line(line);
     /* the options as a response file: SC55RUN.BAT passes @SBOPTS.TXT to SBEMU, so the settings never go
      * through the small DOS environment ("Out of environment space"). Written to a temporary file and
@@ -408,7 +593,7 @@ static int save(void)
 #ifdef HOSTTEST
 int main(int argc, char** argv)
 {
-    char line[512];
+    char line[1200];
     if (argc > 1) strcpy(g_dir, argv[1]);
     set_labels(); detect_roms(); load();
     build_line(line);
@@ -647,8 +832,9 @@ static int path_ok(const char* s)
 
 #define MAXENT 600
 
-/* Browse for a .sf2 file. Returns 1 and fills out[] when chosen. */
-static int browse_sf(char* out, int outsz, const char* start)
+/* Browse for a .sf2 file (awe = 0) or the AWE32 ROM (awe = 1: 1 MB EMU8000 ROM files, by content, or a folder SBEMU
+ * searches by content). Returns 1 and fills out[] when chosen. */
+static int browse_file(char* out, int outsz, const char* start, int awe)
 {
     const int w = 64, h = 21, x = 9, y = 3, rows = h - 8;
     static Ent ents[MAXENT];
@@ -667,13 +853,13 @@ static int browse_sf(char* out, int outsz, const char* start)
         sl = strrchr(t, '\\');
         if (sl && sl > t) { if (sl == t + 2 && t[1] == ':') sl[1] = 0; else *sl = 0; if (chdir(t) == 0) getcwd(cwd, sizeof cwd); }
     }
-    if (!cwd[0] && chdir(g_dir) == 0) { char t[260]; sprintf(t, "%s\\SF2", g_dir); if (chdir(t) != 0) chdir(g_dir); getcwd(cwd, sizeof cwd); }
+    if (!cwd[0] && chdir(g_dir) == 0) { char t[260]; sprintf(t, "%s\\%s", g_dir, awe ? "ROMS" : "SF2"); if (chdir(t) != 0) chdir(g_dir); getcwd(cwd, sizeof cwd); }
     if (!cwd[0]) { chdir("C:/"); getcwd(cwd, sizeof cwd); }
 
     fill(x, y, w, h, A_WIN, ' ');
     frame(x, y, w, h, A_WIN, 1);
     shadow(x, y, w, h);
-    centered(y, A_TITLE, x, w, " Choose a SoundFont ");
+    centered(y, A_TITLE, x, w, awe ? " Choose the AWE32 ROM (file or folder) " : " Choose a SoundFont ");
 
     while (!done)
     {
@@ -695,7 +881,7 @@ static int browse_sf(char* out, int outsz, const char* start)
                     if (!strcmp(e->d_name, "..")) continue;
                     strcpy(ents[n].name, e->d_name); ents[n].dir = 1; ents[n].size = 0; n++;
                 }
-                else if (l > 4 && !strcasecmp(e->d_name + l - 4, ".sf2"))
+                else if (awe ? aw_is_rom(e->d_name) : (l > 4 && !strcasecmp(e->d_name + l - 4, ".sf2")))
                 {
                     strcpy(ents[n].name, e->d_name); ents[n].dir = 0; ents[n].size = (unsigned long)st.st_size; n++;
                 }
@@ -707,8 +893,8 @@ static int browse_sf(char* out, int outsz, const char* start)
 
         for (;;)
         {
-            /* total list: 0 = [..], 1 = [change drive], 2.. = entries */
-            int total = n + 2, idx;
+            /* total list: 0 = [..], 1 = [change drive], (AWE: 2 = [this folder]), then the entries */
+            int e0 = 2 + awe, total = n + e0, idx;
             fill(x + 1, y + 1, w - 2, h - 2, A_WIN, ' ');
             put(x + 2, y + 1, A_BOLD, "Folder:");
             fit(disp, cwd, w - 14);
@@ -722,10 +908,12 @@ static int browse_sf(char* out, int outsz, const char* start)
                 if (idx >= total) { fill(x + 3, y + 4 + i, w - 6, 1, A_LIST, ' '); continue; }
                 if (idx == 0) strcpy(t, " [..]  (parent folder)");
                 else if (idx == 1) strcpy(t, " [Change drive...]");
+                else if (idx == 2 && awe) strcpy(t, " [Use this folder]  (SBEMU looks for the ROM in it by content)");
                 else
                 {
-                    Ent* en = &ents[idx - 2];
+                    Ent* en = &ents[idx - e0];
                     if (en->dir) { sprintf(nm, "[%s]", en->name); sprintf(t, " %-14s  <folder>", nm); }
+                    else if (awe) sprintf(t, " %-14s  1 MB EMU8000 ROM", en->name);
                     else sprintf(t, " %-14s  %6.1f MB", en->name, en->size / 1048576.0);
                 }
                 sprintf(nm, "%%-%d.%ds", w - 6, w - 6);
@@ -738,7 +926,8 @@ static int browse_sf(char* out, int outsz, const char* start)
             }
             {
                 char t[100];
-                sprintf(t, " %d SoundFont(s) / folder(s) shown. SoundFont files only (.sf2). ", n);
+                if (awe) sprintf(t, " %d ROM(s) / folder(s). Only 1 MB EMU8000 ROMs (by content). ", n);
+                else sprintf(t, " %d SoundFont(s) / folder(s) shown. SoundFont files only (.sf2). ", n);
                 put(x + 2, y + h - 4, A_BOLD, "                                                            ");
                 put(x + 2, y + h - 4, A_BOLD, t);
             }
@@ -772,13 +961,14 @@ static int browse_sf(char* out, int outsz, const char* start)
                 if (sel == 0) { if (chdir("..") == 0) break; }
                 else if (sel >= 2)
                 {
-                    Ent* en = &ents[sel - 2];
-                    if (en->dir) { if (chdir(en->name) == 0) break; strcpy(msg, "Cannot open that folder."); }
+                    Ent* en = sel >= e0 ? &ents[sel - e0] : NULL;
+                    if (en && en->dir) { if (chdir(en->name) == 0) break; strcpy(msg, "Cannot open that folder."); }
                     else
                     {
                         char full[300];
                         size_t l = strlen(cwd);
-                        sprintf(full, "%s%s%s", cwd, (l && cwd[l - 1] == '\\') ? "" : "\\", en->name);
+                        if (!en) { snprintf(full, sizeof full, "%s", cwd); if (l > 3 && full[l - 1] == '\\') full[l - 1] = 0; }
+                        else sprintf(full, "%s%s%s", cwd, (l && cwd[l - 1] == '\\') ? "" : "\\", en->name);
                         for (i = 0; full[i]; i++) if (full[i] >= 'a' && full[i] <= 'z') full[i] -= 32;
                         if (!path_ok(full)) strcpy(msg, "Path has a space or special character. Rename it (8.3).");
                         else if ((int)strlen(full) >= outsz) strcpy(msg, "Path is too long.");
@@ -844,6 +1034,9 @@ static void summary(int i, char* v)
         if (g_sf[0]) { base_name(b, g_sf); sprintf(v, "%s, %s voices", b, F[F_SFVOICES].vals[F[F_SFVOICES].cur]); }
         else strcpy(v, "(no SoundFont chosen)");
     }
+    else if (i == F_SYNTH)   /* the AWE32 line: its options at a glance (Enter opens them) */
+        sprintf(v, "AWE32 %sh, %s KB, fx %s%s", F[F_AWEPORT].vals[F[F_AWEPORT].cur], F[F_AWERAM].vals[F[F_AWERAM].cur],
+                F[F_AWEFX].cur ? "off" : "on", g_awerom[0] ? ", own ROM" : "");
     else if (i == F_VOLMENU)
         sprintf(v, "master %s, effects %s, FM %s, MIDI %s", F[F_VOL].vals[F[F_VOL].cur], F[F_SBVOL].vals[F[F_SBVOL].cur],
                 F[F_OPLVOL].vals[F[F_OPLVOL].cur], F[F_MIDIVOL].vals[F[F_MIDIVOL].cur]);
@@ -861,17 +1054,18 @@ static void summary(int i, char* v)
 static void draw_row(int i, int sel)
 {
     char t[120], v[100]; int y = row_of(i), on = enabled(i), isel = (i == sel);
-    if (is_menu(i)) summary(i, v);
+    if (is_menu(i) || (i == F_SYNTH && awe_on())) summary(i, v);
     else { strncpy(v, show(&F[i]), sizeof v - 1); v[sizeof v - 1] = 0; }
     sprintf(t, " %-17s", F[i].label);
     put(LBLX - 1, y, !on ? A_DIS : (isel ? A_SELLBL : A_WIN), t);
-    sprintf(t, " %-*.*s %c ", VALW - 4, VALW - 4, v, is_menu(i) ? '\x10' : '\x1f');
+    sprintf(t, " %-*.*s %c ", VALW - 4, VALW - 4, v, is_menu(i) || (i == F_SYNTH && awe_on()) ? '\x10' : '\x1f');
     put(VALX, y, !on ? A_DIS : (isel ? A_SELVAL : A_FIELD), t);
 }
 
 /* a combination that is too heavy for a Pentium M class CPU, or "" */
 static const char* warning(void)
 {
+    { const char* p = awe_problem(); if (p[0]) return p; }
     if (awe_on() && mpu_synth() == 5) return "AWE32 only: MIDI sent to the MPU-401 port plays nothing (MIDPLAY, General MIDI games).";
     if (awe_on() && mpu_synth() >= 6) return "MPU-401 on the AWE32 (AWEUTIL /EM): your SYNTHGM/GS/MT.SBK + AWE32.RAW in ROMS; a game's own AWE32 driver wins.";
     if (mpu_synth() == 4)
@@ -892,7 +1086,7 @@ static const char* warning(void)
 
 static void draw_all(int sel, const char* msg)
 {
-    int i; char line[512], t[100]; const char* w = warning();
+    int i; char line[1200], t[100]; const char* w = warning();
     fill(WX, WY, WW, WH, A_WIN, ' ');
     frame(WX, WY, WW, WH, A_WIN, 1);
     put(WX + 2, WY, A_TITLE, " SBEMU Settings ");
@@ -953,9 +1147,23 @@ static const MI M_JOY[] = { {-1, "USB: Xbox 360 pads, keyboard, mouse"}, {F_JOY,
                             {-1, "Keyboard and mouse"}, {F_JOYKEY, 0}, {F_PADKEYS, 0}, {F_USBKB, 0}, {F_USBMS, 0},
                             {-1, "USB sticks"}, {F_USBDISK, 0}, {-2, 0} };
 
+static void check_sf(int dir);
+static const MI M_AWE[] = { {-1, "AWE32 / AWE64 (EMU8000)"}, {F_AWEON, 0}, {F_AWEPORT, 0}, {F_AWERAM, 0}, {F_AWEROM, 0}, {F_AWEFX, 0},
+                            {-1, "MIDI games (MPU-401 port)"}, {F_AWEMPU, 0}, {-2, 0} };
+
+
 static void sub_value(int f, char* v)
 {
     if (f == F_SF) { if (g_sf[0]) fit(v, g_sf, 30); else strcpy(v, "(Enter: browse for a .sf2)"); }
+    else if (f == F_AWEROM)
+    {   /* the ROM SBEMU will take (found by content, the file name does not matter) */
+        char r[260], t[300]; const char* b; int ok = aw_rom(r, sizeof r);
+        b = strrchr(r, SEP[0]); b = b ? b + 1 : r;
+        { char* u; for (u = r + (b - r); *u; u++) *u = (char)toupper((unsigned char)*u); }   /* DOS gives it lower case */
+        if (!g_awerom[0]) snprintf(t, sizeof t, ok ? "auto: %s" : "auto: none found", b);
+        else snprintf(t, sizeof t, ok ? "%s" : "%s (no ROM!)", g_awerom);
+        fit(v, t, 34);
+    }
     else { strncpy(v, show(&F[f]), 60); v[60] = 0; }
 }
 
@@ -977,16 +1185,20 @@ static void sub_menu(const char* title, const MI* m)
     while (!done)
     {
         char t[120], v[80]; int k, f = m[idx[sel]].f;
+        awe_sync();
         for (i = 0; i < n; i++)
         {
             if (m[i].f < 0) { put(x + 3, ry[i], A_GROUP, m[i].head); continue; }
             sub_value(m[i].f, v);
             sprintf(t, " %-18s", F[m[i].f].label);
             put(x + 3, ry[i], i == idx[sel] ? A_SELLBL : A_WIN, t);
-            sprintf(t, " %-*.*s %c ", 34, 34, v, m[i].f == F_SF ? '\x10' : '\x1f');
+            sprintf(t, " %-*.*s %c ", 34, 34, v, m[i].f == F_SF || m[i].f == F_AWEROM ? '\x10' : '\x1f');
             put(x + 23, ry[i], i == idx[sel] ? A_SELVAL : A_FIELD, t);
         }
-        put_wrap(x + 2, y + h - 4, w - 4, 2, A_BOLD, F[f].hint);
+        {   /* the AWE32 page: a missing ROM / too little memory in red over the field's help */
+            const char* p = m == M_AWE ? awe_problem() : "";
+            put_wrap(x + 2, y + h - 4, w - 4, 2, p[0] ? A_ERR : A_BOLD, p[0] ? p : F[f].hint);
+        }
         put(x + 2, y + h - 2, A_GROUP, " \x18\x19 select  \x1b\x1a change  Enter list  Esc back to the main screen ");
         k = getkey();
         vsync();
@@ -996,20 +1208,32 @@ static void sub_menu(const char* title, const MI* m)
         case K_Down: sel = (sel + 1) % nidx; break;
         case K_Home: sel = 0; break;
         case K_End: sel = nidx - 1; break;
-        case K_Left: if (f != F_SF) { F[f].cur = (F[f].cur + F[f].n - 1) % F[f].n; g_dirty = 1; } break;
-        case K_Right: if (f != F_SF) { F[f].cur = (F[f].cur + 1) % F[f].n; g_dirty = 1; } break;
+        case K_Left: case K_Right:
+            if (f == F_SF) break;
+            if (f == F_AWEROM) { if (g_awerom[0]) { g_awerom[0] = 0; awe_changed(f); g_dirty = 1; } break; }   /* back to auto */
+            F[f].cur = (F[f].cur + F[f].n + (k == K_Left ? -1 : 1)) % F[f].n; g_dirty = 1;
+            awe_changed(f);
+            if (f == F_AWEMPU) check_sf(k == K_Left ? -1 : 1);
+            break;
         case K_Return: case ' ':
             if (f == F_SF)
             {
                 char out[200];
-                if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); set_mpu_synth(1); g_dirty = 1; }
+                if (browse_file(out, sizeof out, g_sf, 0)) { strcpy(g_sf, out); set_mpu_synth(1); g_dirty = 1; }
+            }
+            else if (f == F_AWEROM)
+            {
+                static const char* it[2] = { "Auto (ROMS, then AWE, by content)", "Choose a file or folder..." };
+                char out[200]; int r = pick_list(x + 23, ry[idx[sel]] + 1, F[f].label, it, 2, g_awerom[0] ? 1 : 0);
+                if (r == 0 && g_awerom[0]) { g_awerom[0] = 0; awe_changed(f); g_dirty = 1; }
+                if (r == 1 && browse_file(out, sizeof out, g_awerom, 1)) { strcpy(g_awerom, out); awe_changed(f); g_dirty = 1; }
             }
             else
             {
                 const char* items[MAXVAL]; int r;
                 for (i = 0; i < F[f].n; i++) items[i] = F[f].labels[i] ? F[f].labels[i] : F[f].vals[i];
                 r = pick_list(x + 23, ry[idx[sel]] + 1, F[f].label, items, F[f].n, F[f].cur);
-                if (r >= 0 && r != F[f].cur) { F[f].cur = r; g_dirty = 1; }
+                if (r >= 0 && r != F[f].cur) { F[f].cur = r; g_dirty = 1; awe_changed(f); if (f == F_AWEMPU) check_sf(0); }
             }
             break;
         case K_Escape: done = 1; break;
@@ -1030,6 +1254,7 @@ static void open_menu(int i)
     }
     else if (i == F_VOLMENU) sub_menu("Volume", M_VOL);
     else if (i == F_JOYMENU) sub_menu("Joystick", M_JOY);
+    else if (i == F_SYNTH) sub_menu("AWE32 options", M_AWE);
     else sub_menu("Timing & advanced", M_ADV);
 }
 
@@ -1042,7 +1267,7 @@ static void change(int sel, int dir)
 
 static void activate(int sel)
 {
-    if (is_menu(sel)) { open_menu(sel); return; }
+    if (is_menu(sel) || (sel == F_SYNTH && awe_on())) { open_menu(sel); return; }   /* AWE32 synth line: its options */
     {
         const char* items[MAXVAL]; int i, r;
         for (i = 0; i < F[sel].n; i++) items[i] = F[sel].labels[i] ? F[sel].labels[i] : F[sel].vals[i];
@@ -1057,7 +1282,7 @@ static void check_sf(int dir)
     if (using_sf() && !g_sf[0])
     {
         char out[200];
-        if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); g_dirty = 1; }
+        if (browse_file(out, sizeof out, g_sf, 0)) { strcpy(g_sf, out); g_dirty = 1; }
         if (!g_sf[0]) set_mpu_synth(dir > 0 ? 2 : 0);    /* no file: on to the MT-32, or back to the SC-55 */
     }
 }
@@ -1234,20 +1459,22 @@ static void tune_done_flag(void)
  * On when MENU3D.CFG exists (the 3D menu is on); F8 switches between this and the text screen. The SoundFont
  * file browser, the automatic setup and the questions that need typing switch to text and come back. */
 #include "form3d.h"
-static const char* s3_tabname[6] = { "Main", "SC-55", "SoundFont", "Volume", "Timing", "Joystick" };
-static const char* s3_title[6] = { "Sound Blaster / MIDI / SBEMU setup", "SC-55 options", "SoundFont options", "Volume", "Timing & advanced", "Joystick" };
-static const MI* s3_menu(int tab) { return tab == 1 ? M_SC : tab == 2 ? M_SF : tab == 3 ? M_VOL : tab == 4 ? M_ADV : M_JOY; }
-static int s3_tab_of(int f) { return f == F_SCMENU ? 1 : f == F_SFMENU ? 2 : f == F_VOLMENU ? 3 : f == F_ADVMENU ? 4 : f == F_JOYMENU ? 5 : 0; }
+#define S3_TABS 7
+static const char* s3_tabname[S3_TABS] = { "Main", "SC-55", "SoundFont", "Volume", "Timing", "Joystick", "AWE32" };
+static const char* s3_title[S3_TABS] = { "Sound Blaster / MIDI / SBEMU setup", "SC-55 options", "SoundFont options", "Volume", "Timing & advanced", "Joystick", "AWE32 options" };
+static const MI* s3_menu(int tab) { return tab == 1 ? M_SC : tab == 2 ? M_SF : tab == 3 ? M_VOL : tab == 4 ? M_ADV : tab == 6 ? M_AWE : M_JOY; }
+static int s3_tab_of(int f) { return f == F_SCMENU ? 1 : f == F_SFMENU ? 2 : f == F_VOLMENU ? 3 : f == F_ADVMENU ? 4 : f == F_JOYMENU ? 5 : f == F_SYNTH ? 6 : 0; }
 static int s3_field[F3_MAXROWS];
 static F3VIEW s3_v;
 
 static void s3_build(F3VIEW* v, const char* msg)
 {
-    int i; char val[120], line[512]; const char* w = warning();
+    int i; char val[120], line[1200]; const char* w = warning();
     f3_clear(v);
     v->app = "SETTINGS"; v->accent = 0xB050FF;
     snprintf(v->title, sizeof v->title, "%s", s3_title[v->tab]);
-    v->ntab = 6; for (i = 0; i < 6; i++) v->tabs[i] = s3_tabname[i];
+    v->ntab = S3_TABS; for (i = 0; i < S3_TABS; i++) v->tabs[i] = s3_tabname[i];
+    awe_sync();
     snprintf(v->status, sizeof v->status, "%s", g_dirty ? "not saved yet" : "saved");
     v->statcol = g_dirty ? 0xFFC060 : 0x80FF90;
     if (v->tab == 0)
@@ -1255,8 +1482,9 @@ static void s3_build(F3VIEW* v, const char* msg)
         {
             F3ROW* r;
             if (F[i].group) { f3_add(v, F3_HEAD, F[i].group, NULL); s3_field[v->nrows - 1] = -1; }
-            if (is_menu(i)) summary(i, val); else snprintf(val, sizeof val, "%s", show(&F[i]));
-            r = f3_add(v, is_menu(i) ? F3_ITEM : F3_VALUE, F[i].label, val);
+            int awel = i == F_SYNTH && awe_on();   /* the AWE32 synth line opens its page */
+            if (is_menu(i) || awel) summary(i, val); else snprintf(val, sizeof val, "%s", show(&F[i]));
+            r = f3_add(v, is_menu(i) || awel ? F3_ITEM : F3_VALUE, F[i].label, val);
             r->dim = !enabled(i);
             s3_field[v->nrows - 1] = i;
         }
@@ -1267,14 +1495,16 @@ static void s3_build(F3VIEW* v, const char* msg)
         {
             if (m[i].f < 0) { f3_add(v, F3_HEAD, m[i].head, NULL); s3_field[v->nrows - 1] = -1; continue; }
             sub_value(m[i].f, val);
-            f3_add(v, m[i].f == F_SF ? F3_ITEM : F3_VALUE, F[m[i].f].label, val);
+            f3_add(v, m[i].f == F_SF || m[i].f == F_AWEROM ? F3_ITEM : F3_VALUE, F[m[i].f].label, val);
             s3_field[v->nrows - 1] = m[i].f;
         }
     }
     if (!f3_selectable(v, v->sel)) v->sel = f3_first(v);
     {
         int f = s3_field[v->sel];
+        const char* ap = v->tab == 6 ? awe_problem() : "";
         if (msg[0]) { snprintf(v->info, sizeof v->info, "%s", msg); v->infocol = 0x80FF90; }
+        else if (ap[0]) { snprintf(v->info, sizeof v->info, "%s", ap); v->infocol = 0xFF5050; }   /* red: no ROM / too little memory */
         else if (w[0] && v->tab == 0) { snprintf(v->info, sizeof v->info, "%s  %s", w, f >= 0 ? F[f].hint : ""); v->infocol = 0xFFB060; }
         else snprintf(v->info, sizeof v->info, "%s", f >= 0 ? F[f].hint : "");
     }
@@ -1326,14 +1556,16 @@ static int s3_run(int tab, int direct)
         case F3K_HOME: s3_v.sel = f3_first(&s3_v); break;
         case F3K_END: s3_v.sel = f3_last_row(&s3_v); break;
         case F3K_TABSEL: s3_tab(f3_mval); break;
-        case F3K_TAB: s3_tab((s3_v.tab + 1) % 6); break;
-        case F3K_STAB: s3_tab((s3_v.tab + 5) % 6); break;
+        case F3K_TAB: s3_tab((s3_v.tab + 1) % S3_TABS); break;
+        case F3K_STAB: s3_tab((s3_v.tab + S3_TABS - 1) % S3_TABS); break;
         case F3K_LEFT: case F3K_RIGHT:
         {
             int d = k == F3K_LEFT ? -1 : 1;
             if (f < 0 || f == F_SF) break;
             if (is_menu(f)) { if (d > 0) s3_tab(s3_tab_of(f)); break; }
+            if (f == F_AWEROM) { if (g_awerom[0]) { g_awerom[0] = 0; awe_changed(f); g_dirty = 1; } break; }
             F[f].cur = (F[f].cur + F[f].n + d) % F[f].n; g_dirty = 1;
+            awe_changed(f);
             if ((f == F_SYNTH || f == F_AWEMPU) && using_sf() && !g_sf[0])
             {
                 s3_text_begin(); check_sf(d);
@@ -1343,12 +1575,25 @@ static int s3_run(int tab, int direct)
         }
         case F3K_ENTER: case ' ':
             if (f < 0) break;
-            if (is_menu(f)) { s3_tab(s3_tab_of(f)); break; }
+            if (is_menu(f) || (f == F_SYNTH && awe_on() && s3_v.tab == 0)) { s3_tab(s3_tab_of(f)); break; }
+            if (f == F_AWEROM)
+            {
+                static const char* it[2] = { "Auto (ROMS, then AWE, by content)", "Choose a file or folder..." };
+                char out[200]; int r = f3_pick(&s3_v, F[f].label, it, 2, g_awerom[0] ? 1 : 0);
+                if (r == 0 && g_awerom[0]) { g_awerom[0] = 0; awe_changed(f); g_dirty = 1; }
+                if (r == 1)
+                {
+                    s3_text_begin();
+                    if (browse_file(out, sizeof out, g_awerom, 1)) { strcpy(g_awerom, out); awe_changed(f); g_dirty = 1; }
+                    if (!s3_text_end()) return 1;
+                }
+                break;
+            }
             if (f == F_SF)
             {
                 char out[200];
                 s3_text_begin();
-                if (browse_sf(out, sizeof out, g_sf)) { strcpy(g_sf, out); set_mpu_synth(1); g_dirty = 1; }
+                if (browse_file(out, sizeof out, g_sf, 0)) { strcpy(g_sf, out); set_mpu_synth(1); g_dirty = 1; }
                 if (!s3_text_end()) return 1;
                 break;
             }
@@ -1358,7 +1603,7 @@ static int s3_run(int tab, int direct)
                 r = f3_pick(&s3_v, F[f].label, items, F[f].n, F[f].cur);
                 if (r >= 0 && r != F[f].cur)
                 {
-                    F[f].cur = r; g_dirty = 1;
+                    F[f].cur = r; g_dirty = 1; awe_changed(f);
                     if ((f == F_SYNTH || f == F_AWEMPU) && using_sf() && !g_sf[0]) { s3_text_begin(); check_sf(0); if (!s3_text_end()) return 1; }
                 }
             }
@@ -1378,7 +1623,7 @@ static int s3_run(int tab, int direct)
             int i;
             if (!f3_yesno(&s3_v, "Put every setting back to its default? (Nothing is saved until you press S.)")) break;
             for (i = 0; i < NF; i++) F[i].cur = F[i].def;
-            g_sf[0] = 0; g_dirty = 1; strcpy(msg, "Defaults restored (not saved yet).");
+            g_sf[0] = 0; g_awerom[0] = 0; g_dirty = 1; strcpy(msg, "Defaults restored (not saved yet).");
             break;
         }
         case 's': case 'S': case 0x13C:
@@ -1423,6 +1668,7 @@ int main(int argc, char** argv)
             else if (!strcasecmp(p, "ADV")) page = F_ADVMENU;
             else if (!strcasecmp(p, "VOL")) page = F_VOLMENU;
             else if (!strcasecmp(p, "JOY")) page = F_JOYMENU;
+            else if (!strcasecmp(p, "AWE")) page = F_SYNTH;   /* the AWE32 options (beta.130-awe.8) */
         }
         else if (!strcasecmp(argv[i], "/TUNE")) want_tune = 1;
         else if (!strcasecmp(argv[i], "/LINE")) want_line = 1;   /* print the options it would save, then quit */
@@ -1430,7 +1676,8 @@ int main(int argc, char** argv)
     }
     set_labels(); detect_roms(); load();
     if (using_sf() && !g_sf[0]) set_mpu_synth(0);
-    if (want_line) { char line[1024]; build_line(line); printf("%s\n", line); return 0; }
+    { char b[200]; g_sbemu_loaded = sbc_amis(b, sizeof b); }
+    if (want_line) { char line[1200]; build_line(line); printf("%s\n", line); return 0; }
     tui_theme_load(g_dir);
     if (!want_tune && f3_wanted(g_dir))
     {   /* the 3D menu is on: this screen in 3D too */
@@ -1488,7 +1735,7 @@ int main(int argc, char** argv)
         }
         case 'd': case 'D':
             for (i = 0; i < NF; i++) F[i].cur = F[i].def;
-            g_sf[0] = 0; g_dirty = 1; strcpy(msg, "Defaults restored (not saved yet).");
+            g_sf[0] = 0; g_awerom[0] = 0; g_dirty = 1; strcpy(msg, "Defaults restored (not saved yet).");
             break;
         case 's': case 'S': case K_F2:
             if (using_sf() && !g_sf[0]) { strcpy(msg, "Choose a SoundFont file first (or switch back to the SC-55)."); break; }

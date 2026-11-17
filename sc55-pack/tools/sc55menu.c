@@ -39,7 +39,7 @@ static SBCHK g_sbc;             /* how it was found: state (loaded / not / unkno
 static SBMUSB g_musb;           /* beta.121: SBEMU /MUSB state (AMIS 05h): device, port, active, last error */
 static int g_musb_ok;           /* SBEMU answered 05h */
 static char g_lasterr[80];      /* why SBEMU last refused to load (SBLOG.TXT), "" = no error */
-static char g_opts[300];        /* saved settings (SBOPTS.TXT / SBOPTS.BAT) */
+static char g_opts[1200];        /* saved settings (SBOPTS.TXT / SBOPTS.BAT) */
 static char g_optfile[16];      /* "@SBOPTS.TXT" or "@SBOPTS.BAT" or "" */
 static int  g_gt_green, g_gt_yellow, g_gt_red, g_gt_lock;
 
@@ -110,7 +110,7 @@ static int home_exists(const char* name) { char p[300]; home_path(p, name); retu
 
 static void read_sbopts(void)
 {
-    char p[300], line[300]; FILE* f;
+    char p[300], line[1200]; FILE* f;
     g_opts[0] = 0; g_optfile[0] = 0;
     home_path(p, "SBOPTS.TXT");
     if ((f = fopen(p, "r")) != NULL)
@@ -398,6 +398,11 @@ static void build_menu(void)
     add(C_SETTINGS, "SoundFont options", "Use a SoundFont (.sf2) instead of the SC-55: the file, how many voices, reverb level,"
         " room size and damping, chorus level, speed and depth, and whether the song's own reverb/chorus amounts are used."
         " Much lighter on the CPU than the SC-55.", IT_BAT, c, 0, 0, NULL);
+    snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:AWE", g_home);
+    add(C_SETTINGS, "AWE32 options", "The emulated Sound Blaster AWE32/AWE64 (EMU8000): on/off and port (/AWE 620-680), sample RAM"
+        " (/AWERAM: 512 KB AWE32, 4 MB AWE64 Gold, up to 28 MB), the 1 MB AWE ROM (/AWEROM: auto = found by content in ROMS),"
+        " reverb + chorus (/AWEFX) and what the MPU-401 plays (/AWEMPU). Turning it on makes the MIDI synth line \"AWE32\".",
+        IT_BAT, c, 0, 0, NULL);
     snprintf(c, sizeof c, "CALL %s\\SETTINGS.BAT /PAGE:VOL", g_home);
     add(C_SETTINGS, "Volume", "Master volume (/VOL), sound effects (/VSBVOL), FM music (/VOPLVOL) and General MIDI music"
         " (/VMIDIVOL), plus the SC-55 gain and the CD-audio volume. All on top of each game's own volume settings.",

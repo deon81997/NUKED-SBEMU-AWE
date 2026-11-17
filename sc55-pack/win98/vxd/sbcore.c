@@ -1468,12 +1468,13 @@ static void awe_dbg_stats(u32 acc)
         else dbg('I', "AWE32: DOS box vm=%08X closed, the EMU8000 is free for the AWE32 MIDI Synth", awe_dbg_vm);
     } else if (aw->vm_gone != awe_dbg_gone && !vm)
         dbg('I', "AWE32: DOS box closed, the EMU8000 is free for the AWE32 MIDI Synth");
-    for (ch = 0; ch < 32; ch++) if (!(aw_reg[1][5][ch] & 0x80)) v++;   /* DCYSUSV bit 7 clear = envelope running */
-    if (acc || v || rw != awe_dbg_ramw || awe_dbg_busy)
+    for (ch = 0; ch < 32; ch++)                     /* DCYSUSV: bit 7 = envelope off, bit 15 = released */
+        if (!(aw_reg[1][5][ch] & 0x8080)) v++;      /* = keys held on the DOS box's chip */
+    if (acc || rw != awe_dbg_ramw || awe_dbg_busy)
         dbg('S', "awe vm=%08X ports=%u voices=%u/32 ramw=%u ram=%uK", vm, acc, v, rw - awe_dbg_ramw,
             aw->ram_words / 512);
     if (ov != awe_dbg_ov) dbg('E', "AWE32: EMU8000 event ring full, %u events lost (SC55W behind)", ov - awe_dbg_ov);
-    awe_dbg_busy = acc || v;                      /* one quiet line after use */
+    awe_dbg_busy = acc || rw != awe_dbg_ramw;     /* one quiet line after use */
     awe_dbg_vm = vm; awe_dbg_gone = aw->vm_gone; awe_dbg_ramw = rw; awe_dbg_ov = ov;
 }
 

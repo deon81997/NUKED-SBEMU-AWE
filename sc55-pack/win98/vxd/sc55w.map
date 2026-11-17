@@ -1,7 +1,7 @@
 Open Watcom Linker Version 2.0 beta Nov 17 2026 08:28:04 (64-bit)
 Copyright (c) 2002-2026 The Open Watcom Contributors. All Rights Reserved.
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       26/11/17 13:37:44
+Created on:       26/11/17 14:14:10
 Executable Image: SC55W.VXD
 creating a Windows VxD dynamic link library
 
@@ -26,7 +26,7 @@ Segment                Class          Group          Address         Size
 
 _LDATA                 LCODE          AUTO           0001:00000000   0000008c
 _LTEXT                 LCODE          AUTO           0001:0000008c   000006d3
-_TEXT                  CODE           AUTO           0001:00000760   00005fce
+_TEXT                  CODE           AUTO           0001:00000760   00005fca
 _DATA                  DATA           DGROUP         0002:00000000   00000010
 CONST                  DATA           DGROUP         0002:00000010   00000b04
 CONST2                 DATA           DGROUP         0002:00000b14   00000181
@@ -106,13 +106,13 @@ Module: sbcore.obj(sbcore.obj)
 0001:00004942  _sc_dyn_init
 0001:00004c49  _sc_int21
 0001:00005729  _sc_iow
-0001:00006274  _sc_ioctl
-0001:000065f8  _sc_api_midi
-0001:0000660d  _sc_api_volume
-0001:00006642  _sc_api_midi2
-0001:00006646  _sc_api_volume2
-0001:0000667b  _sc_exit
-0001:000066ec  _sc_api_open
+0001:00006270  _sc_ioctl
+0001:000065f4  _sc_api_midi
+0001:00006609  _sc_api_volume
+0001:0000663e  _sc_api_midi2
+0001:00006642  _sc_api_volume2
+0001:00006677  _sc_exit
+0001:000066e8  _sc_api_open
 
 
                         +-----------------------+
@@ -120,5 +120,5 @@ Module: sbcore.obj(sbcore.obj)
                         +-----------------------+
 
 Stack size:  0000 (0.)
-Memory size:  9bf6 (39926.)
-Link time: 00:00.10
+Memory size:  9bf2 (39922.)
+Link time: 00:00.21

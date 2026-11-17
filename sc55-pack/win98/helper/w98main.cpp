@@ -285,8 +285,10 @@ static void dbg_awe_summary()
              ai.rom.empty() ? "none found (ROM sounds silent)" : ai.rom.c_str(), ai.error.empty() ? "" : ", error: ", ai.error.c_str());
     if (!awe_midi_cfg().on) return;
     AweMidiInfo mi = awe_midi_info();
-    logf("AWE32 MIDI Synth: banks %s, sample RAM %u of %u KB used%s%s", mi.using_.empty() ? "none" : mi.using_.c_str(),
-         mi.used_kb, mi.ram_kb, mi.note.empty() ? "" : "; ", mi.note.c_str());
+    char ram[64] = "";
+    if (mi.ram_kb) snprintf(ram, sizeof ram, ", sample RAM %u of %u KB used", mi.used_kb, mi.ram_kb);
+    logf("AWE32 MIDI Synth: banks %s%s%s%s", mi.using_.empty() ? "none" : mi.using_.c_str(), ram,
+         mi.note.empty() ? "" : "; ", mi.note.c_str());
     for (int i = 1; i < 128; i++)
         if (!mi.uerr[i].empty()) logf("AWE32 MIDI Synth: user bank %d not loaded: %s", i, mi.uerr[i].c_str());
 }

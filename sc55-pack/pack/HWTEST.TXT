@@ -1,6 +1,31 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.8)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.130-awe.9)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.130-awe.9 Windows 98 serial debug link, AWE32 edition (D810 on its
+    D/Port, or the P5PE-VM; null-modem cable to the main PC as in
+    DBGLOG.TXT; COM1 on in the BIOS; no serial mouse on COM1; AWE32 on in
+    Settings > AWE32, AWE32.RAW in C:\SC55\ROMS). Main PC:
+    python DBGLOG.PY COM3     Windows 98 PC: Start > Run
+    C:\SC55\WIN98\SC55W.EXE /DBG:COM1  (or Settings > Debug, the 5th tab)
+    1) The first W98 lines: "VXD I Serial debug link: COM1 (3F8), 115200
+    baud, level 1, port claimed from Windows", "VxD loaded", "port traps:
+    SB ok, OPL ok, MPU ok ...", "AWE32: EMU8000 ports 620-623, A20-A23,
+    E20-E23 trapped", "SC55W I AWE32: EMU8000 620 for DOS boxes ready ...
+    ROM: C:\SC55\ROMS\AWE32.RAW" and "AWE32 MIDI Synth: banks ..."; then
+    "VXD S ... awe=0 ..." and "SC55W S ..." once a second. 2) Media Player
+    on "AWE32 MIDI Synth" (Control Panel > Multimedia > MIDI), a .MID:
+    "Windows MIDI device AWE32 MIDI Synth opened" / "closed" (and the same
+    with "NUKED SB-EMU" for that device). 3) Duke 3D set to AWE32 music in
+    a DOS box: "vm=... runs ...DUKE3D.EXE", "AWE32: DOS box vm=... takes the
+    EMU8000", "AWE32 MIDI Synth: a DOS box took the EMU8000", S lines with
+    awe= in the thousands and "VXD S awe ... voices=N/32 ramw=..."; quit
+    Duke, close the box: "DOS box ... closed, the EMU8000 is free", later
+    "has the EMU8000 again". 4) Settings > Debug, level 3, Duke again for
+    10 s, "Send capture": T lines with ports 620-623 / A20-A23 / E20-E23.
+    5) Status CPU % the same with the link off and on (Duke attract mode
+    with AWE32 music, 1 minute each). 6) HyperTerminal cannot open COM1
+    while the link is on. Send the dbg-*.log.
 
 [ ] beta.130-awe.8 SETTINGS > AWE32 options (D810 or P5PE-VM, DOS; AWE32.RAW in
     C:\SC55\ROMS). 1) MENU > Settings > "AWE32 options" (or SETTINGS, MIDI

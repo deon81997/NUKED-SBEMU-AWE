@@ -9,3 +9,7 @@
   `fluidsynth -ni -R 0 -C 0 -g 1.0 -r 44100 -F f.wav SC55.SF2 probe.mid`, then `python3 probe.py cmp n.wav f.wav 0 10`
   (per-item envelope dB, octave-band dB, pitch cents, worst list). Songs: `../awe/chromadtw.py n01.wav f01.wav`.
 - 2026-11-16 (default -t550 -r350, TVF as modEnv): env 4.2 dB, band 2.4 dB, pitch median 2 c over 175 items; avmidi 01 chroma DTW 0.688.
+- SBK: `/tmp/sf ROMDIR SC55.SF2 -s SC55.SBK -k 8192`, render with awe/synth/test/awemid.c
+  (`cc -std=c99 -O2 -I awe/synth awe/synth/test/awemid.c awe/synth/awemidi.c awe/synth/emu8k.c awe/synth/emu8k_rom.c -lm`;
+  `awemid -r AWE32.RAW -k 8192 -b SC55.SBK -x -o a.wav probe.mid`), then probe.py cmp. DOS: DJGPP build + run.sh on store-freedos
+  with HDPMI32I.EXE -r and the ROMs copied to C:\ (-p each file).

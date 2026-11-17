@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU (AWE line)
  * SC55SF - builds SC55.SF2 from the user's own SC-55 ROMs (found by content, file names do not matter).
- * Usage: SC55SF ROMDIR [OUT.SF2] [-v]
+ * Usage: SC55SF ROMDIR [OUT.SF2] [-s OUT.SBK [-k AWERAM_KB]] [-q] [-v]   (-q: no SC-55 ROMs = exit 3, silent)
  * Nothing Roland ships with this tool: the instruments, partials, samples and drum kits are read from the
  * control ROM, the lookup tables from the CPU ROM and the PCM from the wave ROMs, on the user's PC.
  * Layout: docs/SC55ROM.md (from libEmuSC by Hakon Skjelten, LGPL-2.1+, and Nuked-SC55's wave unscramble).
@@ -12,11 +12,12 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #define MAXF 64
-static int verbose;
+static int verbose, quiet;
 static uint8_t *ctrl, *cpu, *wave; static long wavesz; static int mk2;
-static void die(const char *m) { fprintf(stderr, "SC55SF: %s\n", m); exit(1); }
+static void die(const char *m) { printf("SC55SF: error: %s\n", m); exit(1); }
 static unsigned be16(const uint8_t *p) { return (p[0] << 8) | p[1]; }
 static unsigned be24(const uint8_t *p) { return (p[0] << 16) | (p[1] << 8) | p[2]; }
 
@@ -165,7 +166,7 @@ static double wave_score(int slot) {   /* only samples that live in 1 MB slot (-
 /* ---- SF2 writer ---- */
 typedef struct { uint8_t *b; long n, cap; } Buf;
 static void put(Buf *o, const void *p, long n) {
-    if (o->n + n > o->cap) { o->cap = (o->n + n) * 2 + 4096; o->b = realloc(o->b, o->cap); if (!o->b) die("out of memory"); }
+    if (o->n + n > o->cap) { o->cap = (o->n + n) + (o->n + n) / 2 + 4096; o->b = realloc(o->b, o->cap); if (!o->b) die("out of memory"); }
     memcpy(o->b + o->n, p, n); o->n += n;
 }
 static void put16(Buf *o, unsigned v) { uint8_t b[2] = { v & 255, (v >> 8) & 255 }; put(o, b, 2); }
@@ -186,7 +187,7 @@ static int sf_sample(int si) {   /* returns SF2 sample index */
     if (m->sf >= 0) return m->sf;
     n = decode(m, NULL); if (n <= 0) return -1;
     f = malloc(sizeof(float) * n); decode(m, f);
-    if (npcm + n + 46 > pcmcap) { pcmcap = (npcm + n + 46) * 2; pcm = realloc(pcm, pcmcap * 2); if (!pcm) die("out of memory"); }
+    if (npcm + n + 46 > pcmcap) { pcmcap = (npcm + n + 46) + (npcm + n + 46) / 4 + 65536; pcm = realloc(pcm, pcmcap * 2); if (!pcm) die("out of memory"); }
     for (i = 0; i < n; i++) pcm[npcm + i] = (int16_t)clampi((int)lrintf(f[i] * 32767.0f), -32768, 32767);
     free(f);
     memset(pcm + npcm + n, 0, 46 * 2);
@@ -407,19 +408,146 @@ static void preset(const char *name, int prog, int bank, int sfinst) {
 }
 static void chunk(Buf *o, const char *id, const Buf *b) { put(o, id, 4); put32(o, b->n); put(o, b->b, b->n); }
 
+/* ---- SBK (SoundFont 1, samples in AWE sample RAM) from the SF2 tables above: testrig/awe/sf2sbk.py in C.
+   Banks 0 + 128 only; when the samples do not fit /AWERAM, the longest ones are decimated (x2, x4, x8). ---- */
+static long rd32(const uint8_t *p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((long)p[3] << 24); }
+static int rd16s(const uint8_t *p) { return (int16_t)(p[0] | (p[1] << 8)); }
+static int sbkv(int o, double v) {
+#define CL(x, a, b) clampi((int)lrint(x), a, b)
+    if (o == 8) return v >= 14400 ? 127 : CL((v - 4366) / 59, 0, 126);
+    if (o == 9) return CL(v * 2 / 3, 0, 127);
+    if (o == 15 || o == 16) return CL(v * 256 / 1000, 0, 255);
+    if (o == 17) return CL((v + 500) * 127 / 1000, 0, 127);
+    if (o == 48) return v >= 1000 ? 0 : CL(127 * pow(10, -v / 2000), 1, 127);
+    if (o == 56) return v <= 75 ? 1 : 0;
+    if (o == 21 || o == 23 || o == 25 || o == 26 || o == 27 || o == 28 || o == 30 || (o >= 33 && o <= 36) || o == 38)
+        return CL(1000 * pow(2, v / 1200), 1, 32767);
+    if (o == 31 || o == 32 || o == 39 || o == 40) return CL(v / 5.55, -127, 127);
+    if (o == 22 || o == 24) return CL(pow(2, (v + 7925) / 1200), 1, 255);
+    if (o >= 5 && o <= 7) return CL(v * 64 / 600, -127, 127);
+    if (o == 10) return CL(v * 64 / 3600, -127, 127);
+    if (o == 11) return CL(v * 64 / 7200, -127, 127);
+    if (o == 13) return CL(v * 64 / 120, -127, 127);
+    if (o == 29) return CL(96 - v * 96 / 1000, 0, 96);
+    if (o == 37) return CL((2000 - 2 * v) / 21, 0, 96);
+#undef CL
+    return (int)v;
+}
+static void write_sbk(const char *path, long ramkb) {
+    int np = nphdr, ni = ninst_, i, z, k, *used = calloc(nshdr, sizeof(int)), *fac = calloc(nshdr, sizeof(int)), *pos = calloc(nshdr, sizeof(int));
+    int *inst_used = calloc(ni + 1, sizeof(int)), *imap = calloc(ni + 1, sizeof(int)), nsel = 0, nimap = 0;
+    long budget = ramkb * 512L - 32768, total = 0, w; Buf sp = { 0 }, sn = { 0 }, sm = { 0 }, ph = { 0 }, pb = { 0 }, pg = { 0 }, in = { 0 }, ib = { 0 }, ig = { 0 }, sh = { 0 };
+    Buf info = { 0 }, sdta = { 0 }, pdta = { 0 }, riff = { 0 }, t = { 0 }, mod = { 0 }; FILE *f; int pass;
+    (void)sp;
+    /* presets on banks 0 / 128 and the samples they use */
+    for (i = 0; i < np; i++) {
+        const uint8_t *r = phdr.b + 38 * i; int bank = r[22] | (r[23] << 8), bag = r[24] | (r[25] << 8), ii;
+        if (bank != 0 && bank != 128) continue;
+        ii = rd16s(pgen.b + 4 * (pbag.b[4 * bag] | (pbag.b[4 * bag + 1] << 8)) + 2);
+        if (!inst_used[ii]) { inst_used[ii] = 1; imap[ii] = nimap++; }
+        nsel++;
+    }
+    for (i = 0; i < ni; i++) if (inst_used[i]) {
+        int b0 = inst_.b[22 * i + 20] | (inst_.b[22 * i + 21] << 8), b1 = inst_.b[22 * (i + 1) + 20] | (inst_.b[22 * (i + 1) + 21] << 8);
+        for (z = b0; z < b1; z++) {
+            int g0 = ibag.b[4 * z] | (ibag.b[4 * z + 1] << 8), g1 = ibag.b[4 * (z + 1)] | (ibag.b[4 * (z + 1) + 1] << 8);
+            for (k = g0; k < g1; k++) if ((igen.b[4 * k] | (igen.b[4 * k + 1] << 8)) == 53) used[rd16s(igen.b + 4 * k + 2)] = 1;
+        }
+    }
+    for (i = 0; i < nshdr; i++) if (used[i]) { const uint8_t *r = shdr.b + 46 * i; fac[i] = 1; total += rd32(r + 24) - rd32(r + 20) + 48; }
+    while (total > budget) {   /* decimate the biggest sample still allowed */
+        long bl = 0; int bi = -1;
+        for (i = 0; i < nshdr; i++) if (used[i] && fac[i] < 8) {
+            const uint8_t *r = shdr.b + 46 * i; long l = (rd32(r + 24) - rd32(r + 20)) / fac[i];
+            if (l > bl) { bl = l; bi = i; }
+        }
+        if (bi < 0) { printf("SC55SF: samples do not fit %ld KB of AWE RAM\n", ramkb); free(used); return; }
+        total -= bl - bl / 2; fac[bi] *= 2;
+    }
+    /* sample data: decimated by box average, 48 zero words after each */
+    sm.cap = total * 2 + 64; sm.b = malloc(sm.cap); if (!sm.b) die("out of memory");
+    for (i = 0, w = 0; i < nshdr; i++) if (used[i]) {
+        const uint8_t *r = shdr.b + 46 * i; long s0 = rd32(r + 20), s1 = rd32(r + 24), ls = rd32(r + 28), le = rd32(r + 32), j, n;
+        int fc = fac[i], m; char nm[20];
+        n = (s1 - s0) / fc; pos[i] = w;
+        for (j = 0; j < n; j++) { long a = 0; for (m = 0; m < fc; m++) a += pcm[s0 + j * fc + m]; put16(&sm, (uint16_t)(int16_t)(a / fc)); }
+        for (j = 0; j < 48; j++) put16(&sm, 0);
+        memcpy(nm, r, 20); put(&sn, nm, 20);
+        put32(&sh, w); put32(&sh, w + n); put32(&sh, w + (ls - s0) / fc - 1); put32(&sh, w + (le - s0) / fc - 2);
+        w += n + 48;
+    }
+    /* instruments */
+    for (pass = 0, k = 0; pass < 1; pass++) for (i = 0; i < ni; i++) if (inst_used[i]) {
+        int b0 = inst_.b[22 * i + 20] | (inst_.b[22 * i + 21] << 8), b1 = inst_.b[22 * (i + 1) + 20] | (inst_.b[22 * (i + 1) + 21] << 8);
+        put(&in, inst_.b + 22 * i, 20); put16(&in, ib.n / 4);
+        for (z = b0; z < b1; z++) {
+            int g0 = ibag.b[4 * z] | (ibag.b[4 * z + 1] << 8), g1 = ibag.b[4 * (z + 1)] | (ibag.b[4 * (z + 1) + 1] << 8), gg;
+            int have[64] = { 0 }, val[64], si = -1, root = 60;
+            put16(&ib, ig.n / 4); put16(&ib, 0);
+            for (gg = g0; gg < g1; gg++) { int o = igen.b[4 * gg] | (igen.b[4 * gg + 1] << 8); if (o < 64) { have[o] = 1; val[o] = rd16s(igen.b + 4 * gg + 2); } }
+            if (have[43]) { put16(&ig, 43); put16(&ig, (uint16_t)val[43]); }
+            for (gg = 0; gg < 64; gg++) if (have[gg] && gg != 43 && gg != 44 && gg != 53 && gg != 58 && gg != 41) { put16(&ig, gg); put16(&ig, (uint16_t)(int16_t)sbkv(gg, val[gg])); }
+            if (!have[29]) { put16(&ig, 29); put16(&ig, sbkv(29, 0)); }
+            if (!have[37]) { put16(&ig, 37); put16(&ig, sbkv(37, 0)); }
+            if (!have[22]) { put16(&ig, 22); put16(&ig, sbkv(22, 0)); }
+            if (!have[24]) { put16(&ig, 24); put16(&ig, sbkv(24, 0)); }
+            si = val[53]; if (have[58]) root = val[58];
+            {   int k2, idx = 0; for (k2 = 0; k2 < si; k2++) idx += used[k2];
+                put16(&ig, 55); put16(&ig, (uint16_t)(int16_t)lrint(root * 100 + 1200 * log2(44100.0 * fac[si] / 32000)));
+                put16(&ig, 53); put16(&ig, idx);
+            }
+        }
+        k++;
+    }
+    putname(&in, "EOI"); put16(&in, ib.n / 4); put16(&ib, ig.n / 4); put16(&ib, 0); put32(&ig, 0);
+    for (i = 0; i < np; i++) {
+        const uint8_t *r = phdr.b + 38 * i; int bank = r[22] | (r[23] << 8), bag = r[24] | (r[25] << 8), ii;
+        if (bank != 0 && bank != 128) continue;
+        ii = rd16s(pgen.b + 4 * (pbag.b[4 * bag] | (pbag.b[4 * bag + 1] << 8)) + 2);
+        put(&ph, r, 24); put16(&ph, pb.n / 4); put32(&ph, 0); put32(&ph, 0); put32(&ph, 0);
+        put16(&pb, pg.n / 4); put16(&pb, 0); put16(&pg, 41); put16(&pg, imap[ii]);
+    }
+    putname(&ph, "EOP"); put16(&ph, 255); put16(&ph, 255); put16(&ph, pb.n / 4); put32(&ph, 0); put32(&ph, 0); put32(&ph, 0);
+    put16(&pb, pg.n / 4); put16(&pb, 0); put32(&pg, 0);
+    put32(&mod, 0); put32(&mod, 0); put16(&mod, 0);
+    put(&info, "INFO", 4);
+    put16(&t, 1); put16(&t, 0); chunk(&info, "ifil", &t);
+    t.n = 0; put(&t, "SC-55 (from your ROMs)\0\0", 24); chunk(&info, "INAM", &t);
+    t.n = 0; put(&t, "1MGM", 4); put16(&t, 0); chunk(&info, "irom", &t);
+    put(&pdta, "pdta", 4);
+    chunk(&pdta, "phdr", &ph); chunk(&pdta, "pbag", &pb); chunk(&pdta, "pmod", &mod); chunk(&pdta, "pgen", &pg);
+    chunk(&pdta, "inst", &in); chunk(&pdta, "ibag", &ib); chunk(&pdta, "imod", &mod); chunk(&pdta, "igen", &ig); chunk(&pdta, "shdr", &sh);
+    f = fopen(path, "wb"); if (!f) die("cannot write the SBK");
+    put(&riff, "RIFF", 4); put32(&riff, 4 + 8 + info.n + 8 + 4 + 8 + sn.n + 8 + sm.n + 8 + pdta.n); put(&riff, "sfbk", 4);
+    chunk(&riff, "LIST", &info);
+    put(&riff, "LIST", 4); put32(&riff, 4 + 8 + sn.n + 8 + sm.n); put(&riff, "sdta", 4); chunk(&riff, "snam", &sn);
+    put(&riff, "smpl", 4); put32(&riff, sm.n);
+    fwrite(riff.b, 1, riff.n, f);
+    if (fwrite(sm.b, 1, sm.n, f) != (size_t)sm.n) die("cannot write the SBK (disk full?)");
+    free(sm.b); riff.n = 0; chunk(&riff, "LIST", &pdta); fwrite(riff.b, 1, riff.n, f);
+    if (fclose(f)) die("cannot write the SBK (disk full?)");
+    (void)sdta;
+    {   int dec = 0; for (i = 0; i < nshdr; i++) dec += used[i] && fac[i] > 1;
+        printf("SC55SF: %s written: %d presets, %d instruments, %ld KB of AWE RAM (%d samples at reduced rate) for /AWERAM:%ld\n",
+               path, nsel, nimap, w * 2 / 1024, dec, ramkb); }
+}
+
 int main(int argc, char **argv) {
-    const char *dir = NULL, *out = "SC55.SF2"; char path[512]; DIR *dp; struct dirent *de;
+    const char *dir = NULL, *out = "SC55.SF2", *sbkout = NULL; long ramkb = 8192; time_t t_start = time(NULL); char path[512]; DIR *dp; struct dirent *de;
     char *wf[MAXF]; int nwf = 0, i, j, b, p, ai;
     uint8_t *cand_cpu[MAXF]; int ncpu = 0;
     for (ai = 1; ai < argc; ai++) {
         if (!strcmp(argv[ai], "-v")) verbose = 1;
+        else if (!strcmp(argv[ai], "-q")) quiet = 1;
         else if (!strncmp(argv[ai], "-t", 2)) envT_scale = atoi(argv[ai] + 2);
         else if (!strcmp(argv[ai], "-nf")) nofilt = 1;
+        else if (!strcmp(argv[ai], "-s") && ai + 1 < argc) sbkout = argv[++ai];
+        else if (!strcmp(argv[ai], "-k") && ai + 1 < argc) ramkb = atol(argv[++ai]);
         else if (!strncmp(argv[ai], "-r", 2)) envR_scale = atoi(argv[ai] + 2);
         else if (!strncmp(argv[ai], "-g", 2)) gain_db = atof(argv[ai] + 2);
         else if (!dir) dir = argv[ai]; else out = argv[ai];
     }
-    if (!dir) { printf("SC55SF ROMDIR [OUT.SF2] [-v]\n  builds an SF2 from your SC-55 (mk1 1.21 / mk2 1.01) ROMs, found by content\n"); return 2; }
+    if (!dir) { printf("SC55SF ROMDIR [OUT.SF2] [-s OUT.SBK [-k AWERAM_KB]] [-q] [-v]\n  builds an SF2 from your SC-55 (mk1 1.21 / mk2 1.01) ROMs, found by content\n"); return 2; }
     dp = opendir(dir); if (!dp) die("cannot open the ROM folder");
     while ((de = readdir(dp))) {
         long sz; uint8_t *b2; struct stat st;
@@ -435,7 +563,7 @@ int main(int argc, char **argv) {
         free(b2);
     }
     closedir(dp);
-    if (!ctrl) die("no SC-55 control ROM found (mk1 1.21 or mk2)");
+    if (!ctrl) { if (quiet) return 3; die("no SC-55 control ROM found (mk1 1.21 or mk2)"); }
     LUT = mk2 ? LUT2 : LUT1;
     for (i = 0; i < ncpu && !cpu; i++) if (cpu_ok(cand_cpu[i], LUT)) cpu = cand_cpu[i];
     if (!cpu) die("no matching SC-55 CPU ROM found");
@@ -493,18 +621,25 @@ int main(int argc, char **argv) {
         t.n = 0; put(&t, "EMU8000\0", 8); chunk(&info, "isng", &t);
         t.n = 0; put(&t, "SC-55 (from your ROMs)\0\0", 24); chunk(&info, "INAM", &t);
         t.n = 0; put(&t, "SC55SF (NUKED SB-EMU)\0", 22); chunk(&info, "ISFT", &t);
-        put(&sdta, "sdta", 4); t.n = 0; put(&t, pcm, npcm * 2); chunk(&sdta, "smpl", &t);
         put(&pdta, "pdta", 4);
         put32(&mod, 0); put32(&mod, 0); put16(&mod, 0);   /* terminal modulator records */
         chunk(&pdta, "phdr", &phdr); chunk(&pdta, "pbag", &pbag); chunk(&pdta, "pmod", &mod); chunk(&pdta, "pgen", &pgen);
         chunk(&pdta, "inst", &inst_); chunk(&pdta, "ibag", &ibag); chunk(&pdta, "imod", &mod); chunk(&pdta, "igen", &igen);
         chunk(&pdta, "shdr", &shdr);
-        put(&riff, "sfbk", 4); chunk(&riff, "LIST", &info); chunk(&riff, "LIST", &sdta); chunk(&riff, "LIST", &pdta);
+        /* streamed: RIFF sfbk { LIST INFO, LIST sdta { smpl = pcm }, LIST pdta } (no copy of the sample data) */
         f = fopen(out, "wb"); if (!f) die("cannot write the SF2");
-        fwrite("RIFF", 1, 4, f); { uint8_t l[4] = { riff.n & 255, (riff.n >> 8) & 255, (riff.n >> 16) & 255, riff.n >> 24 }; fwrite(l, 1, 4, f); }
-        fwrite(riff.b, 1, riff.n, f); fclose(f);
+        put(&riff, "RIFF", 4); put32(&riff, 4 + 8 + info.n + 8 + 12 + npcm * 2 + 8 + pdta.n); put(&riff, "sfbk", 4);
+        chunk(&riff, "LIST", &info);
+        put(&riff, "LIST", 4); put32(&riff, 12 + npcm * 2); put(&riff, "sdta", 4); put(&riff, "smpl", 4); put32(&riff, npcm * 2);
+        fwrite(riff.b, 1, riff.n, f);
+        if (fwrite(pcm, 2, npcm, f) != (size_t)npcm) die("cannot write the SF2 (disk full?)");
+        riff.n = 0; chunk(&riff, "LIST", &pdta); fwrite(riff.b, 1, riff.n, f);
+        if (fclose(f)) die("cannot write the SF2 (disk full?)");
+        (void)sdta;
         printf("SC55SF: %s written: %d presets, %d instruments, %d samples (%ld KB of sample data)\n",
                out, nphdr, ninst_, nshdr, npcm * 2 / 1024);
     }
+    if (sbkout) write_sbk(sbkout, ramkb);
+    printf("SC55SF: done in %ld s\n", (long)(time(NULL) - t_start));
     return 0;
 }

@@ -1,12 +1,22 @@
-## wip SC55SF chat 2 (2026-11-16): sc55sf.c builds SC55.SF2 from the user's ROMs
-- Done: sc55-pack/tools/sc55sf.c (host gcc; ROMs by content, mk1 1.21 + mk2 1.01 tables, wave slots by loop fit, DPCM,
-  per-key multisample zones, 5-phase TVA fitted to SF2 AHDSR, drum kits with pan/reverb/chorus/exclusive groups, GS variation
-  banks). 2 s on the host, 8.9 MB SF2, 387 presets. testrig/sc55sf/probe.py measures vs Nuked-SC55 (README there).
-- Numbers (175 items): env 4.1 dB, band 3.1 dB, pitch median 2 c; avmidi 01 chroma DTW 0.690. Worst 10: P121 Breath Noise
-  (+19 dB loud), P123 Bird, P038/P039 Synth Bass (no TVF), P127 Gun Shot, P062 Synth Brass, D058, P060, D080, D066.
-- Not yet: TVF (cutoff env -> SF2 modEnv), LFO vibrato, velocity curves, SBK writer + /AWERAM trims, DJGPP SC55SF.EXE,
-  SETUP/MENU lines, 86Box speed, release. See docs/SC55ROM.md "Calibration".
+## wip SC55SF chat 2 (2026-11-16): SC55SF.EXE builds SC55.SF2 + SC55.SBK from the user's ROMs (no release)
+- Done: sc55-pack/tools/sc55sf.c (gcc + DJGPP, makefile output/sc55sf.exe): ROMs by content (mk1 1.21; mk2 1.01 tables
+  untested), wave slots by loop fit, DPCM, per-key multisample zones, 5-phase TVA fitted to SF2 AHDSR, TVF env -> modEnv,
+  drum kits (pan/reverb/chorus/exclusive), GS variation banks; SBK (banks 0+128, -k AWERAM KB: longest samples decimated
+  to fit). Host 0.7 s; FreeDOS QEMU + HDPMI32I PASS (same files as the host but 3 fineTune roundings). 9.4 MB SF2 (387
+  presets), SBK 6.9 MB (4 MB with -k 4096). SETUP.BAT writes SC55SF.BAT and runs it once if SC55SF.EXE + no SF2\SC55.SF2
+  (tested in FreeDOS with the SETUP block). testrig/sc55sf/probe.py = measurement (README there).
+- Numbers vs Nuked-SC55 (175 items, dry): SF2/fluidsynth env 4.2 dB, band 2.4 dB, pitch median 2 c; SBK/awemid (EMU8000)
+  env 5.6 / band 3.7 (4096 KB: 6.1 / 4.7). avmidi 01 chroma DTW 0.688. Worst 10: P121 Breath Noise (+19 dB), D055,
+  D056, P123 Bird, P127 Gun Shot, P062 Synth Brass 1, D058, P038 Synth Bass 1, P060, D057.
+- Next 3: 1) zip: add SC55SF.EXE to FILES\SC55 (rezip), MENU item (sc55menu.c Settings: "Build SC-55 SoundFont") and
+  /VSF SF2\SC55.SF2 + /AWEMPU:GM with SC55.SBK copied to ROMS (no SYNTHGM.SBK there) in a game; 86Box PII-450 speed
+  (SBDIAG) vs the SC-55 emulation. 2) quality: LFO1 vibrato (inst b14-17 + TVP depth), velocity curves (TVALvlVelCur ->
+  SF2 vel->atten modulator), worst 10, listen to Duke songs (3dduke13.zip GRP) vs Nuked. 3) README/wiki news + feature
+  lines, HWTEST item, tag newest+1 (awe.N).
+- Why times are x5.5 (T1-T4) / x3.5 (T5) of EnvelopeTime*8/32000 is not traced (fitted on probe.py; docs/SC55ROM.md).
 - Resume: "Attach deon81997/priavte (push) and follow PLAYBOOK.md. Repo: deon81997/NUKED-SBEMU-AWE. Task: SC55SF - resume wip/sc55sf-2026-11-16 (HANDOFF top)."
+- Test downloads: /tmp/dl/emusc, /tmp/dl/djgpp (build-djgpp v3.4 linux64 gcc1220), apt librtmidi-dev libsdl2-dev fluidsynth
+  qemu-system-x86 mtools socat zstd; Nuked renderer /tmp/nkb (testrig/sc55sf/README.md); store-freedos, store-personal.
 
 ## wip SC55SF (2026-11-16, stopped early): SC-55 SoundFont/SBK from the user's ROMs
 - Done: research only. Control/CPU/wave ROM layout + SF2 mapping plan in docs/SC55ROM.md (from libEmuSC + Nuked unscramble);

@@ -39,7 +39,7 @@ MIDPLAY := output/midplay.exe
 CDGUI := output/cdgui.exe
 SBSET := output/sbset.exe
 ifeq ($(VSC55),1)
-all: $(TARGET) $(SC55WAV) $(SC55LOG) $(MPUTEST) $(MIDPLAY) $(CDGUI) $(SBSET) output/sc55menu.exe output/wcset.exe output/gametest.exe output/sbdiag.exe output/timetest.exe output/joytest.exe output/usbtest.exe output/kmtest.exe output/usbdrv.exe output/sbemu16.com output/padconv.exe
+all: $(TARGET) $(SC55WAV) $(SC55LOG) $(MPUTEST) $(MIDPLAY) $(CDGUI) $(SBSET) output/sc55menu.exe output/wcset.exe output/sc55sf.exe output/gametest.exe output/sbdiag.exe output/timetest.exe output/joytest.exe output/usbtest.exe output/kmtest.exe output/usbdrv.exe output/sbemu16.com output/padconv.exe
 else
 all: $(TARGET)
 endif
@@ -309,6 +309,11 @@ output/wcset.exe: tools/wcset.c tools/wcset.h output/packver.o
 	@mkdir -p $(dir $@)
 	$(SILENTMSG) "CC\t$@\n"
 	$(SILENTCMD)$(CC) $(PACKVER) -DPACKVER_STR=\"$(VERSION)\" -O2 -Wall -march=i386 -o $@ $< output/packver.o $(if $(filter 0,$(DEBUG)),-s,)
+
+output/sc55sf.exe: tools/sc55sf.c
+	@mkdir -p $(dir $@)
+	$(SILENTMSG) "CC\t$@\n"
+	$(SILENTCMD)$(CC) -O2 -Wall -Wno-stringop-truncation -march=i586 -o $@ $< -lm $(if $(filter 0,$(DEBUG)),-s,)
 
 SC55MENU := output/sc55menu.exe
 $(SC55MENU): tools/sc55menu.c $(wildcard tools/*.h) output/packver.o

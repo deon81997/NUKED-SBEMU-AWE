@@ -207,6 +207,16 @@ ECHO CD \SC55>> %DST%\TEST.BAT
 ECHO SC55LOG.EXE ROMS %%1 %%2 %%3>> %DST%\TEST.BAT
 ECHO ECHO Report saved in %DST%\SC55LOG.TXT>> %DST%\TEST.BAT
 
+ECHO @ECHO OFF> %DST%\SC55SF.BAT
+ECHO REM Builds SF2\SC55.SF2 (SoundFont, /VSF) and SF2\SC55.SBK (AWE32 bank) from your own SC-55 ROMs in ROMS.>> %DST%\SC55SF.BAT
+ECHO REM Takes seconds. SC55SF.BAT 4096 (or 28672) fits the SBK to that much AWE RAM (/AWERAM); default 8192.>> %DST%\SC55SF.BAT
+ECHO %DRV%:\HDPMI\HDPMI32I.EXE -r -x>> %DST%\SC55SF.BAT
+ECHO SET K=%%1>> %DST%\SC55SF.BAT
+ECHO IF "%%K%%"=="" SET K=8192>> %DST%\SC55SF.BAT
+ECHO %DST%\SC55SF.EXE %DST%\ROMS %DST%\SF2\SC55.SF2 -s %DST%\SF2\SC55.SBK -k %%K%% -q>> %DST%\SC55SF.BAT
+ECHO SET K=>> %DST%\SC55SF.BAT
+IF EXIST %DST%\SC55SF.EXE IF NOT EXIST %DST%\SF2\SC55.SF2 CALL %DST%\SC55SF.BAT
+
 GOTO DONE
 
 :DONE
@@ -218,6 +228,7 @@ ECHO   %DST%\MENU.BAT       one menu for everything: SC-55, settings, tests, gam
 ECHO   %DST%\SC55.BAT       starts the SC-55 by hand
 ECHO   %DST%\SETTINGS.BAT   Sound Blaster / MPU-401 port, IRQ, DMA, synth
 ECHO   %DST%\TEST.BAT       checks the ROMs boot, measures speed (SC55LOG.TXT)
+ECHO   %DST%\SC55SF.BAT     SC-55 SoundFont + AWE32 bank from your ROMs (SF2\SC55.SF2, SF2\SC55.SBK)
 ECHO   %DST%\MPUTEST.EXE    plays a test tune once the SC-55 is running
 ECHO   %DST%\SC55JEM.BAT    real-mode games (JEMM+QPIEMU), also SC55QMM.BAT (QEMM)
 ECHO                        see %DST%\DOSMODE\REALMODE.TXT

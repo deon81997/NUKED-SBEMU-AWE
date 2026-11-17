@@ -814,6 +814,7 @@ static struct {
     Voice v[AWEM_VOICES];
     uint32_t use_time, now;
     int released;
+    int started;                                /* awem_start() done: the chip is ours to write */
     uint8_t st, rs_need, buf[3], nbuf, sx[64];
     int sxn, in_sysex;
     AwemStats stats;
@@ -1429,6 +1430,7 @@ void awem_start(void)
     int i;
     init_state();
     S.released = 0;
+    S.started = 1;
     for (i = 0; i < AWEM_VOICES; i++) S.v[i].state = ST_OFF;
     chip_start();
 }
@@ -1442,7 +1444,7 @@ void awem_set_banks(AwemBank* const* list, int n, int mode)
     for (i = 0; i < n; i++) S.banks[i] = list[i];
     S.nbanks = n;
     S.mode = mode;
-    if (!S.released) upload_ram();
+    if (!S.released && S.started) upload_ram(); else layout();
     for (i = 0; i < 16; i++) {
         S.ch[i].bend_range = mode == AWEM_MT32 ? 12 * 128 : 256;
     }
@@ -1498,7 +1500,7 @@ int awem_bank_loaded(const AwemBank* b) { return b && b->loaded; }
 static void relocate(void)          /* voices off, new layout, RAM written again (not while a DOS box has the chip) */
 {
     all_off(-1, 1);
-    if (!S.released) upload_ram(); else layout();
+    if (!S.released && S.started) upload_ram(); else layout();   /* not started yet: awem_start() uploads */
 }
 void awem_ram_set(uint32_t words) { U.ram_size = words; U.ram_set = 1; relocate(); }
 uint32_t awem_ram_total(void) { return U.ram_size; }

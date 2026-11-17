@@ -1,15 +1,15 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU (AWE line)
 # b98.sh TAG WIN98DIR [SECS] - AWE32 bank manager on 86Box (store-w98qi-86box acpi: P3B-F Pentium II 450, SB16 with
-# its driver; ours at 240/7/3/7, MPU 300, EMU8000 620, 8 MB sample RAM, /AWEMPU:GM). Two boots of one disk:
-#  boot 1: SC55W.INI [AWE32 MIDI] Bank1 = TimGM6mb.sf2, Bank2 = stand-in SBK (12 programs), Preset0_0 = the SF2's
+# its driver; ours at 240/7/3/7, MPU 300, EMU8000 620, 8 MB sample RAM, /AWEMPU:GM). One boot:
+#  SC55W.INI [AWE32 MIDI] Bank1 = TimGM6mb.sf2, Bank2 = stand-in SBK (12 programs), Preset0_0 = the SF2's
 #    piano; WSEQ plays BANKS.MID (banksmid.py: CC0/CC32 user banks, empty bank, drum kit; 80 user-bank notes),
 #    SONGU.MID (a song on bank 1) + IDLEMTR (CPU), AWELOAD in the DOS box while WSEQ plays (chip handover), BANKS.MID
 #    again (banks back), then Settings opens (SC55W2 /SETTINGS) and the host drives the bank dialog by keys:
 #    BIG.SBK (5.6 MB) as bank 3 -> refused (RAM full), STANDIN2.SBK as bank 3 -> loaded + SC55W.INI; then Duke 3D
 #    with General MIDI on MPU 300 in the DOS box -> the AWE32 MIDI Synth (GM bank) until SECS.
-#  boot 2: SC55W2 alone, BANKS.MID: the banks from SC55W.INI (bank 3 from the dialog too) load again.
-# WIN98DIR: SC55W2.EXE SC55W.VXD SC55MIDI.DRV WSEQ.EXE. Results in /tmp/w86/b-TAG (SC55W.LOG of each boot, IDLE.TXT,
+#  then SC55W2 /EXIT + start again: the banks come back from SC55W.INI (bank 3 from the dialog too), BANKS.MID.
+# WIN98DIR: SC55W2.EXE SC55W.VXD SC55MIDI.DRV WSEQ.EXE. Results in /tmp/w86/b-TAG (SC55W1/2.LOG = before / after the restart, IDLE.TXT,
 # WSEQ.LOG, SC55W.INI, shots). env: KEYS=0 (no dialog), SONG.
 T=$1; SRC=$2; SECS=${3:-900}
 H=$(cd "$(dirname "$0")" && pwd); V=/home/claude/vms; W=/tmp/w86; D=$W/acpi-$T
@@ -54,17 +54,19 @@ printf '\r\n[Comm Setup]\r\nPlayerName = "DUKE"\r\nRTSName = "DUKE.RTS"\r\nRTSPa
   echo 'START /W D:\T\WSEQ.EXE AWE32 D:\T\BANKS.MID 100 30'
   echo 'START C:\SC55\WIN98\SC55W2.EXE /SETTINGS'
   echo 'ECHO A > D:\T\R\STEP1.TXT'
-  echo "CHOICE /T:Y,${KEYWAIT:-240} /C:Y >NUL"
-  echo 'ECHO DONE > D:\T\R\DONE1.TXT'
-  echo 'CD \T\DUKE'; echo 'DUKE3D.EXE'; } | sed 's/$/\r/' > $G/T/T6.BAT
-{ echo '@ECHO OFF'; echo 'START C:\SC55\WIN98\SC55W2.EXE'; echo "CHOICE /T:Y,${WAIT:-90} /C:Y >NUL"
+  for i in 1 2 3; do echo 'CHOICE /T:Y,80 /C:Y >NUL'; done      # CHOICE waits 99 s at most
+  echo 'COPY C:\SC55\WIN98\SC55W.LOG D:\T\R\LOG1.TXT'
+  echo 'START /W C:\SC55\WIN98\SC55W2.EXE /EXIT'; echo 'CHOICE /T:Y,15 /C:Y >NUL'
+  echo 'START C:\SC55\WIN98\SC55W2.EXE'; echo "CHOICE /T:Y,${WAIT:-90} /C:Y >NUL"
   echo 'START /W D:\T\WSEQ.EXE AWE32 D:\T\BANKS.MID 100 30'
   echo 'CHOICE /T:Y,12 /C:Y >NUL'
-  echo 'ECHO DONE > D:\T\R\DONE2.TXT'; } | sed 's/$/\r/' > $G/T/T7.BAT
+  echo 'ECHO DONE > D:\T\R\DONE1.TXT'
+  echo 'CD \T\DUKE'; echo 'DUKE3D.EXE'; } | sed 's/$/\r/' > $G/T/T6.BAT
 mcopy -s -o -i $J $G/T ::/
 mcopy -o -i $I $G/T/T6.BAT "::/WINDOWS/Start Menu/Programs/StartUp/T6.BAT"
 R=$W/b-$T; rm -rf $R; mkdir -p $R
-k() { sh $V/bin/86run.sh $D key "$@"; sleep 1; }
+k() { DISPLAY=:86 xdotool key --delay 120 "$@"; sleep 1; }    # the 86Box window has the focus (only window)
+shot() { w=$(DISPLAY=:86 xdotool search --name "86Box" | tail -1); [ -n "$w" ] && DISPLAY=:86 import -window "$w" "$1" 2>/dev/null; }   # SDL title "86Box v7.0 - NN% - ..."
 typ() { python3 -c "
 import sys
 m={':':'colon','\\\\':'backslash','.':'period',' ':'space','_':'underscore'}
@@ -72,27 +74,20 @@ print(' '.join(m.get(c, ('shift+'+c.lower()) if c.isupper() else c) for c in sys
 sh $V/bin/86run.sh $D; T0=$(date +%s); n=0; keys=${KEYS:-1}
 while [ $n -lt "$SECS" ]; do sleep 20; n=$((n + 20))
   if [ "$keys" = 1 ] && mcopy -n -i $J ::/T/R/STEP1.TXT /tmp/b98s-$T 2>/dev/null; then keys=2; sleep 25
-    sh $V/bin/86run.sh $D shot $R/settings.png > /dev/null 2>&1
-    k ctrl+Tab; k ctrl+Tab; k ctrl+Tab; sh $V/bin/86run.sh $D shot $R/awepage.png > /dev/null 2>&1
+    shot $R/settings.png
+    k ctrl+Tab; k ctrl+Tab; k ctrl+Tab; shot $R/awepage.png
     k alt+a; sleep 2; k $(typ 'D:\T\BIG.SBK'); k Return; sleep 8          # slot = first free (3)
-    sh $V/bin/86run.sh $D shot $R/ramfull.png > /dev/null 2>&1
+    shot $R/ramfull.png
     k alt+s; k $(typ 'D:\T\STANDIN2.SBK'); k Return; sleep 8
-    sh $V/bin/86run.sh $D shot $R/added.png > /dev/null 2>&1; echo "dialog keys sent at $n s"; fi
+    shot $R/added.png; k Escape; echo "dialog keys sent at $n s"; fi
   mcopy -n -i $J ::/T/R/DONE1.TXT /tmp/b98d-$T 2>/dev/null && [ -z "$duke" ] && { duke=$n; echo "Duke (GM -> AWE32 MIDI Synth) from $n s"; }
   [ -n "$duke" ] && [ $((n - duke)) -ge ${DUKESECS:-180} ] && break
 done
-sh $V/bin/86run.sh $D shot $R/duke.png > /dev/null 2>&1; sh $V/bin/86run.sh $D stop
-mcopy -n -i $I ::/SC55/WIN98/SC55W.LOG $R/SC55W1.LOG; mcopy -n -i $I ::/REC.WAV $R/REC1.WAV 2>/dev/null; mcopy -n -i $I ::/WSEQ.LOG $R/ 2>/dev/null
-mcopy -n -i $I ::/SC55/WIN98/SC55W.INI $R/SC55W1.INI
-# boot 2: the banks again from SC55W.INI
-mdel -i $I "::/WINDOWS/Start Menu/Programs/StartUp/T6.BAT"; mcopy -o -i $I $G/T/T7.BAT "::/WINDOWS/Start Menu/Programs/StartUp/T7.BAT"
-mdel -i $I ::/SC55/WIN98/SC55W.LOG 2>/dev/null
-sh $V/bin/86run.sh $D; n=0
-while [ $n -lt 600 ]; do sleep 20; n=$((n + 20)); mcopy -n -i $J ::/T/R/DONE2.TXT /tmp/b98e-$T 2>/dev/null && break; done
-sh $V/bin/86run.sh $D stop
-mcopy -n -i $I ::/SC55/WIN98/SC55W.LOG $R/SC55W2.LOG; mcopy -n -i $J ::/T/R/IDLE.TXT ::/T/R/ROMS.TXT $R/ 2>/dev/null
+shot $R/duke.png; sh $V/bin/86run.sh $D stop
+mcopy -n -i $J ::/T/R/LOG1.TXT $R/SC55W1.LOG; mcopy -n -i $I ::/SC55/WIN98/SC55W.LOG $R/SC55W2.LOG; mcopy -n -i $I ::/WSEQ.LOG $R/ 2>/dev/null
+mcopy -n -i $I ::/SC55/WIN98/SC55W.INI $R/SC55W1.INI; mcopy -n -i $J ::/T/R/IDLE.TXT ::/T/R/ROMS.TXT $R/ 2>/dev/null
 rm -f /tmp/b98?-$T
 echo "== IDLE"; tr -d '\r' < $R/IDLE.TXT 2>/dev/null
-for b in 1 2; do echo "== boot $b"; tr -d '\r' < $R/SC55W$b.LOG | grep -E 'AWE32|bank manager|failed' | tail -14; done
+for b in 1 2; do echo "== SC55W run $b"; tr -d '\r' < $R/SC55W$b.LOG | grep -E 'AWE32|bank manager|failed' | tail -14; done
 echo "== INI"; tr -d '\r' < $R/SC55W1.INI | grep -E '^(Bank|Preset)'
 rm -rf $D $W/d-$T.img

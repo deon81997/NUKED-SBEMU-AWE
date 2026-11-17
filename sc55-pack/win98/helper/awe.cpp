@@ -246,7 +246,7 @@ void awe_midi_load_cfg(const std::string& ini, AweMidiCfg& c)
     c.reverb = GetPrivateProfileIntA("AWE32 MIDI", "Reverb", 4, ini.c_str()) & 7;
     c.chorus = GetPrivateProfileIntA("AWE32 MIDI", "Chorus", 2, ini.c_str()) & 7;
     m_ini = ini;
-    std::vector<char> sec(32768);
+    std::vector<char> sec(32000);   // Windows 98: GetPrivateProfileSection fails above 32767
     DWORD n = GetPrivateProfileSectionA("AWE32 MIDI", sec.data(), (DWORD)sec.size(), ini.c_str());
     for (const char* q = sec.data(); q < sec.data() + n && *q; q += strlen(q) + 1) {
         const char* eq = strchr(q, '=');
@@ -446,13 +446,19 @@ void awe_midi_poll(bool dos_wrote)
         awem_reclaim();
         m_takebacks++;
     }
-    if (m_dos_mode >= 0 && now - m_dos_last > 10000) { int was = m_dos_mode; m_dos_mode = -1; if (was != mcfg.bank) apply_banks(); }
+    if (m_dos_mode >= 0 && now - m_dos_last > 10000) { int was = m_dos_mode; m_dos_mode = -1; if (was != mcfg.bank) apply_banks(); awem_reset(); }   // back to Windows' MIDI: clean
 }
 void awe_midi_dos_byte(uint8_t b, int bank)
 {
     if (!m_started) return;
     m_dos_last = GetTickCount();
-    if (bank != m_dos_mode) { int was = m_dos_mode < 0 ? mcfg.bank : m_dos_mode; m_dos_mode = bank; if (bank != was) apply_banks(); }
+    if (bank != m_dos_mode) {      // a DOS box starts playing: its own MIDI state (GM reset), its bank
+        int was = m_dos_mode < 0 ? mcfg.bank : m_dos_mode;
+        bool fresh = m_dos_mode < 0;
+        m_dos_mode = bank;
+        if (bank != was) apply_banks();
+        if (fresh) awem_reset();
+    }
     awem_byte(b);
 }
 std::string awe_midi_stats()

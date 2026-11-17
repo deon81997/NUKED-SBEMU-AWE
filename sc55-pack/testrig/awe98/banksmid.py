@@ -9,7 +9,7 @@ d = open(sbk, 'rb').read(); i = d.index(b'phdr'); p2 = struct.unpack_from('<H', 
 ev = []
 def seg(ch, msb, lsb, prog, keys):
     ev.append(bytes([0xB0 | ch, 0, msb])); ev.append(bytes([0xB0 | ch, 32, lsb])); ev.append(bytes([0xC0 | ch, prog]))
-    for k in keys: ev.append((bytes([0x90 | ch, k, 100]), 96)); ev.append((bytes([0x80 | ch, k, 0]), 24))
+    for k in keys: ev.append((bytes([0x90 | ch, k, 100]), 40)); ev.append((bytes([0x80 | ch, k, 0]), 8))   # 0.25 s a note: 96 notes in 24 s
 user = 0
 for r in range(rep):
     for (ch, msb, lsb, prog, u) in [(0, 1, 0, 0, 1), (0, 2, 0, p2, 1), (0, 0, 2, p2, 1), (0, 0, 0, 0, 0), (0, 5, 0, 0, 0), (9, 1, 0, 0, 1)]:

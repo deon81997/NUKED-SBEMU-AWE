@@ -3,12 +3,12 @@
 <table>
 <tr>
 <td align="center" width="140"><picture><img src="docs/90s/vox-claude.gif" width="130" alt="Claude as a voxel buddy, typing"></picture></td>
-<td><b>A note from the webmaster!!</b> The new code, the docs and all the art on this page were made by <b>Claude</b>, an AI by <a href="https://www.anthropic.com/">Anthropic</a>, working with me: I pick what to build and test every build on my real PCs, Claude writes it and checks it in emulators first. It all stands on <a href="https://github.com/crazii/SBEMU">SBEMU</a>, <a href="https://github.com/nukeykt/Nuked-SC55">Nuked-SC55</a> and other open-source projects (see <a href="#-thanks-to-my-friends-">Thanks</a>).</td>
+<td><b>A note from the webmaster</b> The new code, the docs and all the art on this page were made by <b>Claude</b>, an AI by <a href="https://www.anthropic.com/">Anthropic</a>, working with me: I pick what to build and test every build on my real PCs, Claude writes it and checks it in emulators first. It all stands on <a href="https://github.com/crazii/SBEMU">SBEMU</a>, <a href="https://github.com/nukeykt/Nuked-SC55">Nuked-SC55</a> and other open-source projects (see <a href="#thanks-to-my-friends">Thanks</a>).</td>
 </tr>
 </table>
 
-<picture><img src="docs/90s/icon-book.gif" alt="book"></picture> <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/wiki">~ Read the WIKI!! ~</a></b> <sub>(quick start, AWE32 page, every switch, troubleshooting)</sub> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture><br>
-<picture><img src="docs/90s/btn-awe32.gif" alt="AWE32"></picture> <b>Which one??</b> <a href="https://github.com/deon81997/NUKED-SBEMU">NUKED-SBEMU</a> = the main line (SC-55 / MT-32 / General MIDI pack) &middot; <a href="https://github.com/deon81997/NUKED-SBEMU-AWE">NUKED-SBEMU-AWE</a> = the AWE32 / AWE64 line (the same pack plus an emulated EMU8000 at 620h)
+<picture><img src="docs/90s/icon-book.gif" alt="book"></picture> <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/wiki">~ Read the WIKI ~</a></b> <sub>(quick start, AWE32 page, every switch, troubleshooting)</sub> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture><br>
+<picture><img src="docs/90s/btn-awe32.gif" alt="AWE32"></picture> <b>Which one?</b> <a href="https://github.com/deon81997/NUKED-SBEMU">NUKED-SBEMU</a> = the main line (SC-55 / MT-32 / General MIDI pack) &middot; <a href="https://github.com/deon81997/NUKED-SBEMU-AWE">NUKED-SBEMU-AWE</a> = the AWE32 / AWE64 line (the same pack plus an emulated EMU8000 at 620h)
 
 <table>
 <tr>
@@ -17,37 +17,37 @@
 
 <picture><img src="docs/90s/title.gif" width="560" alt="NUKED SB-EMU"></picture>
 
-<a href="#-awe32--awe64-wavetable-"><img src="docs/90s/awe-edition.gif" width="560" alt="AWE32 EDITION: Sound Blaster AWE32 / AWE64 wavetable in plain DOS!!"></a>
+<a href="#awe32--awe64-wavetable"><img src="docs/90s/awe-edition.gif" width="560" alt="AWE32 EDITION: Sound Blaster AWE32 / AWE64 wavetable in plain DOS"></a>
 
-<h2>~*~ Welcome to my DOS Sound Page!!! ~*~</h2>
+<h2>~*~ Welcome to my DOS Sound Page ~*~</h2>
 
-<i>A Roland Sound Canvas for your DOS games. No MIDI hardware needed!!</i><br>
-<i><b>...and now a Sound Blaster AWE32 too!!</b></i> <picture><img src="docs/90s/new.gif" width="48" alt="NEW!"></picture>
+<i>A Roland Sound Canvas for your DOS games. No MIDI hardware needed</i><br>
+<i><b>...and now a Sound Blaster AWE32 too</b></i> <picture><img src="docs/90s/new.gif" width="48" alt="NEW!"></picture>
 
 <br><br>
 
 <picture><img src="docs/90s/port220-hello.gif" width="400" alt="Port 220, the NUKED SB-EMU mascot, says hi"></picture> <picture><img src="docs/90s/vox-claude.gif" width="130" alt="Claude as a voxel buddy, typing"></picture>
 
-<h3>~ What's inside my PC?? ~</h3><sub>(everything NUKED SB-EMU does for your DOS games: click a part!!)</sub> <picture><img src="docs/90s/doodle-parts.gif" width="150" alt="click the parts!"></picture><br>
-<a href="#-supported-sound-chips-"><img src="docs/90s/vox-part-soundcard.gif" width="130" alt="Sound Blaster 16 on any PCI sound card"></a>
-<a href="#-what-is-this-"><img src="docs/90s/vox-part-sc55.gif" width="130" alt="Roland SC-55, General MIDI"></a>
-<a href="#-cool-features-"><img src="docs/90s/vox-part-cdrom.gif" width="130" alt="CD audio and CD images"></a>
-<a href="#-whats-new-"><img src="docs/90s/vox-part-usbstick.gif" width="130" alt="USB sticks as DOS drive letters"></a><br>
-<a href="#-usb-gamepads-in-dos-"><img src="docs/90s/vox-part-gamepad.gif" width="130" alt="USB gamepads as a DOS joystick"></a>
-<a href="#-usb-gamepads-in-dos-"><img src="docs/90s/vox-part-keymouse.gif" width="130" alt="USB keyboard and mouse in plain DOS"></a>
-<a href="#-usb-gamepads-in-dos-"><img src="docs/90s/vox-part-joystick.gif" width="130" alt="Gameport modes"></a>
-<a href="#-will-it-run-on-my-pc-"><img src="docs/90s/vox-part-win98.gif" width="130" alt="Windows 98 DOS boxes and MIDI driver"></a><br>
-<a href="#-awe32--awe64-wavetable-"><img src="docs/90s/vox-part-awe.gif" width="130" alt="Sound Blaster AWE32 / AWE64 wavetable"></a>
+<h3>~ What's inside my PC? ~</h3><sub>(everything NUKED SB-EMU does for your DOS games: click a part)</sub> <picture><img src="docs/90s/doodle-parts.gif" width="150" alt="click the parts!"></picture><br>
+<a href="#supported-sound-chips"><img src="docs/90s/vox-part-soundcard.gif" width="130" alt="Sound Blaster 16 on any PCI sound card"></a>
+<a href="#what-is-this"><img src="docs/90s/vox-part-sc55.gif" width="130" alt="Roland SC-55, General MIDI"></a>
+<a href="#cool-features"><img src="docs/90s/vox-part-cdrom.gif" width="130" alt="CD audio and CD images"></a>
+<a href="#whats-new"><img src="docs/90s/vox-part-usbstick.gif" width="130" alt="USB sticks as DOS drive letters"></a><br>
+<a href="#usb-gamepads-in-dos"><img src="docs/90s/vox-part-gamepad.gif" width="130" alt="USB gamepads as a DOS joystick"></a>
+<a href="#usb-gamepads-in-dos"><img src="docs/90s/vox-part-keymouse.gif" width="130" alt="USB keyboard and mouse in plain DOS"></a>
+<a href="#usb-gamepads-in-dos"><img src="docs/90s/vox-part-joystick.gif" width="130" alt="Gameport modes"></a>
+<a href="#will-it-run-on-my-pc"><img src="docs/90s/vox-part-win98.gif" width="130" alt="Windows 98 DOS boxes and MIDI driver"></a><br>
+<a href="#awe32--awe64-wavetable"><img src="docs/90s/vox-part-awe.gif" width="130" alt="Sound Blaster AWE32 / AWE64 wavetable"></a>
 
 
 <picture><img src="docs/90s/construction.gif" width="260" alt="Under construction"></picture><br>
-<sub>this page is ALWAYS under construction... please come back soon!! :-)</sub>
+<sub>this page is ALWAYS under construction... please come back soon :-)</sub>
 
 <br><br>
 
-<picture><img src="docs/90s/doodle-click.gif" width="150" alt="click me!!"></picture><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/releases/latest"><img src="docs/90s/btn-download.gif" alt="Download"></a>
+<picture><img src="docs/90s/doodle-click.gif" width="150" alt="click me"></picture><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/releases/latest"><img src="docs/90s/btn-download.gif" alt="Download"></a>
 <picture><img src="docs/90s/btn-sc55.gif" alt="SC-55 inside"></picture>
-<a href="#-awe32--awe64-wavetable-"><img src="docs/90s/btn-awe32.gif" alt="AWE32 synth inside"></a>
+<a href="#awe32--awe64-wavetable"><img src="docs/90s/btn-awe32.gif" alt="AWE32 synth inside"></a>
 <picture><img src="docs/90s/btn-sb16.gif" alt="Sound by SB16"></picture>
 <picture><img src="docs/90s/btn-dos.gif" alt="Powered by DOS 7.1"></picture>
 
@@ -61,14 +61,14 @@
 <table>
 <tr>
 <td align="center"><b>Release counter:</b><br><picture><img src="docs/90s/counter.gif" width="200" alt="000109"></picture><br><sub>betas and counting!</sub></td>
-<td align="center"><picture><img src="docs/90s/jukebox.gif" width="300" alt="MIDI player: now playing PORT220_THEME.MID"></picture><br><sub>(the music is in your head... or on your SC-55!!)</sub></td>
+<td align="center"><picture><img src="docs/90s/jukebox.gif" width="300" alt="MIDI player: now playing PORT220_THEME.MID"></picture><br><sub>(the music is in your head... or on your SC-55)</sub></td>
 <td align="center"><picture><img src="docs/90s/award.gif" width="96" alt="Cool DOS Site of the Day award"></picture></td>
 </tr>
 </table>
 
 <br><br>
 
-<a href="#-whats-new-"><img src="https://github.com/deon81997/NUKED-SBEMU/releases/download/news-ticker/ticker-hd.gif" width="600" alt="The newest news, scrolling"></a>
+<a href="#whats-new"><img src="https://github.com/deon81997/NUKED-SBEMU/releases/download/news-ticker/ticker-hd.gif" width="600" alt="The newest news, scrolling"></a>
 
 <br><br>
 
@@ -76,13 +76,13 @@
 
 <br>
 
-<b>~ SITE MAP ~</b> <sub>(click a button!!)</sub>
+<b>~ SITE MAP ~</b> <sub>(click a button)</sub>
 
 <table>
-<tr><td><a href="#-whats-new-"><img src="docs/90s/nav-news.gif" width="88" alt="What's new"></a></td><td><a href="#-what-is-this-"><img src="docs/90s/nav-what.gif" width="88" alt="What is this?"></a></td><td><a href="#-cool-features-"><img src="docs/90s/nav-features.gif" width="88" alt="Features"></a></td><td><a href="#-will-it-run-on-my-pc-"><img src="docs/90s/nav-run.gif" width="88" alt="Will it run?"></a></td></tr>
-<tr><td><a href="#-my-test-lab-"><img src="docs/90s/nav-lab.gif" width="88" alt="My test lab"></a></td><td><a href="#-getting-started-"><img src="docs/90s/nav-start.gif" width="88" alt="Getting started"></a></td><td><a href="#-usb-gamepads-in-dos-"><img src="docs/90s/nav-pads.gif" width="88" alt="USB gamepads"></a></td><td><a href="#-supported-sound-chips-"><img src="docs/90s/nav-chips.gif" width="88" alt="Sound chips"></a></td></tr>
-<tr><td><a href="#-screenshots-"><img src="docs/90s/nav-shots.gif" width="88" alt="Screenshots"></a></td><td><a href="#-hall-of-fame-"><img src="docs/90s/nav-fame.gif" width="88" alt="Hall of fame"></a></td><td><a href="#-built-with-claude-"><img src="docs/90s/nav-claude.gif" width="88" alt="Built with Claude"></a></td><td><a href="#-made-for-this-pack-"><img src="docs/90s/nav-home.gif" width="88" alt="Made for this pack"></a></td></tr>
-<tr><td><a href="#-download-zone-"><img src="docs/90s/nav-download.gif" width="88" alt="Downloads"></a></td><td><a href="#-sign-my-guestbook-"><img src="docs/90s/nav-guest.gif" width="88" alt="Guestbook"></a></td><td><a href="#-for-the-nerds-source-code-"><img src="docs/90s/nav-source.gif" width="88" alt="Source code"></a></td><td><a href="#-thanks-to-my-friends-"><img src="docs/90s/nav-thanks.gif" width="88" alt="Thanks"></a></td></tr>
+<tr><td><a href="#whats-new"><img src="docs/90s/nav-news.gif" width="88" alt="What's new"></a></td><td><a href="#what-is-this"><img src="docs/90s/nav-what.gif" width="88" alt="What is this?"></a></td><td><a href="#cool-features"><img src="docs/90s/nav-features.gif" width="88" alt="Features"></a></td><td><a href="#will-it-run-on-my-pc"><img src="docs/90s/nav-run.gif" width="88" alt="Will it run?"></a></td></tr>
+<tr><td><a href="#my-test-lab"><img src="docs/90s/nav-lab.gif" width="88" alt="My test lab"></a></td><td><a href="#getting-started"><img src="docs/90s/nav-start.gif" width="88" alt="Getting started"></a></td><td><a href="#usb-gamepads-in-dos"><img src="docs/90s/nav-pads.gif" width="88" alt="USB gamepads"></a></td><td><a href="#supported-sound-chips"><img src="docs/90s/nav-chips.gif" width="88" alt="Sound chips"></a></td></tr>
+<tr><td><a href="#screenshots"><img src="docs/90s/nav-shots.gif" width="88" alt="Screenshots"></a></td><td><a href="#hall-of-fame"><img src="docs/90s/nav-fame.gif" width="88" alt="Hall of fame"></a></td><td><a href="#built-with-claude"><img src="docs/90s/nav-claude.gif" width="88" alt="Built with Claude"></a></td><td><a href="#made-for-this-pack"><img src="docs/90s/nav-home.gif" width="88" alt="Made for this pack"></a></td></tr>
+<tr><td><a href="#download-zone"><img src="docs/90s/nav-download.gif" width="88" alt="Downloads"></a></td><td><a href="#sign-my-guestbook"><img src="docs/90s/nav-guest.gif" width="88" alt="Guestbook"></a></td><td><a href="#for-the-nerds-source-code"><img src="docs/90s/nav-source.gif" width="88" alt="Source code"></a></td><td><a href="#thanks-to-my-friends"><img src="docs/90s/nav-thanks.gif" width="88" alt="Thanks"></a></td></tr>
 </table>
 
 
@@ -101,152 +101,151 @@
 
 <div align="center"><picture><img src="docs/90s/fd-marine-walk.gif" alt=""></picture> <picture><img src="docs/90s/ic-news.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-news.gif" alt=""></picture> <picture><img src="docs/90s/fd-serpentipede.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> What's NEW!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## What's New
 <picture><img src="docs/90s/vox-sec-tv.gif" width="140" align="right" alt=""></picture>
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/17/2026: beta.130-awe.10.** **The Windows 98 debug link costs nothing even when it is on - EMU8000 ports too!!** The AWE line gets main-line **beta.130-w98.10**: with `SC55W /DBG:COM1` on (level 1), awe.9 called extra code for every Sound Blaster, MPU-401 and EMU8000 port access a DOS game made; now the driver just counts them (`awe=` in the stats lines included), so you can leave the link on while you hunt a freeze. Level 3 (the port capture) still does the extra work, only while it is on. Tested on 86Box (Pentium II 450, 8 million port reads per test, DSP / MPU / EMU8000 port, 55 ms ticks): awe.9 link off 150-157 / 157-163 / 184-188, on 175-177 / 175 / 211; awe.10 on 157-163 / 160-164 / 185-188 (= off within the rig's run-to-run spread), and in the Windows 98 QEMU rig (DOS box sound, Media Player MIDI, AWE32 MIDI Synth, EMU8000 traps and capture, hang and driver-fault tests) plus Duke 3D AWE32 music in a DOS box on 86Box with the link on.
+<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/17/2026: beta.130-awe.10.** **The Windows 98 debug link costs nothing even when it is on - EMU8000 ports too.** The AWE line gets main-line **beta.130-w98.10**: with `SC55W /DBG:COM1` on (level 1), awe.9 called extra code for every Sound Blaster, MPU-401 and EMU8000 port access a DOS game made; now the driver just counts them (`awe=` in the stats lines included), so you can leave the link on while you hunt a freeze. Level 3 (the port capture) still does the extra work, only while it is on. Tested on 86Box (Pentium II 450, 8 million port reads per test, DSP / MPU / EMU8000 port, 55 ms ticks): awe.9 link off 150-157 / 157-163 / 184-188, on 175-177 / 175 / 211; awe.10 on 157-163 / 160-164 / 185-188 (= off within the rig's run-to-run spread), and in the Windows 98 QEMU rig (DOS box sound, Media Player MIDI, AWE32 MIDI Synth, EMU8000 traps and capture, hang and driver-fault tests) plus Duke 3D AWE32 music in a DOS box on 86Box with the link on.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/17/2026: beta.130-awe.9.** **Watch Windows 98 and the AWE32 live over a serial cable!!** The AWE line gets main-line **beta.130-w98.9**'s Windows 98 debug link: `SC55W /DBG:COM1` (or Settings > **Debug**, the tab after AWE32) sends what the Windows 98 part is doing as the same short text lines as `SC55 /DBG:COM1` in DOS, to a second PC running `DBGLOG.PY` (lines marked **DOS** or **W98**); the driver writes the serial port itself, so **the last lines still arrive when Windows hangs**. On this line it also shows the **AWE32**: the EMU8000 ports it trapped (620/A20/E20), `awe=` port accesses in the once-a-second stats line plus an EMU8000 line with the keys held and sample RAM writes while a DOS box plays on it, when a DOS box **takes the chip** from the AWE32 MIDI Synth and when the synth gets it back, Windows programs opening "AWE32 MIDI Synth" or "NUKED SB-EMU" (each by name), the ROM and the banks the AWE32 MIDI Synth loaded or could not load; the level-3 capture includes the EMU8000 ports. Off = no cost (Pentium II 450: the same as awe.8); on, a loop doing nothing but EMU8000 reads runs 13 % slower, a game well under 1 %. Tested in the Win98 VM (QEMU: link, port claim and refusal, Media Player, AWELOAD + the AWE32 MIDI Synth hand-over, the capture, a forced hang and a driver crash) and Duke 3D with AWE32 music in an 86Box Win98 DOS box.
+<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/17/2026: beta.130-awe.9.** **Watch Windows 98 and the AWE32 live over a serial cable.** The AWE line gets main-line **beta.130-w98.9**'s Windows 98 debug link: `SC55W /DBG:COM1` (or Settings > **Debug**, the tab after AWE32) sends what the Windows 98 part is doing as the same short text lines as `SC55 /DBG:COM1` in DOS, to a second PC running `DBGLOG.PY` (lines marked **DOS** or **W98**); the driver writes the serial port itself, so **the last lines still arrive when Windows hangs**. On this line it also shows the **AWE32**: the EMU8000 ports it trapped (620/A20/E20), `awe=` port accesses in the once-a-second stats line plus an EMU8000 line with the keys held and sample RAM writes while a DOS box plays on it, when a DOS box **takes the chip** from the AWE32 MIDI Synth and when the synth gets it back, Windows programs opening "AWE32 MIDI Synth" or "NUKED SB-EMU" (each by name), the ROM and the banks the AWE32 MIDI Synth loaded or could not load; the level-3 capture includes the EMU8000 ports. Off = no cost (Pentium II 450: the same as awe.8); on, a loop doing nothing but EMU8000 reads runs 13 % slower, a game well under 1 %. Tested in the Win98 VM (QEMU: link, port claim and refusal, Media Player, AWELOAD + the AWE32 MIDI Synth hand-over, the capture, a forced hang and a driver crash) and Duke 3D with AWE32 music in an 86Box Win98 DOS box.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/17/2026: beta.130-awe.8.** **Every AWE32 setting in SETTINGS!!** The AWE32 gets its own page: pick MIDI synth = AWE32 and press **Enter** (or MENU > Settings > **AWE32 options**, `SETTINGS /PAGE:AWE`). On it: AWE32 on/off and the **port** (620/640/660/680), the **sample RAM** (512 KB like an AWE32, 4 MB like an AWE64 Gold, up to 28 MB), the **AWE ROM** (auto shows the file it found by what's inside, or pick a file or folder with the browser), **reverb + chorus** and "MPU-401 also plays". A red line tells you when the ROM is missing or the sample RAM is more than the free memory. Only what differs from SBEMU's defaults is saved, switches SETTINGS doesn't know (like Windows 98's `/VSCLPF`) now stay in SBOPTS.TXT, and Windows 98 Settings > AWE32 shows the same values. SBEMU itself is unchanged (same speed). Tested: every option and value saved and read back (also by the Windows 98 reader), and SETTINGS driven by keys in a DOS VM: saved, reloaded, SC55 started with port 640 / 4 MB / no reverb / GM on the AWE32, MENU shows "AWE32 + own GM".
+<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/17/2026: beta.130-awe.8.** **Every AWE32 setting in SETTINGS.** The AWE32 gets its own page: pick MIDI synth = AWE32 and press **Enter** (or MENU > Settings > **AWE32 options**, `SETTINGS /PAGE:AWE`). On it: AWE32 on/off and the **port** (620/640/660/680), the **sample RAM** (512 KB like an AWE32, 4 MB like an AWE64 Gold, up to 28 MB), the **AWE ROM** (auto shows the file it found by what's inside, or pick a file or folder with the browser), **reverb + chorus** and "MPU-401 also plays". A red line tells you when the ROM is missing or the sample RAM is more than the free memory. Only what differs from SBEMU's defaults is saved, switches SETTINGS doesn't know (like Windows 98's `/VSCLPF`) now stay in SBOPTS.TXT, and Windows 98 Settings > AWE32 shows the same values. SBEMU itself is unchanged (same speed). Tested: every option and value saved and read back (also by the Windows 98 reader), and SETTINGS driven by keys in a DOS VM: saved, reloaded, SC55 started with port 640 / 4 MB / no reverb / GM on the AWE32, MENU shows "AWE32 + own GM".
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.7.** **Your own SoundFonts on the AWE32 MIDI Synth!!** Windows 98 gets a **bank manager** like Creative's - without Creative's tools: tray icon > Settings > AWE32 lists the banks. **Bank 0** is the GM / GS / MT-32 bank as before; **banks 1-127** take your own **.SF2 or .SBK** files ("Add / replace bank..."), and "Replace one preset..." puts a single instrument from any SoundFont in place of one program (or drum kit). Programs pick them with **bank select** (CC0, or CC32 for sequencers that send only that). A **sample RAM gauge** shows what is used of the AWE32's RAM (Sample RAM / `/AWERAM`), and a bank that doesn't fit is refused with a clear message ("needs 5646 KB, 1636 KB free"). Everything is kept in `SC55W.INI` and loaded again at start. New choice for DOS boxes: **"MPU-401 plays on"** the SC-55 synth, the **AWE32 MIDI Synth (GM / GS / MT-32 bank)** or nothing - `/AWEMPU:1|GM|GS|MT32|0`, the same names as DOS SBEMU - so a General MIDI game gets AWE32 music without an AWE32 driver. A DOS game that drives the EMU8000 itself still gets a clean chip, and your banks come back when it's done. Tested in a Windows 98 VM (Pentium II 450) with a free SoundFont (TimGM6mb) and a stand-in SBK as banks 1 and 2, a bank that doesn't fit, a restart, Duke 3D on General MIDI in a DOS box and a DOS program taking the chip. A song from a SoundFont bank costs about a fifth of a Pentium II 450, the same as the built-in GM bank.
+**11/16/2026: beta.130-awe.7.** **Your own SoundFonts on the AWE32 MIDI Synth.** Windows 98 gets a **bank manager** like Creative's - without Creative's tools: tray icon > Settings > AWE32 lists the banks. **Bank 0** is the GM / GS / MT-32 bank as before; **banks 1-127** take your own **.SF2 or .SBK** files ("Add / replace bank..."), and "Replace one preset..." puts a single instrument from any SoundFont in place of one program (or drum kit). Programs pick them with **bank select** (CC0, or CC32 for sequencers that send only that). A **sample RAM gauge** shows what is used of the AWE32's RAM (Sample RAM / `/AWERAM`), and a bank that doesn't fit is refused with a clear message ("needs 5646 KB, 1636 KB free"). Everything is kept in `SC55W.INI` and loaded again at start. New choice for DOS boxes: **"MPU-401 plays on"** the SC-55 synth, the **AWE32 MIDI Synth (GM / GS / MT-32 bank)** or nothing - `/AWEMPU:1|GM|GS|MT32|0`, the same names as DOS SBEMU - so a General MIDI game gets AWE32 music without an AWE32 driver. A DOS game that drives the EMU8000 itself still gets a clean chip, and your banks come back when it's done. Tested in a Windows 98 VM (Pentium II 450) with a free SoundFont (TimGM6mb) and a stand-in SBK as banks 1 and 2, a bank that doesn't fit, a restart, Duke 3D on General MIDI in a DOS box and a DOS program taking the chip. A song from a SoundFont bank costs about a fifth of a Pentium II 450, the same as the built-in GM bank.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.6.** **General MIDI on the AWE32 in DOS!!** `AWEUTIL /EM:GM` never worked under SBEMU (it needs the real card's NMI to catch port 330), so SBEMU does it itself: **`/AWEMPU:GM`**, `GS` or `MT32` (SETTINGS > "MPU-401 also plays" > **"AWE32 itself"**) sends everything games and MIDPLAY play on the MPU-401 to the EMU8000, with **Creative's own `SYNTHGM.SBK` / `SYNTHGS.SBK` / `SYNTHMT.SBK`** from your AWE32 drivers (drop them in `C:\SC55\ROMS`, any name: found by what's inside; no SBK = NUKED's own GM map over the AWE ROM). Duke 3D set to General MIDI now plays on the AWE32, no SC-55 ROMs needed and a lot lighter on the CPU. A game with its own AWE32 driver still gets the chip, and the MPU-401 music comes back with the next program. MENU and MIDPLAY know about it too.
+**11/16/2026: beta.130-awe.6.** **General MIDI on the AWE32 in DOS.** `AWEUTIL /EM:GM` never worked under SBEMU (it needs the real card's NMI to catch port 330), so SBEMU does it itself: **`/AWEMPU:GM`**, `GS` or `MT32` (SETTINGS > "MPU-401 also plays" > **"AWE32 itself"**) sends everything games and MIDPLAY play on the MPU-401 to the EMU8000, with **Creative's own `SYNTHGM.SBK` / `SYNTHGS.SBK` / `SYNTHMT.SBK`** from your AWE32 drivers (drop them in `C:\SC55\ROMS`, any name: found by what's inside; no SBK = NUKED's own GM map over the AWE ROM). Duke 3D set to General MIDI now plays on the AWE32, no SC-55 ROMs needed and a lot lighter on the CPU. A game with its own AWE32 driver still gets the chip, and the MPU-401 music comes back with the next program. MENU and MIDPLAY know about it too.
 
 <details>
 <summary><b>&gt;&gt; Older news &lt;&lt;</b></summary>
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.5.** **The AWE32 MIDI Synth comes to Windows 98!!** Windows programs now get a second MIDI device next to "NUKED SB-EMU": **"AWE32 MIDI Synth"**, played by the EMU8000 (with the reverb and chorus from awe.4) like Creative's own Win98 AWE driver. Media Player, sequencers and Windows games pick it like any MIDI device. It plays **Creative's own banks** `SYNTHGM.SBK` / `SYNTHGS.SBK` / `SYNTHMT.SBK` from your AWE32 / AWE64 drivers: drop them (or the whole unpacked driver folder) anywhere under `C:\SC55`, they're found by what's inside and copied to `ROMS`. Tray icon > Settings > AWE32 picks **GM / GS / MT-32** like `AWEUTIL /EM` and Creative's **8 reverb and 8 chorus types** like AWE Control. No SBK? NUKED's own GM map over the AWE ROM plays instead, and Settings tells you where to get the real ones (see **Where do I get the SBK files??** in the AWE32 section). The volume follows Windows, 30 voices with voice stealing like the card, and a DOS game that uses the AWE32 gets the chip (Windows' notes stop, like on a real card); the MIDI device plays again as soon as that DOS box is closed. Tested in a Windows 98 VM (Pentium II 450) with Media Player, a MIDI sequencer, a 380-notes-a-second note test (nothing lost) and a stand-in bank made from a free SoundFont; a busy song costs about a fifth of a Pentium II 450, nothing when silent.
+**11/16/2026: beta.130-awe.5.** **The AWE32 MIDI Synth comes to Windows 98.** Windows programs now get a second MIDI device next to "NUKED SB-EMU": **"AWE32 MIDI Synth"**, played by the EMU8000 (with the reverb and chorus from awe.4) like Creative's own Win98 AWE driver. Media Player, sequencers and Windows games pick it like any MIDI device. It plays **Creative's own banks** `SYNTHGM.SBK` / `SYNTHGS.SBK` / `SYNTHMT.SBK` from your AWE32 / AWE64 drivers: drop them (or the whole unpacked driver folder) anywhere under `C:\SC55`, they're found by what's inside and copied to `ROMS`. Tray icon > Settings > AWE32 picks **GM / GS / MT-32** like `AWEUTIL /EM` and Creative's **8 reverb and 8 chorus types** like AWE Control. No SBK? NUKED's own GM map over the AWE ROM plays instead, and Settings tells you where to get the real ones (see **Where do I get the SBK files?** in the AWE32 section). The volume follows Windows, 30 voices with voice stealing like the card, and a DOS game that uses the AWE32 gets the chip (Windows' notes stop, like on a real card); the MIDI device plays again as soon as that DOS box is closed. Tested in a Windows 98 VM (Pentium II 450) with Media Player, a MIDI sequencer, a 380-notes-a-second note test (nothing lost) and a stand-in bank made from a free SoundFont; a busy song costs about a fifth of a Pentium II 450, nothing when silent.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.4.** **The AWE32 gets its reverb and chorus!!** The EMU8000's two effects now play, in DOS and in Windows 98 DOS boxes: all 8 reverb types (Room 1-3, Hall 1-2, Plate, Delay, Panning Delay) and all 8 chorus types (Chorus 1-4, Feedback, Flanger, Short Delay, Short Delay + feedback), set up by the game or AWEUTIL exactly as Creative's drivers do it, with each voice's own reverb and chorus send. The effect design follows 86Box's EMU8000 (credited, GPL), rewritten in fast integer code: every type matches 86Box within 40-54 dB, and Duke Nukem 3D's AWE32 music now fills its rests with the same reverb tail as 86Box's own AWE64 card. `/AWEFX:0` (or Windows 98 Settings > AWE32 > untick "Reverb and chorus") turns them off. Cost on a Pentium II 450: the AWE32 takes 4% instead of 2% while Duke plays; nothing changes with the AWE32 off, and the SC-55 runs exactly as fast as before.
+**11/16/2026: beta.130-awe.4.** **The AWE32 gets its reverb and chorus.** The EMU8000's two effects now play, in DOS and in Windows 98 DOS boxes: all 8 reverb types (Room 1-3, Hall 1-2, Plate, Delay, Panning Delay) and all 8 chorus types (Chorus 1-4, Feedback, Flanger, Short Delay, Short Delay + feedback), set up by the game or AWEUTIL exactly as Creative's drivers do it, with each voice's own reverb and chorus send. The effect design follows 86Box's EMU8000 (credited, GPL), rewritten in fast integer code: every type matches 86Box within 40-54 dB, and Duke Nukem 3D's AWE32 music now fills its rests with the same reverb tail as 86Box's own AWE64 card. `/AWEFX:0` (or Windows 98 Settings > AWE32 > untick "Reverb and chorus") turns them off. Cost on a Pentium II 450: the AWE32 takes 4% instead of 2% while Duke plays; nothing changes with the AWE32 off, and the SC-55 runs exactly as fast as before.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.3.** **The AWE32 comes to Windows 98!!** DOS games in a Windows 98 DOS box (window or full screen) now get a Sound Blaster AWE32 too: the EMU8000 wavetable at 620h (or 640/660/680h) with 512 KB to 28 MB of sample RAM, played by the same engine as `SBEMU /AWE` in DOS and mixed into the DOS box's sound. Turn it on in the tray icon's **Settings > AWE32** tab or with `SC55W /AWE:620` (also `/AWERAM`, `/AWEMPU`, `/AWEROM`, kept in SBOPTS.TXT like DOS); the Sound Blaster becomes a 16, BLASTER gets `E620`, and the MPU-401 keeps its SC-55. Like on a real card every port read is answered at once: SC55W.VXD keeps its own copy of the chip's registers and sample RAM (we also tried pausing the DOS box until the synth answered each read - 4 to 32 times slower, so that's out). Tested on a Pentium II 450 (86Box, Windows 98 SE): AWE32 detection exactly as in DOS, an AWEUTIL-style init in 57 ms, a 512 KB sample upload in 0.3 s, and Duke Nukem 3D's AWE32 music with the same notes and tone as under DOS SBEMU. With the AWE32 off or silent Windows is as fast as before; 16 playing voices take about 5% of the CPU. Not tried on a real PC yet: HWTEST.TXT has the steps.
+**11/16/2026: beta.130-awe.3.** **The AWE32 comes to Windows 98.** DOS games in a Windows 98 DOS box (window or full screen) now get a Sound Blaster AWE32 too: the EMU8000 wavetable at 620h (or 640/660/680h) with 512 KB to 28 MB of sample RAM, played by the same engine as `SBEMU /AWE` in DOS and mixed into the DOS box's sound. Turn it on in the tray icon's **Settings > AWE32** tab or with `SC55W /AWE:620` (also `/AWERAM`, `/AWEMPU`, `/AWEROM`, kept in SBOPTS.TXT like DOS); the Sound Blaster becomes a 16, BLASTER gets `E620`, and the MPU-401 keeps its SC-55. Like on a real card every port read is answered at once: SC55W.VXD keeps its own copy of the chip's registers and sample RAM (we also tried pausing the DOS box until the synth answered each read - 4 to 32 times slower, so that's out). Tested on a Pentium II 450 (86Box, Windows 98 SE): AWE32 detection exactly as in DOS, an AWEUTIL-style init in 57 ms, a 512 KB sample upload in 0.3 s, and Duke Nukem 3D's AWE32 music with the same notes and tone as under DOS SBEMU. With the AWE32 off or silent Windows is as fast as before; 16 playing voices take about 5% of the CPU. Not tried on a real PC yet: HWTEST.TXT has the steps.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.2.** **Windows 98 catches up in the AWE32 edition too!!** The Windows 98 part (DOS boxes + the "NUKED SB-EMU" MIDI device) is now beta.130-w98.8, the same as the main pack: switch the MIDI output while a game plays (tray icon > MIDI to, or `SC55W /MOUT:...`), the SC-55 low-pass (`/VSCLPF`), the MPU-401 intelligent-mode fixes, the pad key fixes (`/JOYDZ`) and `SC55W /VER` (VERSIONS.TXT in BUGREP). The AWE32 itself stays a DOS feature: SBEMU for DOS is the same as beta.130-awe.1 (only its version name changed).
+**11/16/2026: beta.130-awe.2.** **Windows 98 catches up in the AWE32 edition too.** The Windows 98 part (DOS boxes + the "NUKED SB-EMU" MIDI device) is now beta.130-w98.8, the same as the main pack: switch the MIDI output while a game plays (tray icon > MIDI to, or `SC55W /MOUT:...`), the SC-55 low-pass (`/VSCLPF`), the MPU-401 intelligent-mode fixes, the pad key fixes (`/JOYDZ`) and `SC55W /VER` (VERSIONS.TXT in BUGREP). The AWE32 itself stays a DOS feature: SBEMU for DOS is the same as beta.130-awe.1 (only its version name changed).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-awe.1.** **No stuck keys and no loud blast in the AWE32 edition!!** Everything from beta.128 to beta.130 is in: SBEMU no longer takes a key from the game while it watches for its hotkeys (no more stuck right arrow in Duke 3D, `/KEYTRAP:0` for the old way), **Ctrl+Alt+F11** switches the MPU-401 music between the SC-55 and a USB MIDI cable without a loud blast, and `SC55 /DBG:COM1` adds a "usbmidi" line and key (`K`) lines. The AWE32 keeps its own ports and plays on through all of it. The new keyboard trap takes one of HDPMI's 16 port slots (AWE32 + pad: 15 used); the AWE32 always gets its slots first, and if none is left for the keyboard trap SBEMU says so and watches the keys the old way. Duke 3D with AWE32 music and the SC-55 speed are the same as before (measured on a Pentium II 450).
+**11/16/2026: beta.130-awe.1.** **No stuck keys and no loud blast in the AWE32 edition.** Everything from beta.128 to beta.130 is in: SBEMU no longer takes a key from the game while it watches for its hotkeys (no more stuck right arrow in Duke 3D, `/KEYTRAP:0` for the old way), **Ctrl+Alt+F11** switches the MPU-401 music between the SC-55 and a USB MIDI cable without a loud blast, and `SC55 /DBG:COM1` adds a "usbmidi" line and key (`K`) lines. The AWE32 keeps its own ports and plays on through all of it. The new keyboard trap takes one of HDPMI's 16 port slots (AWE32 + pad: 15 used); the AWE32 always gets its slots first, and if none is left for the keyboard trap SBEMU says so and watches the keys the old way. Duke 3D with AWE32 music and the SC-55 speed are the same as before (measured on a Pentium II 450).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.127-awe.1.** **The serial debug link comes to the AWE32 edition!!** Everything from beta.127 is in: `SC55 /DBG:COM1` streams what SBEMU is doing to a second PC over a serial cable, with the AWE32 on too (its port writes show up in the level 3 port capture next to the Sound Blaster and MPU-401).
+**11/15/2026: beta.127-awe.1.** **The serial debug link comes to the AWE32 edition.** Everything from beta.127 is in: `SC55 /DBG:COM1` streams what SBEMU is doing to a second PC over a serial cable, with the AWE32 on too (its port writes show up in the level 3 port capture next to the Sound Blaster and MPU-401).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/16/2026: beta.130-w98.8.** **Windows 98 catches up with DOS!!** The Windows 98 part (DOS boxes + the "NUKED SB-EMU" MIDI device) now does what DOS beta.130 does wherever Windows lets it. **Switch the MIDI output while a game plays:** tray icon > **MIDI to** (or `SC55W /MOUT:USB`, `/MOUT:NEXT`, `/MOUT:SYNTH`) sends the music to the SC-55 emulation or to any Windows MIDI port - a USB MIDI cable (M-Audio Uno) to your real SC-55, a sound card's MIDI out - with the same quiet hand-over as DOS: the old output is silenced, the new one gets the song's reset, instruments and controllers first and volume last, so no stuck notes and no loud blast. Games that talk to the **MPU-401 in "intelligent mode"** get proper answers now and their command bytes are no longer played as wrong notes. The **SC-55 low-pass** (no whistling high notes at 22 kHz) is in Settings, the **pad no longer types keys by itself** (stick drift, a trigger resting half way), and **`SC55W /VER`** shows the version of every Windows 98 file (BUGREP.TXT gets them too). Tested in the Win98 QuickInstall VMs (APM and ACPI): install, uninstall, DOS-box games, Windows MIDI, output switching and a 30-minute Duke 3D soak; no slowdown (+0.6 % render work with the low-pass on, 0 % without).
+**11/16/2026: beta.130-w98.8.** **Windows 98 catches up with DOS.** The Windows 98 part (DOS boxes + the "NUKED SB-EMU" MIDI device) now does what DOS beta.130 does wherever Windows lets it. **Switch the MIDI output while a game plays:** tray icon > **MIDI to** (or `SC55W /MOUT:USB`, `/MOUT:NEXT`, `/MOUT:SYNTH`) sends the music to the SC-55 emulation or to any Windows MIDI port - a USB MIDI cable (M-Audio Uno) to your real SC-55, a sound card's MIDI out - with the same quiet hand-over as DOS: the old output is silenced, the new one gets the song's reset, instruments and controllers first and volume last, so no stuck notes and no loud blast. Games that talk to the **MPU-401 in "intelligent mode"** get proper answers now and their command bytes are no longer played as wrong notes. The **SC-55 low-pass** (no whistling high notes at 22 kHz) is in Settings, the **pad no longer types keys by itself** (stick drift, a trigger resting half way), and **`SC55W /VER`** shows the version of every Windows 98 file (BUGREP.TXT gets them too). Tested in the Win98 QuickInstall VMs (APM and ACPI): install, uninstall, DOS-box games, Windows MIDI, output switching and a 30-minute Duke 3D soak; no slowdown (+0.6 % render work with the low-pass on, 0 % without).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.126-awe.1.** **The AWE32 line catches up again!!** Everything from beta.122 to beta.126 is in the AWE32 edition now: USB MIDI that plays the right notes, the MIDI output switch without a restart (MENU, `SBEMU /MOUT`, Ctrl+Alt+F11), faster VESA games with `/VWC:1`, no more random key presses from a resting pad, and digital out on the Audigy (`/SPDIF`). With the AWE32 on, the switch moves only the MPU-401 at 330h (SC-55 / SoundFont / MT-32 / USB MIDI); the AWE32 keeps playing at 620h, so a game with AWE32 music and General MIDI on 330 can send its MIDI to a real Sound Canvas while the AWE32 stays emulated.
+**11/15/2026: beta.126-awe.1.** **The AWE32 line catches up again.** Everything from beta.122 to beta.126 is in the AWE32 edition now: USB MIDI that plays the right notes, the MIDI output switch without a restart (MENU, `SBEMU /MOUT`, Ctrl+Alt+F11), faster VESA games with `/VWC:1`, no more random key presses from a resting pad, and digital out on the Audigy (`/SPDIF`). With the AWE32 on, the switch moves only the MPU-401 at 330h (SC-55 / SoundFont / MT-32 / USB MIDI); the AWE32 keeps playing at 620h, so a game with AWE32 music and General MIDI on 330 can send its MIDI to a real Sound Canvas while the AWE32 stays emulated.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.130.** **No more stuck right arrow in Duke 3D!!** On the D810's own keyboard, turning right in Duke Nukem 3D could stay held and pressing Right again did not stop it. The cause was SBEMU itself: to catch its hotkeys (Ctrl+Alt+F10/F11/F12) it peeked at the keyboard controller during every sound interrupt, and once in a while a key byte arrived in exactly that moment and SBEMU took it from the game. Losing the `E0` in front of the right arrow's release makes Duke let go of keypad 6 instead. Now SBEMU sees the keys the game reads through a port trap and never takes one. SBEMU also stops reading back keys it did not type itself. `SC55 /DBG:COM1:2` now logs every key byte (`K` lines: who read it, `E0`, make/break), and `/KEYTRAP:0` brings back the old way for comparison. Costs nothing (measured on a Pentium II 450).
+**11/15/2026: beta.130.** **No more stuck right arrow in Duke 3D.** On the D810's own keyboard, turning right in Duke Nukem 3D could stay held and pressing Right again did not stop it. The cause was SBEMU itself: to catch its hotkeys (Ctrl+Alt+F10/F11/F12) it peeked at the keyboard controller during every sound interrupt, and once in a while a key byte arrived in exactly that moment and SBEMU took it from the game. Losing the `E0` in front of the right arrow's release makes Duke let go of keypad 6 instead. Now SBEMU sees the keys the game reads through a port trap and never takes one. SBEMU also stops reading back keys it did not type itself. `SC55 /DBG:COM1:2` now logs every key byte (`K` lines: who read it, `E0`, make/break), and `/KEYTRAP:0` brings back the old way for comparison. Costs nothing (measured on a Pentium II 450).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.129.** **No more loud blast when you switch MIDI output!!** Pressing **Ctrl+Alt+F11** while a song plays (MIDPLAY or a game) could blast the song at full level on the other output. The new output got a GS reset and, right behind it, every channel's volume and expression - but a real SC-55 needs about 50 ms after a reset and lost them, so the song came in at the reset's full level. Now the old output is closed cleanly (any half-sent message ended, sustain off, all sound off, all notes off, controllers reset on every channel), the new one is silenced first, gets the reset with time to take it, then program, bank, pan, bend range and the rest, and volume + expression last, before the next note. A long replay waits for the USB cable instead of overflowing it, repeated GS part settings no longer fill the replay buffer, and MIDPLAY no longer reacts to the hotkey (it reached it as Alt+F11 and redrew the screen). Same for games. Tested by recording both outputs during a switch: no note plays at a wrong volume or with the wrong instrument, nothing hangs.
+**11/15/2026: beta.129.** **No more loud blast when you switch MIDI output.** Pressing **Ctrl+Alt+F11** while a song plays (MIDPLAY or a game) could blast the song at full level on the other output. The new output got a GS reset and, right behind it, every channel's volume and expression - but a real SC-55 needs about 50 ms after a reset and lost them, so the song came in at the reset's full level. Now the old output is closed cleanly (any half-sent message ended, sustain off, all sound off, all notes off, controllers reset on every channel), the new one is silenced first, gets the reset with time to take it, then program, bank, pan, bend range and the rest, and volume + expression last, before the next note. A long replay waits for the USB cable instead of overflowing it, repeated GS part settings no longer fill the replay buffer, and MIDPLAY no longer reacts to the hotkey (it reached it as Alt+F11 and redrew the screen). Same for games. Tested by recording both outputs during a switch: no note plays at a wrong volume or with the wrong instrument, nothing hangs.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.128.** **See what your USB MIDI cable is doing!!** With a USB MIDI cable (M-Audio Uno) and the serial debug link (`SC55 /DBG:COM1`), SBEMU now adds a "usbmidi" line every second: USB transfers sent, bytes, the biggest transfer, how many messages were waiting, how long a note took from the game to the cable (average and longest), the longest wait and gap, how often the cable was still busy, lost transfers and how long SBEMU's USB poll took. Every stats line also shows the longest pause between sound interrupts, so a PC that stops for a moment shows up. Made to track down short music hitches in Duke 3D on a Dell D810 (HWTEST.TXT); a timing model of SBEMU's USB MIDI path says it adds only about 1-3 ms there. Nothing changes without `/DBG`, and the SC-55 synth runs exactly as fast (measured on a Pentium II 450).
+**11/15/2026: beta.128.** **See what your USB MIDI cable is doing.** With a USB MIDI cable (M-Audio Uno) and the serial debug link (`SC55 /DBG:COM1`), SBEMU now adds a "usbmidi" line every second: USB transfers sent, bytes, the biggest transfer, how many messages were waiting, how long a note took from the game to the cable (average and longest), the longest wait and gap, how often the cable was still busy, lost transfers and how long SBEMU's USB poll took. Every stats line also shows the longest pause between sound interrupts, so a PC that stops for a moment shows up. Made to track down short music hitches in Duke 3D on a Dell D810 (HWTEST.TXT); a timing model of SBEMU's USB MIDI path says it adds only about 1-3 ms there. Nothing changes without `/DBG`, and the SC-55 synth runs exactly as fast (measured on a Pentium II 450).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.127.** **Watch SBEMU live over a serial cable!!** `SC55 /DBG:COM1` sends what SBEMU is doing as short text lines out of the DOS PC's serial port to a second PC: events and errors as they happen, plus one stats line a second (program, CPU load, sound interrupts, virtual IRQs given and acknowledged, port traps, MIDI bytes, underruns). If the PC freezes, the last line on the other PC is the last thing that happened; errors are sent before SBEMU goes on. `/DBG:COM1:2` adds a line per sound interrupt (ports, DMA, IRQs); `/DBG:COM1:3` records every port access in RAM without slowing the game and sends it when you press **Ctrl+Alt+F10**. MENU, MIDPLAY, GAMETEST and SBDIAG log to the same cable. On the other PC (Windows or Linux) `DBGLOG.PY` shows the lines, colours errors and saves a timestamped log; null-modem cable + USB-serial adapter, the D810 uses its D/Port's COM1 (DBGLOG.TXT). Off by default; costs nothing then (measured on a Pentium II 450).
+**11/15/2026: beta.127.** **Watch SBEMU live over a serial cable.** `SC55 /DBG:COM1` sends what SBEMU is doing as short text lines out of the DOS PC's serial port to a second PC: events and errors as they happen, plus one stats line a second (program, CPU load, sound interrupts, virtual IRQs given and acknowledged, port traps, MIDI bytes, underruns). If the PC freezes, the last line on the other PC is the last thing that happened; errors are sent before SBEMU goes on. `/DBG:COM1:2` adds a line per sound interrupt (ports, DMA, IRQs); `/DBG:COM1:3` records every port access in RAM without slowing the game and sends it when you press **Ctrl+Alt+F10**. MENU, MIDPLAY, GAMETEST and SBDIAG log to the same cable. On the other PC (Windows or Linux) `DBGLOG.PY` shows the lines, colours errors and saves a timestamped log; null-modem cable + USB-serial adapter, the D810 uses its D/Port's COM1 (DBGLOG.TXT). Off by default; costs nothing then (measured on a Pentium II 450).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/15/2026: beta.126.** **Digital out on the Sound Blaster Audigy!!** SBEMU now sends its sound (Sound Blaster, OPL3, SC-55) to the Audigy's coaxial S/PDIF out as well as the analog jacks, so a receiver or DAC can take it digitally. On Audigy 1 / 2 / 2 ZS / 4 PRO the rear "Digital Out / Center-Sub" jack is switched to digital for you: a 3.5 mm stereo-to-RCA cable, white (left) plug into the receiver's coaxial in. `SC55 /SPDIF:1` (default) = analog + digital, `/SPDIF:ONLY` = digital only, `/SPDIF:0` = analog only (the jack goes back to Center/Sub); always 48 kHz with the right channel status. `SBDIAG SPDIF` shows the card, mode and jack and switches it while SBEMU runs; `SBDIAG TONE` plays a 1 kHz tone left, right and both to check the cable; `/SPDIFINV:1` if the receiver gets no lock. Other sound cards are not touched. Not yet confirmed on a real Audigy: please report (HWTEST.TXT).
+**11/15/2026: beta.126.** **Digital out on the Sound Blaster Audigy.** SBEMU now sends its sound (Sound Blaster, OPL3, SC-55) to the Audigy's coaxial S/PDIF out as well as the analog jacks, so a receiver or DAC can take it digitally. On Audigy 1 / 2 / 2 ZS / 4 PRO the rear "Digital Out / Center-Sub" jack is switched to digital for you: a 3.5 mm stereo-to-RCA cable, white (left) plug into the receiver's coaxial in. `SC55 /SPDIF:1` (default) = analog + digital, `/SPDIF:ONLY` = digital only, `/SPDIF:0` = analog only (the jack goes back to Center/Sub); always 48 kHz with the right channel status. `SBDIAG SPDIF` shows the card, mode and jack and switches it while SBEMU runs; `SBDIAG TONE` plays a 1 kHz tone left, right and both to check the cable; `/SPDIFINV:1` if the receiver gets no lock. Other sound cards are not touched. Not yet confirmed on a real Audigy: please report (HWTEST.TXT).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.121-awe.2.** **AWE32 and SC-55 together!!** With the AWE32 picked in SETTINGS, the MPU-401 at 330h now keeps playing too, like a real AWE32 with a Sound Canvas on its MIDI port: AWE32 games use the EMU8000, General MIDI games, MIDPLAY and MENU's tests use the SC-55 (or SoundFont, MT-32, USB MIDI: SETTINGS > "MPU-401 also plays"). Before, MIDPLAY was silent and MENU said "MPU ?" in AWE mode (seen on an ASUS P5PE-VM with an Audigy). `/AWEMPU:0` keeps the old AWE-only setup; MENU then shows "AWE32 (no MPU)" and MIDPLAY says why it has nothing to play on. SBDIAG shows both synths. Tested in 86Box: Duke 3D AWE32 music unchanged, Duke with General MIDI on the MPU + Sound Blaster effects with the AWE32 on, AWE voices + MIDPLAY at once; no change without /AWE.
+**11/14/2026: beta.121-awe.2.** **AWE32 and SC-55 together.** With the AWE32 picked in SETTINGS, the MPU-401 at 330h now keeps playing too, like a real AWE32 with a Sound Canvas on its MIDI port: AWE32 games use the EMU8000, General MIDI games, MIDPLAY and MENU's tests use the SC-55 (or SoundFont, MT-32, USB MIDI: SETTINGS > "MPU-401 also plays"). Before, MIDPLAY was silent and MENU said "MPU ?" in AWE mode (seen on an ASUS P5PE-VM with an Audigy). `/AWEMPU:0` keeps the old AWE-only setup; MENU then shows "AWE32 (no MPU)" and MIDPLAY says why it has nothing to play on. SBDIAG shows both synths. Tested in 86Box: Duke 3D AWE32 music unchanged, Duke with General MIDI on the MPU + Sound Blaster effects with the AWE32 on, AWE voices + MIDPLAY at once; no change without /AWE.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.121-awe.1.** **The AWE32 line catches up!!** Everything from beta.120 (no more freeze with SATA in "Enhanced" mode) and beta.121 (`WCSET`: faster 3D pictures on Pentium Pro/II and newer) is now in the AWE32 / AWE64 build too. AWE music sounds the same as before (Duke Nukem 3D tested with HIMEM only and with JEMM, USB pad on) and SBEMU is just as fast.
+**11/14/2026: beta.121-awe.1.** **The AWE32 line catches up.** Everything from beta.120 (no more freeze with SATA in "Enhanced" mode) and beta.121 (`WCSET`: faster 3D pictures on Pentium Pro/II and newer) is now in the AWE32 / AWE64 build too. AWE music sounds the same as before (Duke Nukem 3D tested with HIMEM only and with JEMM, USB pad on) and SBEMU is just as fast.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.119-awe.2.** **Sound Blaster AWE32 / AWE64 wavetable!!** SBEMU can now be an AWE32: the EMU8000 wavetable chip at port 620h on a Sound Blaster 16, for games with an "AWE32" music choice (Duke Nukem 3D, Rise of the Triad, ...). SETTINGS > MIDI synth > "AWE32 / AWE64 wavetable (EMU8000)" (or `/AWE:620`), and put a dump of the AWE32's 1 MB sound ROM into C:\SC55\ROMS (found by content). The AWE32 and the SC-55 are exclusive: SETTINGS picks one. Tested in 86Box against its own AWE64: Duke 3D and ROTT play the same music with the same tone up to about 6 kHz, with only HIMEM loaded and with JEMM. Not there yet: reverb/chorus, and the top end is a little brighter. About 2-3% of a Pentium II 400 while the music plays; without /AWE nothing changes (same speed as beta.119). README.TXT section 6c.
+**11/14/2026: beta.119-awe.2.** **Sound Blaster AWE32 / AWE64 wavetable.** SBEMU can now be an AWE32: the EMU8000 wavetable chip at port 620h on a Sound Blaster 16, for games with an "AWE32" music choice (Duke Nukem 3D, Rise of the Triad, ...). SETTINGS > MIDI synth > "AWE32 / AWE64 wavetable (EMU8000)" (or `/AWE:620`), and put a dump of the AWE32's 1 MB sound ROM into C:\SC55\ROMS (found by content). The AWE32 and the SC-55 are exclusive: SETTINGS picks one. Tested in 86Box against its own AWE64: Duke 3D and ROTT play the same music with the same tone up to about 6 kHz, with only HIMEM loaded and with JEMM. Not there yet: reverb/chorus, and the top end is a little brighter. About 2-3% of a Pentium II 400 while the music plays; without /AWE nothing changes (same speed as beta.119). README.TXT section 6c.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.125.** **No more random key presses in games!!** A USB pad nobody touched could type keys: a slightly drifting stick, a trigger resting near its middle or one bad USB report crossed the stick-to-key threshold again and again (an idle pad typed 394 keys in 3 minutes in our test, now 0). Sticks now type keys only past half their travel, let go with hysteresis, must be seen centred once, and two polls must agree; buttons and triggers are debounced. A lost USB report or an unplugged keyboard lets go of every key it held (no endless repeat), keys go into the keyboard queue whole (a lost break code was a stuck key), our bytes never land between a real key's E0 prefix and its code, and a mouse byte the keyboard controller would hand over as a key is taken back. New: `SBDIAG KEYS` shows every key SBEMU typed and why (also in SBTRACE.TXT), `SBDIAG SOAK 30` is a 30-minute hands-off test that must say PASS.
+**11/14/2026: beta.125.** **No more random key presses in games.** A USB pad nobody touched could type keys: a slightly drifting stick, a trigger resting near its middle or one bad USB report crossed the stick-to-key threshold again and again (an idle pad typed 394 keys in 3 minutes in our test, now 0). Sticks now type keys only past half their travel, let go with hysteresis, must be seen centred once, and two polls must agree; buttons and triggers are debounced. A lost USB report or an unplugged keyboard lets go of every key it held (no endless repeat), keys go into the keyboard queue whole (a lost break code was a stuck key), our bytes never land between a real key's E0 prefix and its code, and a mouse byte the keyboard controller would hand over as a key is taken back. New: `SBDIAG KEYS` shows every key SBEMU typed and why (also in SBTRACE.TXT), `SBDIAG SOAK 30` is a 30-minute hands-off test that must say PASS.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.124.** **Faster VESA games!!** New `SC55 /VWC:1` turns on write-combining for the VESA frame buffer for as long as SBEMU is loaded, so games in 640x480 and higher VESA modes need less CPU time to draw their pictures and leave more for the SC-55 (meant for the Pentium M in a Dell D810, works on any Pentium Pro/II/III/M or newer). Off by default; only the frame buffer above 1 MB is changed, never the VGA window, so 320x200 and Mode X games are not touched. Works with HIMEM only (SC55) and JEMM (SC55JEM); with EMM386, QEMM or in Windows SBEMU says why not and loads as usual. `SBDIAG WC` (and the SBDIAG report) shows on / off / unavailable and why; `SBEMU /VWC:0` takes it away again. Costs nothing when off (measured on a Pentium II 450).
+**11/14/2026: beta.124.** **Faster VESA games.** New `SC55 /VWC:1` turns on write-combining for the VESA frame buffer for as long as SBEMU is loaded, so games in 640x480 and higher VESA modes need less CPU time to draw their pictures and leave more for the SC-55 (meant for the Pentium M in a Dell D810, works on any Pentium Pro/II/III/M or newer). Off by default; only the frame buffer above 1 MB is changed, never the VGA window, so 320x200 and Mode X games are not touched. Works with HIMEM only (SC55) and JEMM (SC55JEM); with EMM386, QEMM or in Windows SBEMU says why not and loads as usual. `SBDIAG WC` (and the SBDIAG report) shows on / off / unavailable and why; `SBEMU /VWC:0` takes it away again. Costs nothing when off (measured on a Pentium II 450).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.123.** **Switch MIDI output without a restart!!** Start with the emulated SC-55 (or SoundFont / MT-32), then send the music to your USB MIDI cable and back whenever you like: MENU > Sound > "MIDI to", `SBEMU /MOUT:USB` / `/MOUT:SYNTH`, picking USB MIDI in SETTINGS and running SC55 again, or **Ctrl+Alt+F11 in a game** (a note pops up top left). Two USB MIDI devices can be plugged in at once. The new output gets every channel's instrument and settings first, so the song plays on with the right sounds. Tested byte for byte with two fake USB MIDI cables and a SoundFont.
+**11/14/2026: beta.123.** **Switch MIDI output without a restart.** Start with the emulated SC-55 (or SoundFont / MT-32), then send the music to your USB MIDI cable and back whenever you like: MENU > Sound > "MIDI to", `SBEMU /MOUT:USB` / `/MOUT:SYNTH`, picking USB MIDI in SETTINGS and running SC55 again, or **Ctrl+Alt+F11 in a game** (a note pops up top left). Two USB MIDI devices can be plugged in at once. The new output gets every channel's instrument and settings first, so the song plays on with the right sounds. Tested byte for byte with two fake USB MIDI cables and a SoundFont.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.122.** **USB MIDI plays the right notes!!** With a USB MIDI cable (M-Audio Uno) on a real SC-55, games could play wrong instruments, hang notes or lose GS set-up SysEx: at game start they send faster than a MIDI cable carries and SBEMU's queue overflowed. SBEMU now feeds the cable at its real speed and tells the game to wait, like a real MPU-401; intelligent-mode games get proper answers and their command bytes no longer land in the music. Tested byte for byte (what the game wrote vs what a fake Uno received) with Duke 3D, Heretic, Descent and Miles/GS/MT-32/intelligent-mode streams: zero differences. MENU, SETTINGS, MPUTEST /USB, GAMETEST and `SBDIAG USB` show the device, port, state and last error; `/MIDICAP:1` + `SBDIAG MIDICAP` record a game for a bug report.
+**11/14/2026: beta.122.** **USB MIDI plays the right notes.** With a USB MIDI cable (M-Audio Uno) on a real SC-55, games could play wrong instruments, hang notes or lose GS set-up SysEx: at game start they send faster than a MIDI cable carries and SBEMU's queue overflowed. SBEMU now feeds the cable at its real speed and tells the game to wait, like a real MPU-401; intelligent-mode games get proper answers and their command bytes no longer land in the music. Tested byte for byte (what the game wrote vs what a fake Uno received) with Duke 3D, Heretic, Descent and Miles/GS/MT-32/intelligent-mode streams: zero differences. MENU, SETTINGS, MPUTEST /USB, GAMETEST and `SBDIAG USB` show the device, port, state and last error; `/MIDICAP:1` + `SBDIAG MIDICAP` record a game for a bug report.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.121.** **Faster 3D pictures!!** New `WCSET` turns on write-combining (an MTRR) for the VESA frame buffer on Pentium Pro/II/III/M and newer CPUs: MENU and MIDPLAY switch it on while they run and undo it at exit. MENU Settings > Fast video picks AUTO, ON (kept for games) or OFF; Tests > Video speed measures the frame buffer with it off and on. Works with HIMEM only and JEMM; refused under EMM386/QEMM and Windows. SBEMU itself is unchanged.
+**11/14/2026: beta.121.** **Faster 3D pictures.** New `WCSET` turns on write-combining (an MTRR) for the VESA frame buffer on Pentium Pro/II/III/M and newer CPUs: MENU and MIDPLAY switch it on while they run and undo it at exit. MENU Settings > Fast video picks AUTO, ON (kept for games) or OFF; Tests > Video speed measures the frame buffer with it off and on. Works with HIMEM only and JEMM; refused under EMM386/QEMM and Windows. SBEMU itself is unchanged.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.120.** **No more freeze with SATA in Enhanced mode!!** An ASUS P5PE-VM froze with SC55 while its BIOS had SATA on "Enhanced"; "Compatible" was fine. In Enhanced mode the disk controller shares a PCI interrupt with the sound card, and the Audigy/Live driver claimed every interrupt on it, so the disk's was lost. It now takes only its own. SC55 also shows a yellow warning when a native-mode disk controller shares the sound card IRQ, and SBDETAIL.TXT lists every disk controller and its IRQ.
+**11/14/2026: beta.120.** **No more freeze with SATA in Enhanced mode.** An ASUS P5PE-VM froze with SC55 while its BIOS had SATA on "Enhanced"; "Compatible" was fine. In Enhanced mode the disk controller shares a PCI interrupt with the sound card, and the Audigy/Live driver claimed every interrupt on it, so the disk's was lost. It now takes only its own. SC55 also shows a yellow warning when a native-mode disk controller shares the sound card IRQ, and SBDETAIL.TXT lists every disk controller and its IRQ.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.119.** **No more freeze with an Audigy!!** beta.115-118 froze an ASUS P5PE-VM with a Sound Blaster Audigy (Win98 -> MS-DOS mode). The new sound card interrupt watchdog from beta.115 asked every card driver to clear a stuck interrupt from outside the interrupt, but it had only been proven on the Ensoniq ES1371; the Audigy/Live, AC'97, CMI and HDA drivers do more than that. It now runs only on the ES1371; `SC55 /CARDWD:0` turns it off, `/CARDWD:1` forces it on, and SBDETAIL.TXT says whether it is active. New `P5TEST 1-4` in C:\SC55 tries the suspect changes one by one and saves the logs if the PC still freezes.
+**11/14/2026: beta.119.** **No more freeze with an Audigy.** beta.115-118 froze an ASUS P5PE-VM with a Sound Blaster Audigy (Win98 -> MS-DOS mode). The new sound card interrupt watchdog from beta.115 asked every card driver to clear a stuck interrupt from outside the interrupt, but it had only been proven on the Ensoniq ES1371; the Audigy/Live, AC'97, CMI and HDA drivers do more than that. It now runs only on the ES1371; `SC55 /CARDWD:0` turns it off, `/CARDWD:1` forces it on, and SBDETAIL.TXT says whether it is active. New `P5TEST 1-4` in C:\SC55 tries the suspect changes one by one and saves the logs if the PC still freezes.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.118.** **MENU knows when SBEMU is loaded!!** MENU said "Not loaded" when SBEMU was running but its MPU-401 did not answer MENU (seen on an ASUS P5PE-VM; also with Protected mode off). MENU now also asks the loaded SBEMU directly, so it shows Loaded (with "MPU ?" if the MPU-401 is silent), or "Unknown" instead of a wrong "Not loaded". `SC55MENU /STATUS` prints the version and mode SBEMU runs in; BUGREP.TXT has it.
+**11/14/2026: beta.118.** **MENU knows when SBEMU is loaded.** MENU said "Not loaded" when SBEMU was running but its MPU-401 did not answer MENU (seen on an ASUS P5PE-VM; also with Protected mode off). MENU now also asks the loaded SBEMU directly, so it shows Loaded (with "MPU ?" if the MPU-401 is silent), or "Unknown" instead of a wrong "Not loaded". `SC55MENU /STATUS` prints the version and mode SBEMU runs in; BUGREP.TXT has it.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.117.** **Disc swaps show at once!!** After Ctrl+Alt+PgDn switched the disc of a multi-disc set (.MDM), drive M: kept showing the old disc for up to 7 seconds if you had just used it: the CD letter program (SHSUCDX) only asked whether the disc had changed after 7 seconds of quiet. Now it asks after a tenth of a second, so DIR or a game's "insert disc 2" prompt sees the new disc right away. Plus in the 3D menu (Panels, 640x480) a long grey item no longer runs under its "start the SC-55 first" box. Same speed as before (SBEMU did not change).
+**11/14/2026: beta.117.** **Disc swaps show at once.** After Ctrl+Alt+PgDn switched the disc of a multi-disc set (.MDM), drive M: kept showing the old disc for up to 7 seconds if you had just used it: the CD letter program (SHSUCDX) only asked whether the disc had changed after 7 seconds of quiet. Now it asks after a tenth of a second, so DIR or a game's "insert disc 2" prompt sees the new disc right away. Plus in the 3D menu (Panels, 640x480) a long grey item no longer runs under its "start the SC-55 first" box. Same speed as before (SBEMU did not change).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.116.** **Every program tells you its version!!** Type `MIDPLAY /VER` (or SBEMU, SBSET, MENU, CDGUI, SBDIAG, any of the pack's EXEs) and it prints which NUKED SB-EMU version it came from, e.g. `MIDPLAY.EXE: NUKED SB-EMU 1.0.0-beta.116-usb-sc55`. BUGREP.TXT now lists every program's version, so a mixed-up install shows at once. Nothing else changed.
+**11/14/2026: beta.116.** **Every program tells you its version.** Type `MIDPLAY /VER` (or SBEMU, SBSET, MENU, CDGUI, SBDIAG, any of the pack's EXEs) and it prints which NUKED SB-EMU version it came from, e.g. `MIDPLAY.EXE: NUKED SB-EMU 1.0.0-beta.116-usb-sc55`. BUGREP.TXT now lists every program's version, so a mixed-up install shows at once. Nothing else changed.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/14/2026: beta.115.** **CD music just works, and SBEMU can't go silent anymore!!** CD-Audio of a mounted CUE/BIN image now plays through your sound card with the normal SC55.BAT / SC55JEM.BAT, also for a disc you mount later from MENU (before, only HYBRID.BAT did it and MENU discs stayed silent). SETTINGS > CD audio volume: 100% by default, "Off" turns it off. A lost sound-card interrupt could leave SBEMU silent until the next reboot (games then said "no Sound Blaster found", like God of Thunder): a watchdog now notices and gets the card going again within a quarter second. Plus the CD images picker in MENU shows its folder line again. Tested with a new matrix: FAT12/16/32 x ISO/CUE/MDM/long names x real/protected mode, mount + install + play God of Thunder and Raptor + CD music + disc swap, 24 runs. Same speed as before (344 interrupts/s, 1% CPU on a Pentium II 450).
+**11/14/2026: beta.115.** **CD music just works, and SBEMU can't go silent anymore.** CD-Audio of a mounted CUE/BIN image now plays through your sound card with the normal SC55.BAT / SC55JEM.BAT, also for a disc you mount later from MENU (before, only HYBRID.BAT did it and MENU discs stayed silent). SETTINGS > CD audio volume: 100% by default, "Off" turns it off. A lost sound-card interrupt could leave SBEMU silent until the next reboot (games then said "no Sound Blaster found", like God of Thunder): a watchdog now notices and gets the card going again within a quarter second. Plus the CD images picker in MENU shows its folder line again. Tested with a new matrix: FAT12/16/32 x ISO/CUE/MDM/long names x real/protected mode, mount + install + play God of Thunder and Raptor + CD music + disc swap, 24 runs. Same speed as before (344 interrupts/s, 1% CPU on a Pentium II 450).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.114.** **A USB MIDI cable can no longer freeze your PC!!** An M-Audio Uno froze an ASUS P5PE-VM on every USB port. In an emulated PC it never froze, so this release closes every way the USB MIDI code could hang: a device that does not take the music in half a second (three times) or keeps refusing it is now dropped - the music stops, the PC keeps running, and pulling the cable out and back in tries again. USBTEST, MIDPLAY /USB and SBEMU now write every USB MIDI step to disk before doing it (USBTEST.TXT, USBMIDI.TXT, SBDETAIL.TXT), so if a PC still freezes, the last line says exactly where; USBTEST M saves the cable's descriptors. Old firmware-loading MidiSport cables are now named and refused instead of ignored. Tested with a pretend Uno that answers exactly like a real one, on MS-DOS 7.1 with HIMEM only and with JEMM, on UHCI, OHCI, EHCI and xHCI. No slowdown (SBDIAG on a Pentium II 450: same 1%).
+**11/13/2026: beta.114.** **A USB MIDI cable can no longer freeze your PC.** An M-Audio Uno froze an ASUS P5PE-VM on every USB port. In an emulated PC it never froze, so this release closes every way the USB MIDI code could hang: a device that does not take the music in half a second (three times) or keeps refusing it is now dropped - the music stops, the PC keeps running, and pulling the cable out and back in tries again. USBTEST, MIDPLAY /USB and SBEMU now write every USB MIDI step to disk before doing it (USBTEST.TXT, USBMIDI.TXT, SBDETAIL.TXT), so if a PC still freezes, the last line says exactly where; USBTEST M saves the cable's descriptors. Old firmware-loading MidiSport cables are now named and refused instead of ignored. Tested with a pretend Uno that answers exactly like a real one, on MS-DOS 7.1 with HIMEM only and with JEMM, on UHCI, OHCI, EHCI and xHCI. No slowdown (SBDIAG on a Pentium II 450: same 1%).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.113.** **MENU in 3D everywhere, plus bug-hunt fixes!!** Checked with memory checkers and 30-minute soak tests (about 3000 random key presses each, no crash) in QEMU, on an emulated Pentium II 450 (86Box) and in a Windows 98 DOS box. SBEMU itself is unchanged.
+**11/13/2026: beta.113.** **MENU in 3D everywhere, plus bug-hunt fixes.** Checked with memory checkers and 30-minute soak tests (about 3000 random key presses each, no crash) in QEMU, on an emulated Pentium II 450 (86Box) and in a Windows 98 DOS box. SBEMU itself is unchanged.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.112.** **USB sticks on USB 3 ports, and sticks plugged in later get every letter!!** With /USBDISK:1, sticks on a USB 3 (xHCI) controller now get their drive letters too (they run at USB 2.0 speed there). A stick plugged in after SBEMU started now fills every waiting letter: both FAT partitions of a two-partition stick, and exFAT / NTFS sticks get their own read-only waiting letters. CD images (.ISO / .CUE) on any USB letter, exFAT and NTFS included, mount in MENU > CD-ROM. USBDRV says when a waiting letter has no partition on the stick. Tested in QEMU on FreeDOS and MS-DOS 7.1, with JEMMEX, HIMEM only and 16-bit, on UHCI, OHCI, EHCI with and without companions, and xHCI: 60 of 60 runs passed. A PII-450 in 86Box shows the same CPU use as before.
+**11/13/2026: beta.112.** **USB sticks on USB 3 ports, and sticks plugged in later get every letter.** With /USBDISK:1, sticks on a USB 3 (xHCI) controller now get their drive letters too (they run at USB 2.0 speed there). A stick plugged in after SBEMU started now fills every waiting letter: both FAT partitions of a two-partition stick, and exFAT / NTFS sticks get their own read-only waiting letters. CD images (.ISO / .CUE) on any USB letter, exFAT and NTFS included, mount in MENU > CD-ROM. USBDRV says when a waiting letter has no partition on the stick. Tested in QEMU on FreeDOS and MS-DOS 7.1, with JEMMEX, HIMEM only and 16-bit, on UHCI, OHCI, EHCI with and without companions, and xHCI: 60 of 60 runs passed. A PII-450 in 86Box shows the same CPU use as before.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.111 - release candidate.** **Every menu entry checked, install and uninstall leave no trace!!** All MENU entries were run with SBEMU loaded and without, in an emulated PC and in Windows 98. UNINSTAL "Delete" now leaves the disk exactly as it was before SETUP (two text files used to stay behind), "Keep" also saves SoundFonts you put straight in C:\SC55, CLEANUP says "nothing to delete" instead of asking when there is nothing, SETUP no longer complains about MSCDEX.EXE in the public zip, and a Windows 98 DOS box no longer loads the DOS mouse driver for nothing. Every program is stamped beta.111.
+**11/13/2026: beta.111 - release candidate.** **Every menu entry checked, install and uninstall leave no trace.** All MENU entries were run with SBEMU loaded and without, in an emulated PC and in Windows 98. UNINSTAL "Delete" now leaves the disk exactly as it was before SETUP (two text files used to stay behind), "Keep" also saves SoundFonts you put straight in C:\SC55, CLEANUP says "nothing to delete" instead of asking when there is nothing, SETUP no longer complains about MSCDEX.EXE in the public zip, and a Windows 98 DOS box no longer loads the DOS mouse driver for nothing. Every program is stamped beta.111.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.110.** **Two USB 2.0 controllers at once!!** A PC with USB on the board AND a USB card (like an ASUS P5PE-VM with an NEC card) could freeze while SC55.BAT started USB. SBEMU now takes every USB controller away from the BIOS and quiets it before it sets up any of them, a controller that does not answer in time is skipped instead of hanging the PC, and SBDETAIL.TXT names each USB start-up step so a freeze tells exactly where. New switches: **/USB:0** (no USB at all) and **/USBSKIP:1033:00E0** (leave one controller alone, by PCI ID or place; several joined with +).
+**11/13/2026: beta.110.** **Two USB 2.0 controllers at once.** A PC with USB on the board AND a USB card (like an ASUS P5PE-VM with an NEC card) could freeze while SC55.BAT started USB. SBEMU now takes every USB controller away from the BIOS and quiets it before it sets up any of them, a controller that does not answer in time is skipped instead of hanging the PC, and SBDETAIL.TXT names each USB start-up step so a freeze tells exactly where. New switches: **/USB:0** (no USB at all) and **/USBSKIP:1033:00E0** (leave one controller alone, by PCI ID or place; several joined with +).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.109.** **Cleaner SC-55 sound at every output rate!!** The emulated SC-55 runs at about 64-66 kHz, and SBEMU converts that down to your sound card's rate. Everything above half that rate used to fold back as faint whistles and tones (worst at 11025 and 22050 Hz). Now a proper low-pass filter goes first: tones above the card's range are 40-117 dB quieter, and the music itself changes by at most 0.15 dB. About 4% more CPU; **/VSCLPF:0** turns it off. **Confirmed on real hardware:** on a Dell D810 at 22050 Hz the whistles are gone with /VSCLPF:1 and come back with /VSCLPF:0.
+**11/13/2026: beta.109.** **Cleaner SC-55 sound at every output rate.** The emulated SC-55 runs at about 64-66 kHz, and SBEMU converts that down to your sound card's rate. Everything above half that rate used to fold back as faint whistles and tones (worst at 11025 and 22050 Hz). Now a proper low-pass filter goes first: tones above the card's range are 40-117 dB quieter, and the music itself changes by at most 0.15 dB. About 4% more CPU; **/VSCLPF:0** turns it off. **Confirmed on real hardware:** on a Dell D810 at 22050 Hz the whistles are gone with /VSCLPF:1 and come back with /VSCLPF:0.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.108.** **Your real synth over USB!!** A class-compliant USB MIDI cable or keyboard (M-Audio Uno, Roland UM-ONE ...) now plays the games' General MIDI: SETTINGS > MIDI synth > "USB MIDI device" (SBEMU /MUSB:1). Any USB port, through hubs, plug it in or out while the music plays. MIDPLAY /USB plays MIDI files on it without SBEMU, and USBTEST finds it and plays a test note. Also in: the MENU bug-hunt fixes (Home/End in the file browser, longer descriptions in 3D, F1/F5 in 3D and more).
+**11/13/2026: beta.108.** **Your real synth over USB.** A class-compliant USB MIDI cable or keyboard (M-Audio Uno, Roland UM-ONE ...) now plays the games' General MIDI: SETTINGS > MIDI synth > "USB MIDI device" (SBEMU /MUSB:1). Any USB port, through hubs, plug it in or out while the music plays. MIDPLAY /USB plays MIDI files on it without SBEMU, and USBTEST finds it and plays a test note. Also in: the MENU bug-hunt fixes (Home/End in the file browser, longer descriptions in 3D, F1/F5 in 3D and more).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.107.** **Checked in Windows 98 and MS-DOS 7.1!!** MIDPLAY runs in a Windows 98 DOS box, full screen and in a window: channel table, SC-55 panel and every 3D look all work, and it quits back to Windows cleanly. USB sticks under MS-DOS 7.1 (Windows 98's DOS) get their letters too: FAT read and write, exFAT and NTFS read-only, copies byte-exact. Fixed: in 320x200 the 3D view's song title no longer runs into "Song 1/1".
+**11/13/2026: beta.107.** **Checked in Windows 98 and MS-DOS 7.1.** MIDPLAY runs in a Windows 98 DOS box, full screen and in a window: channel table, SC-55 panel and every 3D look all work, and it quits back to Windows cleanly. USB sticks under MS-DOS 7.1 (Windows 98's DOS) get their letters too: FAT read and write, exFAT and NTFS read-only, copies byte-exact. Fixed: in 320x200 the 3D view's song title no longer runs into "Song 1/1".
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.106.** **SBEMU gets a flight recorder!!** While it runs, SBEMU now remembers what happened - USB devices plugged in or out, dropped MIDI, sound running dry, timer ticks given back, IRQ and DMA problems, CD images opened - and counts every Sound Blaster and MIDI command each game sends, marking the ones SBEMU does not emulate. It all lands in **SBTRACE.TXT** when you are back at the DOS prompt. **Bug reports explain themselves:** BUGREP.TXT now starts with up to 5 plain-English lines on what probably goes wrong, plus the version of every program. And the recorder caught a real bug on its first day: an unknown Sound Blaster command used to make SBEMU swallow every following command until the next reset - now it is skipped properly, and command 80h (silence) gives the interrupt games wait for.
+**11/13/2026: beta.106.** **SBEMU gets a flight recorder.** While it runs, SBEMU now remembers what happened - USB devices plugged in or out, dropped MIDI, sound running dry, timer ticks given back, IRQ and DMA problems, CD images opened - and counts every Sound Blaster and MIDI command each game sends, marking the ones SBEMU does not emulate. It all lands in **SBTRACE.TXT** when you are back at the DOS prompt. **Bug reports explain themselves:** BUGREP.TXT now starts with up to 5 plain-English lines on what probably goes wrong, plus the version of every program. And the recorder caught a real bug on its first day: an unknown Sound Blaster command used to make SBEMU swallow every following command until the next reset - now it is skipped properly, and command 80h (silence) gives the interrupt games wait for.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.105.** **Pick your MIDI port in MIDPLAY!!** Options now has an "MPU-401 port" row: Auto finds SBEMU's MPU-401 like before, or step through 300h-360h to send the music to a second or a real MPU-401. Only ports that answer are offered, the switch happens while the song plays, and the choice is kept in MIDPLAY.CFG.
+**11/13/2026: beta.105.** **Pick your MIDI port in MIDPLAY.** Options now has an "MPU-401 port" row: Auto finds SBEMU's MPU-401 like before, or step through 300h-360h to send the music to a second or a real MPU-401. Only ports that answer are offered, the switch happens while the song plays, and the choice is kept in MIDPLAY.CFG.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.104.** **A checklist for real PCs!!** NUKEDSB\HWTEST.TXT lists, PC by PC, the things only real hardware can confirm (sound quirks, USB pads, keyboards, sticks, speed). Everything an emulator can check was checked first: exFAT and NTFS USB sticks (MBR and GPT) through this exact build (read, copy byte-exact, writes refused), and MIDPLAY + MENU in every view, 3D look, player and style on an emulated Pentium 133 and Celeron 300 (86Box), no crash.
+**11/13/2026: beta.104.** **A checklist for real PCs.** NUKEDSB\HWTEST.TXT lists, PC by PC, the things only real hardware can confirm (sound quirks, USB pads, keyboards, sticks, speed). Everything an emulator can check was checked first: exFAT and NTFS USB sticks (MBR and GPT) through this exact build (read, copy byte-exact, writes refused), and MIDPLAY + MENU in every view, 3D look, player and style on an emulated Pentium 133 and Celeron 300 (86Box), no crash.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.103.** **Music first on small PCs!!** On a PC with little memory (8-12 MB), MIDPLAY could say "out of memory" for a big MIDI file even in the text views: the 3D view had reserved its picture buffers at start. Now the 3D view only takes memory when it is shown, and when a song needs it, the 3D view gives its memory back and comes back smaller (down to 320x200) instead. Tested in 86Box and QEMU with 8 MB.
+**11/13/2026: beta.103.** **Music first on small PCs.** On a PC with little memory (8-12 MB), MIDPLAY could say "out of memory" for a big MIDI file even in the text views: the 3D view had reserved its picture buffers at start. Now the 3D view only takes memory when it is shown, and when a song needs it, the 3D view gives its memory back and comes back smaller (down to 320x200) instead. Tested in 86Box and QEMU with 8 MB.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.102.** **USB keyboard and mouse: safer in the 3D screens!!** Keys and mouse moves from USB now reach the PC's keyboard controller at the end of SBEMU's sound interrupt, so your program's keyboard and mouse handlers run when the CPU is back in the program, just like with a PS/2 keyboard, and not nested inside SBEMU. Meant for the MENU 3D crash on F2/F3 and MIDPLAY 3D's "Stack Fault" with a USB receiver on an add-in NEC USB card (not seen in QEMU, waiting for a real-PC test). Soak-tested 30 minutes per USB setup in QEMU, cycling every 3D look, theme, player and menu style.
+**11/13/2026: beta.102.** **USB keyboard and mouse: safer in the 3D screens.** Keys and mouse moves from USB now reach the PC's keyboard controller at the end of SBEMU's sound interrupt, so your program's keyboard and mouse handlers run when the CPU is back in the program, just like with a PS/2 keyboard, and not nested inside SBEMU. Meant for the MENU 3D crash on F2/F3 and MIDPLAY 3D's "Stack Fault" with a USB receiver on an add-in NEC USB card (not seen in QEMU, waiting for a real-PC test). Soak-tested 30 minutes per USB setup in QEMU, cycling every 3D look, theme, player and menu style.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.101.** **MIDPLAY plays game music and gets new tricks!!** Doom **.MUS**, HMI **.HMP** (Descent and other HMI games) and Miles **.XMI** files play straight from the game, next to .MID/.KAR/.RMI (told apart by their contents, so renamed files play too). New keys: **{ }** change the key a semitone at a time (drums stay put), **A** marks an **A-B loop** to repeat a part, **Z** is a **sleep timer** (after this song, or 15 to 120 minutes), and **Ctrl+F** searches the playlist or files by any part of a name or title. .M3U8 playlists work too. Checked with a memory checker, damaged-file tests and a dropped-notes test in QEMU: every format sends exactly the same notes.
+**11/13/2026: beta.101.** **MIDPLAY plays game music and gets new tricks.** Doom **.MUS**, HMI **.HMP** (Descent and other HMI games) and Miles **.XMI** files play straight from the game, next to .MID/.KAR/.RMI (told apart by their contents, so renamed files play too). New keys: **{ }** change the key a semitone at a time (drums stay put), **A** marks an **A-B loop** to repeat a part, **Z** is a **sleep timer** (after this song, or 15 to 120 minutes), and **Ctrl+F** searches the playlist or files by any part of a name or title. .M3U8 playlists work too. Checked with a memory checker, damaged-file tests and a dropped-notes test in QEMU: every format sends exactly the same notes.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.100.** **MIDPLAY's 3D view, rock solid!!** Every look, theme and player was run through a memory checker in every screen size from 320x200 to 1600x1200 (and odd ones like 1366x768), with pausing, F4 and mode switches: one real bug found and fixed (points very close to the camera could overflow the drawing maths). A big mode that does not fit in memory now falls back to the biggest smaller one instead of failing, and if MIDPLAY ever does crash, the text screen comes back and **CRASH.TXT** next to MIDPLAY.EXE says what happened (send it to us!). The 3D MENU, CD images and GAMETEST get the same drawing fix.
+**11/13/2026: beta.100.** **MIDPLAY's 3D view, rock solid.** Every look, theme and player was run through a memory checker in every screen size from 320x200 to 1600x1200 (and odd ones like 1366x768), with pausing, F4 and mode switches: one real bug found and fixed (points very close to the camera could overflow the drawing maths). A big mode that does not fit in memory now falls back to the biggest smaller one instead of failing, and if MIDPLAY ever does crash, the text screen comes back and **CRASH.TXT** next to MIDPLAY.EXE says what happened (send it to us!). The 3D MENU, CD images and GAMETEST get the same drawing fix.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/13/2026: beta.99.** **MIDPLAY's 3D view gets looks, themes and players!!** Press **V** for the look (solid, glowing **vector** lines with an afterglow, or **voxel** blocks with notes falling onto the keys), **C** for 11 colour themes (neon, amber CRT, green phosphor, synthwave... and SC-55, SC-88, MT-32 and CM-32L hardware styles: the module, its LCD and the whole scene in those colours), and **J** for the player: the NUKED module, a boombox, a jukebox or a turntable. Every note now slides over the floor like a piano roll, drums give a little pulse, and the loudest instruments float their names over their columns. Calm palettes made for leaving it on for hours; voxel mode thins its blocks by itself on slow PCs.
+**11/13/2026: beta.99.** **MIDPLAY's 3D view gets looks, themes and players.** Press **V** for the look (solid, glowing **vector** lines with an afterglow, or **voxel** blocks with notes falling onto the keys), **C** for 11 colour themes (neon, amber CRT, green phosphor, synthwave... and SC-55, SC-88, MT-32 and CM-32L hardware styles: the module, its LCD and the whole scene in those colours), and **J** for the player: the NUKED module, a boombox, a jukebox or a turntable. Every note now slides over the floor like a piano roll, drums give a little pulse, and the loudest instruments float their names over their columns. Calm palettes made for leaving it on for hours; voxel mode thins its blocks by itself on slow PCs.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/12/2026: beta.98.** **USB sticks after "Restart in MS-DOS mode"!!** Windows 98 keeps the letters it gave your USB stick and DOS then refuses them ("Invalid function"). SBEMU now checks every USB letter and moves any refused one to the next free letter, so both partitions of a stick read again (MENU > CD-ROM > USB drives shows where they went). Tested in QEMU with Win98 SE: stick used in Windows, then MS-DOS mode.
+**11/12/2026: beta.98.** **USB sticks after "Restart in MS-DOS mode".** Windows 98 keeps the letters it gave your USB stick and DOS then refuses them ("Invalid function"). SBEMU now checks every USB letter and moves any refused one to the next free letter, so both partitions of a stick read again (MENU > CD-ROM > USB drives shows where they went). Tested in QEMU with Win98 SE: stick used in Windows, then MS-DOS mode.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/12/2026: beta.97.** **USB sticks, the easy way!!** Turn them on in MENU > Settings > Joystick > USB sticks (no more typing /USBDISK:1), restart, and MENU > CD-ROM > **USB drives** shows every stick: its letter, name, FAT12/16/32, exFAT or NTFS, size and free space. Plugged a stick in later? It gets one of two spare letters (press R there, or just use the letter). exFAT and NTFS sticks now get read-only letters too, and a stick pulled out mid-copy just says "not ready". Tested in QEMU on FreeDOS: FAT16 at start plus a FAT32 stick plugged in afterwards, both read and written.
+**11/12/2026: beta.97.** **USB sticks, the easy way.** Turn them on in MENU > Settings > Joystick > USB sticks (no more typing /USBDISK:1), restart, and MENU > CD-ROM > **USB drives** shows every stick: its letter, name, FAT12/16/32, exFAT or NTFS, size and free space. Plugged a stick in later? It gets one of two spare letters (press R there, or just use the letter). exFAT and NTFS sticks now get read-only letters too, and a stick pulled out mid-copy just says "not ready". Tested in QEMU on FreeDOS: FAT16 at start plus a FAT32 stick plugged in afterwards, both read and written.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/12/2026: beta.96.** **MIDPLAY in any screen mode!!** The 3D view now runs in every mode your graphics card offers (VGA 320x200, 640x480, 800x600, 1024x768 ... in 256 colours up to 32 bit), with a refresh rate of your choice on VBE 3.0 cards, and a "Keep this mode? Y" safety net. **Real shuffle:** every song once before any repeats, P goes back, "this folder" shuffle, and the order is remembered. **No lost notes:** .KAR files and others that keep running status after lyrics no longer lose the rest of a track, and a slow PC no longer freezes the player when the synth falls behind. In a Windows 98 DOS box MIDPLAY uses window-safe modes (3D in 320x200) and gives its idle time back to Windows.
+**11/12/2026: beta.96.** **MIDPLAY in any screen mode.** The 3D view now runs in every mode your graphics card offers (VGA 320x200, 640x480, 800x600, 1024x768 ... in 256 colours up to 32 bit), with a refresh rate of your choice on VBE 3.0 cards, and a "Keep this mode? Y" safety net. **Real shuffle:** every song once before any repeats, P goes back, "this folder" shuffle, and the order is remembered. **No lost notes:** .KAR files and others that keep running status after lyrics no longer lose the rest of a track, and a slow PC no longer freezes the player when the synth falls behind. In a Windows 98 DOS box MIDPLAY uses window-safe modes (3D in 320x200) and gives its idle time back to Windows.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/11/2026: beta.95.** **USB drives stay put!!** With two USB sticks in, unplugging the first one no longer moves the second stick's files to the wrong drive letter: each drive follows its own stick. Swap the card in a card reader and DOS sees the new card after 2 seconds. Also checked: going from Windows 98 (with SweetLow's USB 2.0 drivers from QuickInstall) to MS-DOS mode, our USB driver takes the controllers back and the stick and keyboard work again, but a USB-only keyboard stays dead until the SC-55 starts, so start it from DOSSTART.BAT.
+**11/11/2026: beta.95.** **USB drives stay put.** With two USB sticks in, unplugging the first one no longer moves the second stick's files to the wrong drive letter: each drive follows its own stick. Swap the card in a card reader and DOS sees the new card after 2 seconds. Also checked: going from Windows 98 (with SweetLow's USB 2.0 drivers from QuickInstall) to MS-DOS mode, our USB driver takes the controllers back and the stick and keyboard work again, but a USB-only keyboard stays dead until the SC-55 starts, so start it from DOSSTART.BAT.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/11/2026: beta.94.** **USB sticks get a DOS drive letter!!** Start SBEMU with /USBDISK:1 (and LASTDRIVE=Z in CONFIG.SYS) and the USB sticks and card readers plugged in get the next free drive letters: FAT12/16 everywhere, FAT32 on MS-DOS 7.1 and FreeDOS, read AND write, USB 2.0 speed on USB 2.0 ports. Copy your CD images or game files onto a stick and use them straight from DOS. Tested in QEMU and 86Box: reading on FreeDOS, MS-DOS 7.1 and 6.22, writing on FreeDOS (2.7 MB copies byte-exact, write-protect switch honoured). Experimental and off by default: please try it on your PCs. exFAT / NTFS sticks come next.
+**11/11/2026: beta.94.** **USB sticks get a DOS drive letter.** Start SBEMU with /USBDISK:1 (and LASTDRIVE=Z in CONFIG.SYS) and the USB sticks and card readers plugged in get the next free drive letters: FAT12/16 everywhere, FAT32 on MS-DOS 7.1 and FreeDOS, read AND write, USB 2.0 speed on USB 2.0 ports. Copy your CD images or game files onto a stick and use them straight from DOS. Tested in QEMU and 86Box: reading on FreeDOS, MS-DOS 7.1 and 6.22, writing on FreeDOS (2.7 MB copies byte-exact, write-protect switch honoured). Experimental and off by default: please try it on your PCs. exFAT / NTFS sticks come next.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/11/2026: beta.93.** **USB sticks, first step!!** USBTEST now finds USB sticks and card readers: name, size, the start of the disk and a 1 MB read test. On USB 2.0 ports they run at full USB 2.0 speed (the NEC card tested: about 680 KB/s with small reads, more now), and pads, keyboards and mice on the same ports still go to the USB 1.1 side as before. Test only for now: the drive letter in DOS comes next. SBEMU itself works as in beta.92.
+**11/11/2026: beta.93.** **USB sticks, first step.** USBTEST now finds USB sticks and card readers: name, size, the start of the disk and a 1 MB read test. On USB 2.0 ports they run at full USB 2.0 speed (the NEC card tested: about 680 KB/s with small reads, more now), and pads, keyboards and mice on the same ports still go to the USB 1.1 side as before. Test only for now: the drive letter in DOS comes next. SBEMU itself works as in beta.92.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/11/2026: beta.92.** **An empty CD drive no longer freezes the PC!!** If a game or tool looked at the virtual CD drive M: while no disc was in it, the DOS extender under all the 32-bit programs (HDPMI32I) crashed with an error it could not show, and the PC just seemed to hang: a likely cause of the "read error / init error" freezes with CD games. Found with a register dump in 86Box and fixed in HDPMI; the program now simply gets "not ready". The same HDPMI also fixes the Borland extender (SSF2 Turbo's MAKESWP). **CD images from ANY drive:** the CD images screen and MENU's game CD picker open any folder on any drive (D or Tab = next drive), remember the last folder, and F2 / G set and open your home folder. Also in this build: MIDPLAY handles thousands of MIDI files, and the SC-55 sound chip code is about 4% faster (same sound bit for bit).
+**11/11/2026: beta.92.** **An empty CD drive no longer freezes the PC.** If a game or tool looked at the virtual CD drive M: while no disc was in it, the DOS extender under all the 32-bit programs (HDPMI32I) crashed with an error it could not show, and the PC just seemed to hang: a likely cause of the "read error / init error" freezes with CD games. Found with a register dump in 86Box and fixed in HDPMI; the program now simply gets "not ready". The same HDPMI also fixes the Borland extender (SSF2 Turbo's MAKESWP). **CD images from ANY drive:** the CD images screen and MENU's game CD picker open any folder on any drive (D or Tab = next drive), remember the last folder, and F2 / G set and open your home folder. Also in this build: MIDPLAY handles thousands of MIDI files, and the SC-55 sound chip code is about 4% faster (same sound bit for bit).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.91-w98.7.** **Windows 98 to DOS, cleaned up!!** If you started SC55 (SBEMU) inside a Windows 98 DOS box it used to fail with a confusing "both modes disabled" message, and on some setups it could even grab the sound card from under Windows. Now it says plainly that Windows is running and that the Windows part (SC55W) already gives DOS boxes their sound, and stops. After "Restart in MS-DOS mode" it loads as always. README98 also shows the one line to put in DOSSTART.BAT so the SC-55 starts by itself in MS-DOS mode.
+**11/10/2026: beta.91-w98.7.** **Windows 98 to DOS, cleaned up.** If you started SC55 (SBEMU) inside a Windows 98 DOS box it used to fail with a confusing "both modes disabled" message, and on some setups it could even grab the sound card from under Windows. Now it says plainly that Windows is running and that the Windows part (SC55W) already gives DOS boxes their sound, and stops. After "Restart in MS-DOS mode" it loads as always. README98 also shows the one line to put in DOSSTART.BAT so the SC-55 starts by itself in MS-DOS mode.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.91.** **CD games from MENU find the right disc!!** Starting a second
+**11/10/2026: beta.91.** **CD games from MENU find the right disc.** Starting a second
 CD game from MENU in the same session kept the FIRST game's disc in drive M: (uCDD has one drive and refused the
 second mount), so the game said "no CD", or failed with read or init errors. MENU now takes the old disc out first,
 and if a disc still cannot be mounted it says so and does not start the game. Tested in 86Box: disc swap works, and
 Doom runs straight from the virtual drive with SBEMU and the SC-55 loaded (its WAD read back bit-identical).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.90-w98.6.** **Windows 98 catches up with DOS!!** MIDPLAY in a Windows
+**11/10/2026: beta.90-w98.6.** **Windows 98 catches up with DOS.** MIDPLAY in a Windows
 DOS box now shows the SC-55's (or MT-32's) REAL display, live, just like in DOS: the Windows driver answers its
 front-panel query now. The Windows side also runs on the same CPUs as DOS: SC55W.EXE picks the fast SSE2 build on a
 Pentium 4 / M and newer, and a Pentium II build on a Pentium II / III or Athlon XP (before, those could not run it at
 all). And a MIDPLAY fix: in a Windows DOS box its clock could think the CPU ran at a few MHz (Windows delivers the
 BIOS timer late and in bursts) and raced to the end of a song; it now calibrates over a full second there.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.89-w98.5.** **Blood sounds right in Windows 98!!** Blood's effects
+**11/10/2026: beta.89-w98.5.** **Blood sounds right in Windows 98.** Blood's effects
 (Sound Blaster 16, 44 kHz) came out in short bursts with gaps in a Windows DOS box. Recorded in our Windows 98 test PC:
 only about 40 ms of sound in every 120 ms. The cause: a full-screen DOS game gets most of the CPU, and Windows then
 runs our sound program only in short turns, so its 80 ms buffer ran dry in between. Now the buffer grows by itself
 (160, then 300 ms) while a DOS game plays sound and the output keeps running dry, and shrinks back a minute later.
 Gaps in the Blood test: 56% of the time before, 1% now (the game's own pauses).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.89.** **The SC-55 needs 11-14% less CPU, same sound bit for bit!!**
+**11/10/2026: beta.89.** **The SC-55 needs 11-14% less CPU, same sound bit for bit.**
 The SC-55 emulation is now built with profile-guided optimization: we ran an instrumented build in DOS to record which
 code paths are hot, and the compiler used that to lay out the code. 86Box, Pentium II 450: SC55WAV renders 13.6% faster
 (18000 -> 20456 audio frames a second, the WAV identical to the last byte), and live in SBEMU the SC-55 load went
 from 340% to 302% of that slow test PC. More headroom on every PC, and slower PCs get closer to real time.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.88.** **The 3D menus get a 90s glow-up!!** The 3D screens now take
+**11/10/2026: beta.88.** **The 3D menus get a 90s glow-up.** The 3D screens now take
 their colours from the text menu's colour style (Groovy, Sunset, Ocean, Neon, Candy, Midnight): sky, grid floor and
 accents all change, also in MIDPLAY. **F6** in the 3D menu cycles them. Titles and the chosen item glow like neon.
 Carousel: glowing markers for every place on the ring, "2 / 5" and arrows. Module: brushed metal, a backlit LCD
@@ -255,25 +254,25 @@ glow and a machined knob with a pointer line. No speed lost: Panels even went fr
 
 <br>
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.87.** **Cleaner 3D screens!!** The bigger letters on every 3D screen
+**11/10/2026: beta.87.** **Cleaner 3D screens.** The bigger letters on every 3D screen
 (menu, SETTINGS, CD images, GAMETEST, MIDPLAY) now have their stair-steps smoothed: rounder curves, crisp straight
 strokes. In the Carousel and Module menus the description no longer runs into the key help: it gets its own three
 lines and the keys sit below a divider.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.86.** **Snappier 3D menus, and the version on screen!!** The MENU now
+**11/10/2026: beta.86.** **Snappier 3D menus, and the version on screen.** The MENU now
 shows which version you run (yellow, under the logo), no more digging in SBLOG.TXT. The 3D menu styles got quicker:
 Panels' moving background now uses whole-number math (it did a slow float conversion for every pixel), and
 Carousel's see-through mirror floor is drawn row by row like MIDPLAY's. 86Box, Pentium II 450 at full 640x480:
 Panels 8.5 -> 10.1 frames a second, Carousel 8.6 -> 11.4.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.85.** **MIDPLAY's 3D view, 3x smoother!!** On the D810 it showed
+**11/10/2026: beta.85.** **MIDPLAY's 3D view, 3x smoother.** On the D810 it showed
 only 5-6 pictures a second. It used to rest between frames to leave the CPU to the music, which is no longer needed
 since beta.83 sends the music while drawing: now it draws as fast as the PC allows, up to 60 a second. The grid floor
 (half of every frame) is now drawn row by row, about 3x faster, and the 3D menus get that too. 86Box, Pentium II 450
 with the SC-55 busy: 41 frames in 30 s before, 140 now, music still on time. The playlist now shows the file name
 first, then the title.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.84.** **A hidden bug squashed: 3D games and SBEMU get along!!**
+**11/10/2026: beta.84.** **A hidden bug squashed: 3D games and SBEMU get along.**
 Thin black lines across MIDPLAY's new 3D view led us to an old bug: SBEMU's sound interrupt and its Sound Blaster,
 joystick, PC speaker and FM handlers used the CPU's floating point unit without saving the game's own values. A game
 in the middle of its 3D math (MIDPLAY's 3D view, Quake-style games) could get garbage numbers back: stray lines or
@@ -282,7 +281,7 @@ it steps in. Tested in 86Box: 6-10 broken lines in every 3D frame before, none n
 New MIDPLAY screenshots below ([playlist](docs/shots/midplay-playlist.png), [files](docs/shots/midplay-files.png),
 [options](docs/shots/midplay-options.png)).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.83.** **MIDPLAY, the MIDI player, made over!!** Five pages
+**11/10/2026: beta.83.** **MIDPLAY, the MIDI player, made over.** Five pages
 (Player, Playlist, Files, Options, Help) and the music keeps playing and moving to the next song on all of them. The
 playlist shows every song's title and length, finds songs as you type, sorts, reorders, and saves or opens .M3U lists;
 the file browser opens where your song is and shows a song's title and length before you play it. New: speed 25-400%,
@@ -292,7 +291,7 @@ uses the CPU's own clock. Measured in 86Box (Pentium II 450, SBEMU playing a ver
 **252 ms late before** (15 ms in the text views), **now at most 8 ms in every display mode**. The 3D view is always sharp
 full 640x480.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.82.** **Virtual CDs work like a real disc!!** Games no longer
+**11/10/2026: beta.82.** **Virtual CDs work like a real disc.** Games no longer
 stop with a CD read error: on a PC with its own CD-ROM driver loaded (like a Windows 98 boot), games asked DOS for "the
 first CD drive" and got your empty real drive instead of the mounted image. Now drive M: is the first CD drive and your
 real drive keeps D:. The virtual drive also plays CD music by itself like a real one (play, pause, resume, track time,
@@ -300,7 +299,7 @@ real drive keeps D:. The virtual drive also plays CD music by itself like a real
 CUE sheets with PREGAP lines play the right spot. New driver built from source: uCDD 0.9.5-a3 plus our CD-audio part,
 and SHSUCDX with a new /P option. No CPU used while nothing reads the disc.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.81-w98.4.** **Lighter on your CPU!!** NUKED SB-EMU for Windows 98
+**11/10/2026: beta.81-w98.4.** **Lighter on your CPU.** NUKED SB-EMU for Windows 98
 now really rests when nothing plays: the sound output pauses while it's silent (and wakes up within a blink when a game or
 a MIDI file starts), Windows' timer is no longer kept at 1000 ticks a second, the joystick check slows down when no game
 uses it, and a sleeping SC-55 no longer costs more than a playing one. Measured in 86Box on a Pentium II 450 with
@@ -308,7 +307,7 @@ Windows 98 idle: **1.6% of the CPU before, 0.25% now.** In plain DOS the Nuked O
 of silence (some games leave silent notes playing forever) and the SC-55 stops sooner after the music ends.
 New setting `OutputSleep=0` in SC55W.INI if your sound card's driver ever misses the first note after a pause.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/10/2026: beta.80-w98.3.** **Joysticks EVERYWHERE in Windows 98!!** The
+**11/10/2026: beta.80-w98.3.** **Joysticks EVERYWHERE in Windows 98.** The
 settings window got tabs, and the new **Joystick** tab shows your pad live (sticks, buttons, what DOS games read). Pick the
 game port's address (200-20F) and stick type (CH Flightstick Pro, Thrustmaster FCS, Gravis GrIP) for DOS boxes, and one
 click on *Set up...* adds a **NUKED SB-EMU Game Port** to Device Manager and a **NUKED SB-EMU Joystick** to Game Controllers,
@@ -316,7 +315,7 @@ so Windows games get your pad too, even on PCs whose sound card has no game port
 buttons: click a box, press the button. ([joystick tab](docs/shots/w98-joystick-tab.png),
 [pad keys tab](docs/shots/w98-padkeys-tab.png), [Device Manager](docs/shots/w98-gameport-devmgr.png))
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.80.** **Hold the button, the key repeats!!** Pad buttons now
+**11/09/2026: beta.80.** **Hold the button, the key repeats.** Pad buttons now
 repeat their key like a real keyboard, so menus and setup screens scroll when you hold the D-pad. Your dead zone setting
 now also decides how far you push a stick before it presses a key, and holding the same key on the pad and a USB keyboard
 no longer lets go too early. Also fixed: keys could get stuck after fast repeating on some BIOSes. Tested with 13 more
@@ -324,61 +323,61 @@ games from a shareware CD (Bio Menace, Duke 1, Gods, Keen 1/4/6, Keen Dreams, Ma
 Destiny, Wolf3D...) plus Doom II and the full Wolf3D, all played from the pad
 ([screenshots](docs/padkeys-tests/README.md)).
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.79.** **Your pad presses the keys in plain DOS too!!** The
+**11/09/2026: beta.79.** **Your pad presses the keys in plain DOS too.** The
 per-game button layouts from beta.77-w98.2 now work outside Windows: SBEMU sees which game you start and gives your
 USB pad that game's keys, so in Commander Keen A jumps, B fires and X pogos, and in Doom RB fires and Y opens the menu.
 It finds the game by its EXE or by the files in its folder, and goes back to the normal layout when you quit. Same free
 download, same PADUSER.TXT for your own layouts. `SBEMU /PADLOG` shows which layout it picked.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.78.** **The USB mouse behaves!!** On some PCs (very likely the
+**11/09/2026: beta.78.** **The USB mouse behaves.** On some PCs (very likely the
 D810 too) a USB mouse in plain DOS jumped around and clicked by itself, and on others it didn't move at all. Those BIOSes
 read a whole mouse packet at once, and SBEMU was sending it one byte at a time. Now every packet goes to the mouse
 driver in one piece, right next to your touchpad's. The JEMM launchers got the same fix.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.77-w98.2.** **Your pad presses the keys!!** In Windows 98
+**11/09/2026: beta.77-w98.2.** **Your pad presses the keys.** In Windows 98
 DOS boxes the game pad's buttons now type the right keys for the game you're playing: jump, fire, pogo, menu. Download
 one free file (the Keyb2Joypad layouts from DOSBox Pure, link in DOWNLOADS.TXT) and over 3500 DOS games know their
 buttons. Your own layouts go in PADUSER.TXT.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.77.** **SETTINGS, CD images and GAMETEST in 3D!!** Same
+**11/09/2026: beta.77.** **SETTINGS, CD images and GAMETEST in 3D.** Same
 three looks as the 3D menu (Panels, Carousel and Module), with mouse support and pop-ups that stay in 3D. Turn on the 3D
 menu and they all follow; <kbd>F8</kbd> flips everything back to text.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.76-w98.1.** **Xbox 360 pads in Windows 98!!** The pack now
+**11/09/2026: beta.76-w98.1.** **Xbox 360 pads in Windows 98.** The pack now
 comes with an unofficial Windows 98 driver for the 360 controller (and HORI, Mad Catz, Logitech and Saitek pads), with
 English install steps. Plug your pad in and the NUKED SB-EMU even tells you where the driver is. Then it works in
 Windows games and in DOS games in DOS boxes, left stick and right stick both!
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.76.** Laptop gamers rejoice!! A **USB mouse now
+**11/09/2026: beta.76.** Laptop gamers rejoice. A **USB mouse now
 works right next to your touchpad** in plain DOS, no JEMM needed. Before, the mouse driver found the touchpad
 and the USB mouse just sat there. You can even plug it in while a game is running.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.75.** **Joysticks in DOS boxes!!** Any controller Windows 98
+**11/09/2026: beta.75.** **Joysticks in DOS boxes.** Any controller Windows 98
 knows about now works in DOS games inside Windows too, on the game port and through the BIOS, so a 360 pad with its
 Windows driver can play your DOS games without leaving Windows. And Windows games' music volume sliders now work
 on the NUKED SB-EMU MIDI device.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.74.** The **Windows 98 part** gets its first update in ages!!
+**11/09/2026: beta.74.** The **Windows 98 part** gets its first update in ages.
 It now has the faster SC-55 too, and it can't hog the CPU any more: when the synth can't keep up, the music lags
 instead of Windows. Started with Windows, it waits 15 seconds so Windows can finish starting first. And if Windows
 ever freezes while it's starting, the next boot skips it and tells you where it got stuck.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.73.** SBEMU loads more than **twice as fast**!! On
+**11/09/2026: beta.73.** SBEMU loads more than **twice as fast**. On
 a 366 MHz Celeron it went from 15 seconds to under 7. A ROM check was being redone almost every time by
 mistake, and now it isn't. Plus a garbled line on the start screen is fixed.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.72.** MIDPLAY goes **3D**!! Press S until you get a
+**11/09/2026: beta.72.** MIDPLAY goes **3D**. Press S until you get a
 little sound module with the synth's live display, a keyboard that lights up as the notes play, and dancing
 channel columns. And <kbd>F3</kbd> now switches the colour style in *every* program, not just the menu.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.71.** CUE images with CD music can be taken out and
+**11/09/2026: beta.71.** CUE images with CD music can be taken out and
 swapped again! Before, they got stuck on drive M: until you rebooted. Oops.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.70.** Big bug hunt! MIDPLAY redraws properly after
+**11/09/2026: beta.70.** Big bug hunt! MIDPLAY redraws properly after
 the file browser, all the menu text fits now, and Automatic setup is minutes
 faster on slow PCs.
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> **11/09/2026: beta.69.** The SC-55 got **~20% faster**!! It sounds
+**11/09/2026: beta.69.** The SC-55 got **~20% faster**. It sounds
 *exactly* the same (I checked every single sample), it just does less
 pointless work.
 
@@ -412,31 +411,30 @@ never takes more than about 60% of the CPU, so your game always gets the rest.
 
 <div align="center"><picture><img src="docs/90s/note-news.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-zombie.gif" alt=""></picture> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <picture><img src="docs/90s/mascot-flopsy.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> AWE32 / AWE64 Wavetable!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## AWE32 / AWE64 Wavetable
 <picture><img src="docs/90s/vox-awe.gif" align="right" width="240" alt="A voxel AWE32 card: EMU8000 chip, sample RAM"></picture>
 
 Remember the **Sound Blaster AWE32**? The big long card with the **EMU8000** wavetable
 chip, the one Duke Nukem 3D and Rise of the Triad had their own "AWE32" music setting for?
-This edition of NUKED SB-EMU puts one inside your PC!! SBEMU becomes a Sound Blaster 16
+This edition of NUKED SB-EMU puts one inside your PC. SBEMU becomes a Sound Blaster 16
 **with the EMU8000 at port 620**, just like the real card, on any PCI sound chip it supports.
 
-<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **How do I turn it on??**
+<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **How do I turn it on?**
 
 1. Put a dump of the AWE32's 1 MB sound ROM in `C:\SC55\ROMS` (it's found by what's inside, the
-   name doesn't matter: AWE32.RAW, AWEROM.BIN...). Not included, like the SC-55 ROMs!!
-   **Where do I get one??** 86Box's ROM set has it: [86Box/roms](https://github.com/86box/roms),
+   name doesn't matter: AWE32.RAW, AWEROM.BIN...). Not included, like the SC-55 ROMs.
+   **Where do I get one?** 86Box's ROM set has it: [86Box/roms](https://github.com/86box/roms),
    file `sound/creative/awe32.raw`. Copy it as it is (1 MB, no renaming needed).
 2. `SETTINGS` > MIDI synth > **"AWE32 / AWE64 wavetable (EMU8000)"**, save. (Or just one game: `/AWE:620`.)
    **Enter** on that line opens **AWE32 options** (port, sample RAM, ROM, reverb + chorus, what the MPU-401 plays; also
    MENU > Settings > AWE32 options) since awe.8.
 3. In the game's setup pick **AWE32** music (Sound Blaster 16 for the effects), EMU port 620.
 
-<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **Does it sound right??** I recorded Duke 3D and ROTT
+<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **Does it sound right?** I recorded Duke 3D and ROTT
 next to an emulated AWE64 and the music matches (same notes, same music/effects balance, the tone within about 1 dB up to 12 kHz).
 It's tested with HIMEM only (my usual DOS 7.1 boot) and with JEMM, with a USB pad plugged in too.
 It costs about **2-4% of a Pentium II 450** while the music plays, with the EMU8000's reverb and chorus (since awe.4,
@@ -450,7 +448,7 @@ like `AWEUTIL /EM:GM` on a real card, with your `SYNTHGM/GS/MT.SBK` in `ROMS` (f
 which needs the real card's NMI. A game's own AWE32 driver still gets the chip.
 All the details are in README.TXT, section 6c.
 
-<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **The AWE32 MIDI Synth in Windows 98!!** (since awe.5)
+<picture><img src="docs/90s/ic-sparkle.gif" width="20" alt="*"></picture> **The AWE32 MIDI Synth in Windows 98.** (since awe.5)
 Next to "NUKED SB-EMU", Windows programs (Media Player, MIDI sequencers, Windows games) get a second MIDI device,
 **"AWE32 MIDI Synth"**, played by the EMU8000 like Creative's own Windows driver: with **Creative's banks**
 `SYNTHGM.SBK` / `SYNTHGS.SBK` / `SYNTHMT.SBK` from your AWE32 / AWE64 drivers (put them anywhere under `C:\SC55`: found
@@ -462,18 +460,17 @@ plays again as soon as that DOS box is closed.
 (bank select CC0 or CC32), single presets replaced from any SoundFont, a **sample RAM gauge** and a clear message when a
 bank doesn't fit (`/AWERAM`); kept in `SC55W.INI`. DOS boxes: **"MPU-401 plays on"** SC-55 / AWE32 GM / GS / MT-32 /
 nothing (`/AWEMPU:1|GM|GS|MT32|0`).
-**Where do I get the SBK files??** They come with Creative's AWE32 / AWE64 / SB32 drivers (we can't include them):
+**Where do I get the SBK files?** They come with Creative's AWE32 / AWE64 / SB32 drivers (we can't include them):
 [Phil's Computer Lab: Creative drivers](https://www.philscomputerlab.com/creative-labs-drivers.html),
 the [VOGONS Driver Library](https://www.vogonsdrivers.com/), or the
 [Sound Blaster 32 PnP CD](https://archive.org/details/CreativeSoundBlaster32) on archive.org. Unpack, copy the folder
 under `C:\SC55`, Settings > AWE32 > "Search for SBK files".
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-trilobite.gif" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/vox-claude.gif" width="60" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> What is this?? <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## What is this?
 <picture><img src="docs/90s/vox-port220.gif" align="right" width="130" alt="Port 220 in voxels"></picture>
 
 Ever fire up Doom on an old laptop and the music starts and it's... FM? It's
@@ -484,24 +481,23 @@ NUKED SB-EMU puts one inside your PC! It's [SBEMU](https://github.com/crazii/SBE
 (a Sound Blaster 16 + OPL3 emulator that runs in plain DOS on PCI sound chips)
 with a real SC-55 built in: [Nuked-SC55](https://github.com/nukeykt/Nuked-SC55)
 runs the actual Roland firmware from your own ROM dumps. So it's not "a
-SoundFont that sounds kinda close". It's the real thing!! Then I added a
+SoundFont that sounds kinda close". It's the real thing. Then I added a
 virtual CD drive with CD music, USB gamepads in DOS, a Windows 98 side, and
 menus for all of it.
 
 It's made and tested on my **Dell Latitude D810** and my **ASUS P5PE-VM** Windows 98 / DOS
-tower ([my test lab](#-my-test-lab-)), plus a LOT of testing in QEMU and 86Box. It's still beta, so if
-something breaks please [sign my guestbook](#-sign-my-guestbook-) and tell me!
+tower ([my test lab](#my-test-lab)), plus a LOT of testing in QEMU and 86Box. It's still beta, so if
+something breaks please [sign my guestbook](#sign-my-guestbook) and tell me!
 
 > [!IMPORTANT]
-> **ROMs are NOT included!!** Bring your own SC-55 (and MT-32 / CM-32L) dumps.
+> **ROMs are NOT included.** Bring your own SC-55 (and MT-32 / CM-32L) dumps.
 > They're recognised by what's inside them, so the file names don't matter.
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-hatchling.gif" alt=""></picture> <picture><img src="docs/90s/ic-speaker.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-speaker.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Cool Features <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Cool Features
 <picture><img src="docs/90s/vox-sc55.gif" align="right" width="130" alt="A voxel sound module"></picture>
 
 <table>
@@ -596,12 +592,11 @@ something breaks please [sign my guestbook](#-sign-my-guestbook-) and tell me!
 - <picture><img src="docs/90s/ball-green.gif" width="14" alt="o"></picture> See [`README98.TXT`](sc55-pack/pack/README98.TXT)
 </details>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-worm.gif" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Will it run on my PC?? <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Will it run on my PC?
 <picture><img src="docs/90s/vox-pc.gif" align="right" width="130" alt="A voxel beige DOS PC"></picture>
 
 Sound Blaster and FM run on anything with a Pentium. The SC-55 is the hungry
@@ -614,7 +609,7 @@ CMOV (Pentium Pro / II or newer).
 |---|---|---|
 | Celeron 366 (86Box) | **0.35×** (was 0.28×) | too slow, use a SoundFont |
 | Celeron 533 (86Box, before beta.69) | 0.41× | too slow, but SB + FM are fine |
-| Pentium M (my Dell D810) | plays live | the home machine!! |
+| Pentium M (my Dell D810) | plays live | the home machine. |
 
 **My best guess** for other CPUs, worked out from those numbers. Run
 *Settings > Automatic setup* on yours for the real answer:
@@ -633,18 +628,17 @@ emulated CPU, and that always runs at full speed.)
 | You also need | Minimum | Nice to have |
 |---|---|---|
 | **Memory** | 32 MB (about 21 MB stay resident with the SC-55) | 64 MB or more |
-| **Sound** | a PCI / onboard chip from the [big list](#-supported-sound-chips-) | Intel AC'97 or HD Audio |
+| **Sound** | a PCI / onboard chip from the [big list](#supported-sound-chips) | Intel AC'97 or HD Audio |
 | **DOS** | MS-DOS 6.22 / 7.x or FreeDOS, plain DOS | Windows 98 "Restart in MS-DOS mode" |
 | **Disk** | about 25 MB, more for disc images | |
 
 <div align="center"><picture><img src="docs/90s/note-run.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-potion.gif" alt=""></picture> <picture><img src="docs/90s/ic-rocket.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-rocket.gif" alt=""></picture> <picture><img src="docs/90s/mascot-flopsy.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> My Test Lab!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## My Test Lab
 <picture><img src="docs/90s/vox-sec-tower.gif" width="140" align="right" alt=""></picture>
 
 Every release gets tried on real iron here, plus a whole fleet of emulated PCs:
@@ -653,7 +647,7 @@ Every release gets tried on real iron here, plus a whole fleet of emulated PCs:
 <tr>
 <td valign="top" width="50%">
 
-<picture><img src="docs/90s/icon-laptop.gif" width="56" alt="laptop"></picture> <b>Dell Latitude D810</b> (the home machine!!)
+<picture><img src="docs/90s/icon-laptop.gif" width="56" alt="laptop"></picture> <b>Dell Latitude D810</b> (the home machine)
 
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> Intel Pentium M
 - <picture><img src="docs/90s/ball-red.gif" width="14" alt="o"></picture> ATI Mobility Radeon X300
@@ -685,12 +679,11 @@ mount + install matrix runs every CD image type and USB port type (UHCI, OHCI, E
 no gaps, no clipping, the right ROM set really loaded), memory checkers (AddressSanitizer / UBSan) over MIDPLAY's player,
 file formats and 3D view, thousands of deliberately damaged music files, and an offline SC-55 renderer to judge the sound.
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture> <picture><img src="docs/90s/ic-computer.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-computer.gif" alt=""></picture> <picture><img src="docs/90s/fd-potion.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Getting Started <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Getting Started
 <picture><img src="docs/90s/vox-sec-crate.gif" width="140" align="right" alt=""></picture>
 
 ```text
@@ -699,7 +692,7 @@ file formats and 3D view, thousands of deliberately damaged music files, and an 
   3. cd NUKEDSB
      SETUP             installs to C:\SC55
      CDINST            optional: virtual CD drive
-  4. C:\SC55\MENU      and have fun!!
+  4. C:\SC55\MENU      and have fun.
 ```
 
 In each game's setup pick **Sound Blaster Pro** (the default type; set *Type* to SB16 in SETTINGS for
@@ -720,17 +713,16 @@ The `README.TXT` in the pack is the full manual.
 
 <div align="center"><picture><img src="docs/90s/note-start.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-marine-walk.gif" alt=""></picture> <picture><img src="docs/90s/ic-pad.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-pad.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> USB Gamepads in DOS?!? <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## USB Gamepads in DOS?
 <picture><img src="docs/90s/vox-pad.gif" align="right" width="130" alt="A voxel gamepad"></picture>
 
 <picture><img src="docs/joytest.png" width="560" alt="JOYTEST showing the pad's sticks and buttons"></picture>
 
-Yep!! DOS games read an analog joystick on the gameport (port 201h), and SBEMU
+Yep. DOS games read an analog joystick on the gameport (port 201h), and SBEMU
 answers there with a USB Xbox 360 pad: left stick = joystick A, right stick =
 joystick B, A/B/X/Y = buttons 1-4, and Start / Back type Enter / Esc. Two pads?
 Pad 1 is joystick A and pad 2 is joystick B. Games that ask the BIOS for the
@@ -738,7 +730,7 @@ joystick get the pad too.
 
 <div align="center">
 
-<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> <b>...and the pad presses each game's own keys!!</b> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture><br>
+<picture><img src="docs/90s/new.gif" alt="NEW!"></picture> <b>...and the pad presses each game's own keys</b> <picture><img src="docs/90s/new.gif" alt="NEW!"></picture><br>
 <picture><img src="docs/shots/pad-games.gif" width="480" alt="Doom II, Wolfenstein 3D, Commander Keen, Bio Menace, Spear of Destiny, Duke Nukem, Gods, Major Stryker and Epic Pinball, all played from the pad"></picture>
 
 </div>
@@ -762,12 +754,11 @@ behind a USB 2.0 hub on a USB 2.0 port still needs a real-hardware test.
 
 <div align="center"><picture><img src="docs/90s/note-pads.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/mascot-canvaskid.gif" width="96" alt=""></picture> <picture><img src="docs/90s/ic-speaker.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-speaker.gif" alt=""></picture> <picture><img src="docs/90s/fd-serpentipede.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Supported Sound Chips <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Supported Sound Chips
 <picture><img src="docs/90s/vox-part-soundcard.gif" align="right" width="130" alt="A voxel sound card"></picture>
 
 Sound comes out of the PCI chip in your PC. These are all the chips the SBEMU
@@ -815,12 +806,11 @@ works for some people.
 > [!TIP]
 > Not sure what's in your PC? Boot DOS and run `SBEMU` once. It tells you the chip it found.
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-hatchling.gif" alt=""></picture> <picture><img src="docs/90s/ic-camera.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-camera.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Screenshots!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Screenshots
 <picture><img src="docs/90s/vox-sec-camera.gif" width="140" align="right" alt=""></picture>
 
 <div align="center">
@@ -840,7 +830,7 @@ works for some people.
 </tr>
 </table>
 
-<b>SETTINGS, CD images and GAMETEST go 3D too!!</b> When the 3D menu is on, they open in 3D as well (<kbd>F8</kbd> switches, in any of them):
+<b>SETTINGS, CD images and GAMETEST go 3D too</b> When the 3D menu is on, they open in 3D as well (<kbd>F8</kbd> switches, in any of them):
 
 <table>
 <tr>
@@ -933,12 +923,11 @@ works for some people.
 
 <div align="center"><picture><img src="docs/90s/note-shots.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-potion.gif" alt=""></picture> <picture><img src="docs/90s/ic-cd.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-cd.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Hall of Fame!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Hall of Fame
 <picture><img src="docs/90s/vox-sec-trophy.gif" width="140" align="right" alt=""></picture>
 
 <div align="center"><picture><img src="docs/90s/port220-hello.gif" width="330" alt="Port 220"></picture></div>
@@ -957,23 +946,22 @@ Stuff this little pack pulled off that I'm REALLY proud of:
 - <picture><img src="docs/90s/icon-trophy.gif" width="36" alt="trophy"></picture> **Found and fixed a hidden freeze in the DOS extender itself**: an EMPTY virtual CD drive made HDPMI32I (under every 32-bit program in the pack) crash with an error it could not show, so the PC just hung. Tracked down with a register dump in an emulated PC, fixed in HDPMI's own source, plus a second fix so Borland's DOS extender (Super Street Fighter II Turbo) gets past its start-up
 - <picture><img src="docs/90s/icon-trophy.gif" width="36" alt="trophy"></picture> **Found and fixed an FPU bug as old as SBEMU itself**: its sound interrupt and port handlers used the math unit without saving the game's values, which could garble 3D games; tracked down from a few black lines in MIDPLAY's 3D view
 - <picture><img src="docs/90s/icon-trophy.gif" width="36" alt="trophy"></picture> **Every ROM set at every output rate**: 12 SC-55-family ROM sets, MT-32, CM-32L and a SoundFont, each at 11025 to 48000 Hz, recorded and checked for lost notes, beats on time and gaps (plus a new low-pass filter that came out of it: a cleaner SC-55 at every rate, confirmed on real hardware)
-- <picture><img src="docs/90s/icon-trophy.gif" width="36" alt="trophy"></picture> **Tested like crazy** on emulated PCs: custom 86Box builds with a fake USB pad, a file-driven joystick and a strict keyboard controller, QEMU with a fake Xbox 360 pad and a fake M-Audio Uno, and real games driven by scripts (every tool is in [Made For This Pack!!](#-made-for-this-pack-))
+- <picture><img src="docs/90s/icon-trophy.gif" width="36" alt="trophy"></picture> **Tested like crazy** on emulated PCs: custom 86Box builds with a fake USB pad, a file-driven joystick and a strict keyboard controller, QEMU with a fake Xbox 360 pad and a fake M-Audio Uno, and real games driven by scripts (every tool is in [Made For This Pack](#made-for-this-pack))
 - <picture><img src="docs/90s/icon-trophy.gif" width="36" alt="trophy"></picture> **An AWE32 that sounds like one**: Duke 3D and ROTT recorded next to an emulated AWE64: same notes, same music / effects balance, the tone within about 1 dB up to 12 kHz, for about 2-3% of a Pentium II 400
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/fd-keycard.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Built With Claude!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Built With Claude
 <picture><img src="docs/90s/vox-claude.gif" width="140" align="right" alt=""></picture>
 
 <div align="center"><picture><img src="docs/90s/port220-hop.gif" width="100%" alt=""></picture></div>
 
-**Credit where it's due!!** NUKED SB-EMU stands on the shoulders of giants: **crazii**'s
+**Credit where it's due.** NUKED SB-EMU stands on the shoulders of giants: **crazii**'s
 [SBEMU](https://github.com/crazii/SBEMU), **nukeykt**'s [Nuked-SC55](https://github.com/nukeykt/Nuked-SC55) and
 Nuked-OPL3 (with **J.C. Moyer**'s backend fork and **Tony Gies**'s fast OPL3), the **Munt** team, **Attila Padar**'s
-MPXPlay drivers, **Japheth**'s HX and Jemm, **vorvek**'s uCDD and everyone in [Thanks](#-thanks-to-my-friends-).
+MPXPlay drivers, **Japheth**'s HX and Jemm, **vorvek**'s uCDD and everyone in [Thanks](#thanks-to-my-friends).
 
 Everything new on top of them was written by **Claude**, Anthropic's AI: the code, the bug hunting, the emulated
 test PCs, the docs and Port 220. My part was the ideas, the direction and the hardware testing on my own PCs. The numbers (from this repo's
@@ -995,19 +983,18 @@ Highlights of what that means: a USB host for DOS inside SBEMU, a 20% faster SC-
 the same, Windows 98 drivers, 3D menus, the pad-keys-per-game system, and dozens of bugs found in emulators
 before they ever reached my real hardware.
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-hatchling.gif" alt=""></picture> <picture><img src="docs/90s/ic-heart.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-heart.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Made For This Pack!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Made For This Pack
 <picture><img src="docs/90s/vox-sec-gift.gif" width="140" align="right" alt=""></picture>
 
-<div align="center"><picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <b><font color="#00ff00">Every tool we built for this pack, all in one place!!</font></b> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture></div>
+<div align="center"><picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <b><font color="#00ff00">Every tool we built for this pack, all in one place</font></b> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture></div>
 
 All of these were written for NUKED SB-EMU by **Claude**. Where a tool **builds on** someone else's project, the row
 says so; SBEMU itself, the emulator cores and the bundled DOS drivers are their authors' work (see
-[Thanks](#-thanks-to-my-friends-)). Want our drivers for your own project? See [Take Our Drivers!!](#-take-our-drivers-).
+[Thanks](#thanks-to-my-friends)). Want our drivers for your own project? See [Take Our Drivers](#take-our-drivers).
 
 <details open>
 <summary><b>&gt;&gt; For players &lt;&lt;</b></summary>
@@ -1108,15 +1095,14 @@ How it all gets tested before it reaches a real PC (none of this is in the zip):
 </table>
 </details>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-soulsphere.gif" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-chip.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Take Our Drivers!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Take Our Drivers
 <picture><img src="docs/90s/vox-sec-toolbox.gif" width="140" align="right" alt=""></picture>
 
-<div align="center"><picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <b><font color="#00ff00">Building your own DOS or Windows 98 project? Borrow our drivers!!</font></b> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture></div>
+<div align="center"><picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <b><font color="#00ff00">Building your own DOS or Windows 98 project? Borrow our drivers</font></b> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture></div>
 
 Every driver and library on this list is free software under the **GNU GPL, version 2 or later** (see
 [COPYING](COPYING); each of our source files, batch files and scripts starts with `SPDX-License-Identifier: GPL-2.0-or-later`;
@@ -1177,12 +1163,11 @@ the same GPL.
 
 <div align="center"><picture><img src="docs/90s/note-drivers.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-trilobite.gif" alt=""></picture> <picture><img src="docs/90s/ic-heart.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-heart.gif" alt=""></picture> <picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Download Zone <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Download Zone
 <picture><img src="docs/90s/vox-flopsy.gif" align="right" width="110" alt="Flopsy the floppy in voxels"></picture>
 
 <table>
@@ -1209,20 +1194,19 @@ the same GPL.
 
 **MT-32 / CM-32L mode** uses the same files as 86Box's ROM set, [86box/roms](https://github.com/86box/roms) (folders `sound/mt32`, `sound/mt32_new`, `sound/cm32l`, `sound/cm32ln`). Copy one folder's control + PCM pair into `FILES\ROMS`: ROMs are found by content, so `MT32_CONTROL.ROM`, `MT32_PCM.ROM`, `CM32L_*.ROM` work as they are (short 8.3 names on plain DOS too). `mt32` and `mt32_new` use the same file names, so rename one if you want both. The SC-55 ROMs are **not** in that set.
 
-**Free test games!!** <picture><img src="docs/90s/ic-pad.gif" alt=""></picture> Ten shareware games to try the pack with are waiting in
-[Free Shareware Games!!](#-free-shareware-games-) just below.
+**Free test games.** <picture><img src="docs/90s/ic-pad.gif" alt=""></picture> Ten shareware games to try the pack with are waiting in
+[Free Shareware Games](#free-shareware-games) just below.
 
 <div align="center"><picture><img src="docs/90s/note-download.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/fd-marine-walk.gif" alt=""></picture> <picture><img src="docs/90s/ic-pad.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-pad.gif" alt=""></picture> <picture><img src="docs/90s/fd-potion.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Free Shareware Games!! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Free Shareware Games
 <picture><img src="docs/90s/vox-sec-arcade.gif" width="140" align="right" alt=""></picture>
 
-<div align="center"><picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <b><font color="#00ff00">No games to test with? Grab these - FREE and LEGAL!!</font></b> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture></div>
+<div align="center"><picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture> <b><font color="#00ff00">No games to test with? Grab these - FREE and LEGAL</font></b> <picture><img src="docs/90s/ic-sparkle.gif" alt=""></picture></div>
 
 Ten classic shareware games, each one the publisher's own **untouched original archive**, shared here exactly as its
 own licence file allows for free online sites. They live in [`testgames/`](testgames), separate from the pack: they
@@ -1242,7 +1226,7 @@ unmodified files. Liked one? The full game is still sold today by its rights hol
 </details>
 
 <details open>
-<summary><b>&gt;&gt; General MIDI games - for the SC-55!! &lt;&lt;</b></summary>
+<summary><b>&gt;&gt; General MIDI games - for the SC-55. &lt;&lt;</b></summary>
 
 | Download | Game | By | Sound | Tests |
 |---|---|---|---|---|
@@ -1268,18 +1252,17 @@ fees. The full quotes, setup tips and SHA-256 checksums are in [TESTGAMES.TXT](t
 `doom19s.zip` from the [idgames mirror](https://mirrors.lug.mtu.edu/idgames/idstuff/doom/) (MD5
 `244d181457c9be5f28b91b488e67e042`).
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/mascot-flopsy.gif" alt=""></picture> <picture><img src="docs/90s/ic-news.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-news.gif" alt=""></picture> <picture><img src="docs/90s/fd-worm.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Sign My Guestbook! <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Sign My Guestbook!
 <picture><img src="docs/90s/vox-sec-book.gif" width="140" align="right" alt=""></picture>
 
 <table>
 <tr>
 <td><picture><img src="docs/90s/mail.gif" alt="mailbox"></picture></td>
-<td>Found a bug? Got it working on your PC? <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/issues">Sign my guestbook (open an issue)!!</a></b></td>
+<td>Found a bug? Got it working on your PC? <b><a href="https://github.com/deon81997/NUKED-SBEMU-AWE/issues">Sign my guestbook (open an issue)</a></b></td>
 </tr>
 </table>
 
@@ -1291,12 +1274,11 @@ exactly where.
 
 <div align="center"><picture><img src="docs/90s/note-guest.gif" width="240" alt="a sticky note"></picture></div>
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/port220-small.gif" width="96" alt=""></picture> <picture><img src="docs/90s/ic-computer.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-computer.gif" alt=""></picture> <picture><img src="docs/90s/fd-marine-shoot.gif" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> For the Nerds: Source Code <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## For the Nerds: Source Code
 <picture><img src="docs/90s/vox-sec-scroll.gif" width="140" align="right" alt=""></picture>
 
 ```text
@@ -1330,15 +1312,14 @@ needs MinGW-w64 i686, Open Watcom 2 and JWasm; see
 tested, what still needs real hardware. The 90s graphics on this page are
 drawn by [`docs/90s/make90s.py`](docs/90s/make90s.py).
 
-<div align="right"><a href="#top"><img src="docs/90s/btn-top.gif" width="88" alt="back to top"></a></div>
+<div align="right"><sub><a href="#top">back to top</a></sub></div>
 
 <div align="center"><picture><img src="docs/90s/tux-waddle.gif" width="96" alt=""></picture> <picture><img src="docs/90s/ic-heart.gif" alt=""></picture> <picture><img src="docs/90s/bar.gif" width="380" alt=""></picture> <picture><img src="docs/90s/ic-heart.gif" alt=""></picture> <picture><img src="docs/90s/mascot-canvaskid.gif" width="96" alt=""></picture></div>
 
-## <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture> Thanks To My Friends <picture><img src="docs/90s/star.gif" width="28" alt="*"></picture>
-
+## Thanks To My Friends
 <picture><img src="docs/90s/vox-sec-heart.gif" width="140" align="right" alt=""></picture>
 
-None of this would exist without these awesome people. THANK YOU!!
+None of this would exist without these awesome people. THANK YOU.
 The whole thing is **GPL-2.0-or-later** ([`COPYING`](sc55-pack/COPYING)).
 
 <details open>
@@ -1413,11 +1394,11 @@ VIDE-CDD (Acer / BenQ), GSCDROM (LG), QEMM (Quarterdeck). Built with
 <picture><img src="docs/90s/btn-800.gif" alt="Best viewed at 800x600"></picture>
 <picture><img src="docs/90s/btn-notepad.gif" alt="Made with Notepad"></picture>
 <picture><img src="docs/90s/btn-gpl.gif" alt="GPL 2.0+"></picture>
-<picture><img src="docs/90s/btn-y2k.gif" alt="Y2K compliant!!"></picture>
+<picture><img src="docs/90s/btn-y2k.gif" alt="Y2K compliant"></picture>
 
 <br><br>
 
-<sub>Last updated: November 12, 2026 &nbsp;·&nbsp; made for fun on a Dell D810 &nbsp;·&nbsp; bring your own ROMs!!</sub>
+<sub>Last updated: November 12, 2026 &nbsp;·&nbsp; made for fun on a Dell D810 &nbsp;·&nbsp; bring your own ROMs</sub>
 
 <sub>Built on <b>SBEMU</b>, <b>Nuked-SC55</b> and friends; everything new written by <b>Claude</b> (Anthropic), who also drew <b>Port 220</b> <picture><img src="docs/90s/port220-small.gif" width="48" alt="" align="absmiddle"></picture></sub>
 

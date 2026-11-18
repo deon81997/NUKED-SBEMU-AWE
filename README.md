@@ -586,12 +586,13 @@ something breaks please [sign my guestbook](#-sign-my-guestbook-) and tell me!
 - <picture><img src="docs/90s/ball-red.gif" width="14" alt="o"></picture> Virtual Sound Blaster (1.5 – 16), OPL3 and MPU-401 for DOS boxes (`SC55W.VXD`)
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 in DOS boxes**: the EMU8000 at 620h with the same engine as DOS (`SC55W /AWE:620` or Settings > AWE32), 512 KB to 28 MB sample RAM, BLASTER gets `E620`, the SC-55 stays on the MPU-401
 - <picture><img src="docs/90s/ball-blue.gif" width="14" alt="o"></picture> **"NUKED SB-EMU" MIDI device** for Windows programs, played by the same synths
-- <picture><img src="docs/90s/ball-green.gif" width="14" alt="o"></picture> Tray program with a settings window (tabs: Sound and MIDI, Joystick, Pad keys, AWE32); settings shared with DOS
+- <picture><img src="docs/90s/ball-green.gif" width="14" alt="o"></picture> Tray program with a settings window (tabs: Sound and MIDI, Joystick, Pad keys, AWE32, Debug); settings shared with DOS
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **Joysticks**: any pad Windows knows plays DOS games in DOS boxes; *Set up...* adds a NUKED SB-EMU Game Port and Joystick so Windows games get it too, even without a game port on your sound card
 - <picture><img src="docs/90s/ball-red.gif" width="14" alt="o"></picture> **Pad keys** per game in DOS boxes, and an Xbox 360 pad driver for Windows 98 (unofficial, with English install steps)
 - <picture><img src="docs/90s/ball-blue.gif" width="14" alt="o"></picture> Rests when nothing plays: about **0.25% CPU** while idle on a Pentium II
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **AWE32 MIDI Synth** in Windows programs (since awe.5), with Creative's SBK banks or NUKED's GM map, and a **bank manager** for your own `.SF2` / `.SBK` banks 1-127 and single presets (since awe.7)
 - <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **MIDI to** from the tray icon (or `SC55W /MOUT:USB`): send the music to the emulated synth or any Windows MIDI output (a USB MIDI cable to a real SC-55) while a game plays; MPU-401 intelligent mode, the SC-55 low-pass and the pad key filters as in DOS; `SC55W /VER` and `VERSIONS.TXT` show every Windows file's version (since beta.130-w98.8)
+- <picture><img src="docs/90s/ball-gold.gif" width="14" alt="o"></picture> **Serial debug link** (since beta.130-w98.9): `SC55W /DBG:COM1` (or Settings > Debug) sends what the driver and the program do to a second PC (`DBGLOG.PY`), even when Windows hangs; since beta.130-w98.10 levels 1-2 cost nothing, so it can stay on (the EMU8000 ports and AWE32 events too, since awe.9)
 - <picture><img src="docs/90s/ball-green.gif" width="14" alt="o"></picture> See [`README98.TXT`](sc55-pack/pack/README98.TXT)
 </details>
 

@@ -140,7 +140,7 @@ def buttons():
 
 
 # ---------------------------------------------------------------- odometer "counter" (it counts releases)
-def counter(n=109):
+def counter(n=130):
     digits = '%06d' % n
     font = F('DejaVuSansMono-Bold.ttf', 18)
     w, h = 6 * 16 + 4, 26

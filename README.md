@@ -768,39 +768,39 @@ works for some people.
 <details>
 <summary><b>&gt;&gt; Onboard (motherboard) audio &lt;&lt;</b></summary>
 
-| Family | Chips | |
-|---|---|:---:|
-| **Intel AC'97** (`sc_ich`) | 82801AA/AB/BA (ICH, ICH0, ICH2), ICH3, ICH4, ICH5, **ICH6** *(my D810)*, ICH7, ESB, ESB2, 440MX | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **nVidia AC'97** (`sc_ich`) | nForce, nForce2, nForce3, MCP04, CK8, CK8S, CK804 | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **SiS / AMD AC'97** (`sc_ich`) | SiS 7012, AMD-768, AMD-8111 | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **VIA AC'97** (`sc_via82`) | VT82C686, VT8233 / 8233A / 8235 / 8237 | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **Intel HD Audio** (`sc_inthd`) | ICH6 – ICH10, ESB2, 5 Series / 3400, Cougar Point, Patsburg, Panther Point, Lynx Point (+LP), 9 Series, Wildcat Point, Wellsburg, Lewisburg, Sunrise Point, Kaby Lake, Coffee Lake, Cannon Lake, Comet Lake, Ice Lake, Jasper Lake, Tiger Lake, Alder Lake, Elkhart Lake, Broxton, Gemini Lake, Bay Trail, Braswell, Poulsbo, Oaktrail | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **AMD / ATI HD Audio** (`sc_inthd`) | ATI SB450, SB600, AMD Hudson, X370-class, X570-class, Stoney, Raven | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **nVidia HD Audio** (`sc_inthd`) | MCP51, MCP55, MCP61, MCP65, MCP67, MCP73, MCP77, MCP79, MCP89 | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **Other HD Audio** (`sc_inthd`) | VIA 82xx / VT7122 / VT6122, SiS 966, ULi M5461, Zhaoxin, C-Media HDA, Vortex86MX, Teradici | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **HDMI audio** (`sc_inthd`) | Intel Haswell / Broadwell HDMI, ATI/AMD Radeon HDMI (RS600 – R6xxx and later) | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Geode** (`sc_cs5535`) | National CS5535, AMD CS5536 | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
+| Family | Chips |
+|---|---|
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Intel AC'97** (`sc_ich`) | 82801AA/AB/BA (ICH, ICH0, ICH2), ICH3, ICH4, ICH5, **ICH6** *(my D810)*, ICH7, ESB, ESB2, 440MX |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **nVidia AC'97** (`sc_ich`) | nForce, nForce2, nForce3, MCP04, CK8, CK8S, CK804 |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **SiS / AMD AC'97** (`sc_ich`) | SiS 7012, AMD-768, AMD-8111 |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **VIA AC'97** (`sc_via82`) | VT82C686, VT8233 / 8233A / 8235 / 8237 |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Intel HD Audio** (`sc_inthd`) | ICH6 – ICH10, ESB2, 5 Series / 3400, Cougar Point, Patsburg, Panther Point, Lynx Point (+LP), 9 Series, Wildcat Point, Wellsburg, Lewisburg, Sunrise Point, Kaby Lake, Coffee Lake, Cannon Lake, Comet Lake, Ice Lake, Jasper Lake, Tiger Lake, Alder Lake, Elkhart Lake, Broxton, Gemini Lake, Bay Trail, Braswell, Poulsbo, Oaktrail |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **AMD / ATI HD Audio** (`sc_inthd`) | ATI SB450, SB600, AMD Hudson, X370-class, X570-class, Stoney, Raven |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **nVidia HD Audio** (`sc_inthd`) | MCP51, MCP55, MCP61, MCP65, MCP67, MCP73, MCP77, MCP79, MCP89 |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Other HD Audio** (`sc_inthd`) | VIA 82xx / VT7122 / VT6122, SiS 966, ULi M5461, Zhaoxin, C-Media HDA, Vortex86MX, Teradici |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **HDMI audio** (`sc_inthd`) | Intel Haswell / Broadwell HDMI, ATI/AMD Radeon HDMI (RS600 – R6xxx and later) |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Geode** (`sc_cs5535`) | National CS5535, AMD CS5536 |
 </details>
 
 <details>
 <summary><b>&gt;&gt; Sound cards &lt;&lt;</b></summary>
 
-| Family | Cards / chips | |
-|---|---|:---:|
-| **Creative SB Live!** (`sc_sbliv`) | EMU10K1: Live!, Live! Value, Live! 5.1, Live! Platinum, PCI512 (CT4620 – SB0220) | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **Creative Audigy** (`sc_sbliv`) | EMU10K2: Audigy 1 / ES, Audigy 2 / ZS / EX / Platinum / Value, Audigy 4 / 4 Pro | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **Creative Audigy LS / Live! 24-bit** (`sc_sbl24`) | CA0106: Audigy LS, Live! 7.1 24-bit, Live24 OEM, X-Fi Xtreme Audio (SB0790) | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **Creative / Dell SB0200** (`sc_emu10k1x`) | EMU10K1X | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Creative X-Fi** (`sc_ctxfi`) | EMU20K1, EMU20K2 | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Ensoniq / Creative** (`sc_e1371`) | **ES1371**, ES1373, CT5880, Ectiva EV1938 (SB PCI 64/128) | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **Ensoniq AudioPCI** (`sc_e1370`) | ES1370 | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **C-Media** (`sc_cmi`) | CMI8338A, CMI8338B, CMI8738, CMI8738B | <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> |
-| **C-Media Oxygen** (`sc_oxygen`) | CMI8786/8787/8788: **Asus Xonar DG / DGX**, HT-Omega Claro / Claro halo, AuzenTech X-Meridian / 2G, TempoTec HiFier Fantasia / Serenade, Kuroutoshikou CMI8787, C-Media reference boards | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Yamaha DS-XG** (`sc_ymf`) | YMF724, YMF724F, YMF740, YMF740C, **YMF744**, **YMF754** | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **ESS** (`sc_allegro`) | Maestro 2 (ES1968), Maestro 2E (ES1978), Allegro / Allegro-1 (ES1988S/ES1989S), Maestro-3i (ES1983), Canyon3D 2 / LE (ES1990/1992) | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Avance Logic** (`sc_als4000`) | ALS4000 | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Trident / SiS** (`sc_trident`) | 4DWave DX, 4DWave NX, SiS 7018 | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
-| **Cirrus Logic** (`sc_cs4281`) | CS4281 | <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> |
+| Family | Cards / chips |
+|---|---|
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Creative SB Live!** (`sc_sbliv`) | EMU10K1: Live!, Live! Value, Live! 5.1, Live! Platinum, PCI512 (CT4620 – SB0220) |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Creative Audigy** (`sc_sbliv`) | EMU10K2: Audigy 1 / ES, Audigy 2 / ZS / EX / Platinum / Value, Audigy 4 / 4 Pro |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Creative Audigy LS / Live! 24-bit** (`sc_sbl24`) | CA0106: Audigy LS, Live! 7.1 24-bit, Live24 OEM, X-Fi Xtreme Audio (SB0790) |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Creative / Dell SB0200** (`sc_emu10k1x`) | EMU10K1X |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Creative X-Fi** (`sc_ctxfi`) | EMU20K1, EMU20K2 |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **Ensoniq / Creative** (`sc_e1371`) | **ES1371**, ES1373, CT5880, Ectiva EV1938 (SB PCI 64/128) |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Ensoniq AudioPCI** (`sc_e1370`) | ES1370 |
+| <picture><img src="docs/90s/ok.gif" width="20" alt="tested"></picture> **C-Media** (`sc_cmi`) | CMI8338A, CMI8338B, CMI8738, CMI8738B |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **C-Media Oxygen** (`sc_oxygen`) | CMI8786/8787/8788: **Asus Xonar DG / DGX**, HT-Omega Claro / Claro halo, AuzenTech X-Meridian / 2G, TempoTec HiFier Fantasia / Serenade, Kuroutoshikou CMI8787, C-Media reference boards |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Yamaha DS-XG** (`sc_ymf`) | YMF724, YMF724F, YMF740, YMF740C, **YMF744**, **YMF754** |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **ESS** (`sc_allegro`) | Maestro 2 (ES1968), Maestro 2E (ES1978), Allegro / Allegro-1 (ES1988S/ES1989S), Maestro-3i (ES1983), Canyon3D 2 / LE (ES1990/1992) |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Avance Logic** (`sc_als4000`) | ALS4000 |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Trident / SiS** (`sc_trident`) | 4DWave DX, 4DWave NX, SiS 7018 |
+| <picture><img src="docs/90s/lab.gif" width="20" alt="ported, not tested yet"></picture> **Cirrus Logic** (`sc_cs4281`) | CS4281 |
 </details>
 
 > [!TIP]

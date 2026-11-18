@@ -50,7 +50,7 @@ inside Windows 98:
     SC55W /DBG:COM1 (or Settings > Debug) sends what the driver and the
     program do as short text lines to a second PC (DBGLOG.PY, cable in
     C:\SC55\DBGLOG.TXT), also when Windows hangs. Off = no cost.
-    AWE32 edition (beta.130-awe.9): also the EMU8000 ports (awe= in the S
+    AWE32 edition (beta.130-awe.9/.10): also the EMU8000 ports (awe= in the S
     line, captured at level 3), which DOS box takes the chip from the
     AWE32 MIDI Synth, its keys held and sample RAM, and the bank loads.
 

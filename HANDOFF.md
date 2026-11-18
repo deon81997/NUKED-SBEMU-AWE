@@ -1,3 +1,35 @@
+## beta.130-awe.10 (2026-11-17, AWE w98.10 sync session): MUXED beta.130-w98.10 (Win98 debug link free when on) on the AWE line
+- Sync: `git diff --binary v1.0.0-beta.130-w98.9-usb v1.0.0-beta.130-w98.10-usb -- . ':!release' | git apply -3 --index`;
+  conflicts dbg98.c, dbgtest.c, run.sh, VERSION/nsbver.h, binaries, docs; sbcore.c merged cleanly.
+- Hand fixes: (1) port counts out of sc_dbg_capture: sc_in/sc_out (MUXED) + c_awe++ once in awe_in8, awe_out8 and sc_iow
+  (after its "ours" check; split words are counted as bytes) - link on or off, no call. sc_dbg_capture = level-3 capture
+  only, sc_dbg_capw = level-3 capture only (2 T records, no count), awe_port() count gone; sc_dbg_cap = (level == 3) on
+  both dbg_open paths; IO_Stub io_w keeps its sc_dbg_cap test (asm comments updated). c_awe added to sbcore.c's forward
+  declaration. (2) dbgtest.c: level 1 = sc_dbg_cap 0, level 3 = 1; capture/capw at level 1 add no counts; awe=5 from the
+  trap counter -> S awe=5 + S awe line; word = 2 T records; interface 11: PASS (20 checks). routetest PASS.
+  (3) w98dbg/run.sh: MPLAYER2, version-agnostic VxD line (w98|awe), "S lines count trapped ports"; mpenter DROPPED
+  (MPLAYER2 has no first-start dialog; its stray Enter cancelled a later CHOICE /T timeout = 15 min stall); awe case: Duke
+  only with DUKE=1 (aborts QEMU). r86dbg.sh: AWE=1 variant (/AWE:620, ROMS = only AWE32.RAW from store-86box-roms, Duke
+  MusicDevice 6, checks EMU8000 traps / takes / awe= S lines / S awe voices / AWE activity right before the hang line).
+  (4) all Win98 binaries rebuilt as awe.10 (NUKEDJOY.VXD said awe.5 before; now awe.10 like the rest - /VER).
+  AWE numbering kept (PM API 5/6, WM_REMOTE 8/9, IDD_PAGE_DBG 107). MUXED's README98.TXT had one LF-only line (fixed here).
+- Tests: QEMU acpi run.sh main PASS (after one manual key for the mpenter stall), hang PASS, fault PASS (253 S lines),
+  awe PASS (traps, ready, banks, open/close, takes x2, awe= 117 S lines, 16 voices, 4096 T records of EMU8000 ports).
+  86Box P3B-F PII-450 cpu86.sh OPTS=/AWE:620 PORTS="24E 24E 301 301 620 620" (55 ms ticks, 8M INs each):
+  awe.9 off 156/157/184, on 177/175/211; awe.10 off 150/157/184, 150/157/185, 157/163/188, 157/163/185;
+  on 159/163/187, 157/164/188, 157/160/185, 163/160/188. Without /AWE: off 155/161, on 155/158 (= MUXED). Run-to-run
+  spread with the same build is +-4 % (off 24E 150..157); on is within it (mean +3 % on 24E, +1 % on 620) - the trap path
+  has no link-on code left; if a future run must split this further, alternate off/on 4+ times (one rig at a time:
+  two cpu86.sh runs share /tmp/w86d). r86dbg.sh AWE=1 (86Box): PASS - Duke AWE32 music in a DOS box with the link on,
+  223 S lines with awe= (median 16k EMU8000 accesses/s, voices 1-2/32), takes line, hang test while Duke plays: "!" last,
+  Windows frozen. (SC55W E "clock/PCM resyncs" lines while Duke runs - 86Box timing; not compared with awe.9.)
+- Release: awe.9 zip + Win98 files + README98/README.TXT/HWTEST via testrig/awe98/mkrel.py --keepdos (DOS EXEs = awe.8).
+  Wiki: priavte wiki/post/awe-awe.10.json (Changelog row, Home awe.10 line, Windows-98 /DBG row) - post AFTER awe.json,
+  mux-w98.10.json, awe-awe.9.json.
+- Test downloads: OW snapshot (Current-build), JWasm (Baron-von-Riedesel), munt d885a95, apt mingw-w64-i686-win32
+  gcc-multilib qemu-system-x86 socat mtools xdotool openbox librtmidi6 zstd, pip pyserial pefile; Duke from testgames.
+- Next: HWTEST top item (link left on, CPU % with Duke AWE on/off on the D810/P5PE-VM); post wiki jobs.
+
 ## beta.130-awe.9 (2026-11-17, AWE debug-link session): MUXED beta.130-w98.9 (Windows 98 serial debug link) on the AWE line
 - Sync: `git diff --binary v1.0.0-beta.130-w98.8-usb v1.0.0-beta.130-w98.9-usb -- . ':!release' | git apply -3 --index`;
   conflicts in resource.h, sc55w.rc, w98main.cpp (8), sc55midi.c, sbcore.c, sc55w.asm (5), VERSION/nsbver.h, docs; binaries rebuilt.

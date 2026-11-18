@@ -10,7 +10,7 @@ import make90s as m
 
 # file, small line, big line, background, text colour, (icon box colour, icon text, icon colour), rainbow?
 NAV = [
-    ('nav-news.gif',     "what's",      'NEW!!',      (128, 0, 0),    (255, 255, 0),   ((255, 255, 0), '!', (200, 0, 0)), True),
+    ('nav-news.gif',     "what's",      'NEW',      (128, 0, 0),    (255, 255, 0),   ((255, 255, 0), '!', (200, 0, 0)), True),
     ('nav-what.gif',     'what is',     'THIS??',     (0, 0, 128),    (255, 255, 255), ((255, 255, 255), '?', (0, 0, 128)), False),
     ('nav-features.gif', 'cool',        'FEATURES',   (0, 96, 0),     (255, 255, 255), ((255, 215, 0), '*', (0, 96, 0)), False),
     ('nav-run.gif',      'will it',     'RUN??',      (64, 0, 96),    (255, 200, 255), ((0, 0, 0), 'CPU', (0, 255, 0)), False),
@@ -18,7 +18,7 @@ NAV = [
     ('nav-start.gif',    'getting',     'STARTED',    (0, 0, 0),      (192, 192, 192), ((128, 128, 128), 'C:\\', (0, 0, 0)), False),
     ('nav-pads.gif',     'USB',         'GAMEPADS',   (32, 32, 32),   (120, 255, 120), ((60, 160, 60), '+', (255, 255, 255)), False),
     ('nav-chips.gif',    'sound',       'CHIPS',      (0, 80, 40),    (255, 255, 160), ((0, 0, 0), 'PCI', (255, 200, 0)), False),
-    ('nav-shots.gif',    'screen',      'SHOTS!!',    (96, 48, 0),    (255, 230, 160), ((40, 40, 40), '[ ]', (255, 255, 255)), False),
+    ('nav-shots.gif',    'screen',      'SHOTS',    (96, 48, 0),    (255, 230, 160), ((40, 40, 40), '[ ]', (255, 255, 255)), False),
     ('nav-fame.gif',     'hall of',     'FAME',       (120, 90, 0),   (255, 255, 200), ((255, 215, 0), '#1', (120, 60, 0)), True),
     ('nav-claude.gif',   'built with',  'CLAUDE',     (96, 40, 20),   (255, 220, 190), ((217, 119, 87), '*', (255, 255, 255)), False),
     ('nav-home.gif',     'made for',    'THIS PACK',   (0, 72, 72),    (255, 255, 255), ((255, 255, 255), '%', (0, 72, 72)), False),

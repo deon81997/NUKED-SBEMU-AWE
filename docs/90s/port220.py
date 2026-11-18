@@ -102,7 +102,7 @@ def hello(n=12):
         d.rounded_rectangle([182, 14, 432, 96], 10, fill=(255, 255, 255), outline=(20, 20, 20), width=3)
         d.polygon([(186, 70), (160, 92), (200, 82)], fill=(255, 255, 255), outline=(20, 20, 20))
         d.line([(186, 72), (198, 82)], fill=(255, 255, 255), width=3)
-        lines = ["Hi!! I'm Port 220,", "the NUKED SB-EMU", "mascot!" + (" \u266a" if k % 4 < 2 else "")]
+        lines = ["Hi, I'm Port 220,", "the NUKED SB-EMU", "mascot!" + (" \u266a" if k % 4 < 2 else "")]
         for i, t in enumerate(lines):
             d.text((198, 22 + i * 22), t, font=font, fill=(200, 30, 120) if i == 0 else (20, 20, 60))
         out.append(c)

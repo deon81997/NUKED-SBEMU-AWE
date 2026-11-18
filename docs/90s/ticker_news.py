@@ -18,7 +18,7 @@ README = os.path.join(ROOT, 'README.md')
 
 def news(count):
     s = open(README, encoding='utf-8').read()
-    a = s.index("## ★ What's NEW!! ★")
+    a = re.search(r"^## .*What's (?:NEW|New)", s, re.M).start()
     b = s.index('<details>', a)
     out = []
     # <img ...> **11/11/2026: beta.92.** **An empty CD drive no longer freezes the PC!!** ...
@@ -38,7 +38,7 @@ def main():
     items = news(count)
     if not items:
         sys.exit('no news entries found in README.md')
-    text = '*** NEW!! ' + ' *** '.join(items) + ' *** Port 220 says hi!! ***'
+    text = '*** NEW: ' + ' *** '.join(items) + ' *** Port 220 says hi ***'
     old = open(stamp, encoding='utf-8').read().strip() if os.path.exists(stamp) else ''
     if text == old:
         print('unchanged'); return

@@ -95,17 +95,17 @@ def ball(name, col):
 
 
 if __name__ == '__main__':
-    note(['new stuff almost', 'every day!! check', 'back soon :)'], 'note-news.gif', seed=1, angle=-5)
-    note(['my 366 MHz Celeron', 'runs it!!', '(the SC-55 barely)'], 'note-run.gif', paper=(170, 230, 255), seed=2, angle=4)
-    note(['unzip it, run SETUP,', 'done. REALLY!!'], 'note-start.gif', paper=(190, 255, 170), seed=3, angle=-3)
-    note(['my 360 pad works', 'in DOOM!!! no joke'], 'note-pads.gif', paper=(255, 190, 220), seed=4, angle=5)
+    note(['new stuff almost', 'every day. check', 'back soon :)'], 'note-news.gif', seed=1, angle=-5)
+    note(['my 366 MHz Celeron', 'runs it', '(the SC-55 barely)'], 'note-run.gif', paper=(170, 230, 255), seed=2, angle=4)
+    note(['unzip it, run SETUP,', 'done. really.'], 'note-start.gif', paper=(190, 255, 170), seed=3, angle=-3)
+    note(['my 360 pad works', 'in DOOM. no joke'], 'note-pads.gif', paper=(255, 190, 220), seed=4, angle=5)
     note(['all real screens,', 'no photoshop :)'], 'note-shots.gif', seed=5, angle=3)
-    note(['it\'s FREE!!', 'tell ur friends'], 'note-download.gif', paper=(255, 210, 150), seed=6, angle=-6)
-    note(['pls sign it,', 'I read every one!!'], 'note-guest.gif', paper=(170, 230, 255), seed=7, angle=4)
+    note(['it\'s free', 'tell ur friends'], 'note-download.gif', paper=(255, 210, 150), seed=6, angle=-6)
+    note(['pls sign it,', 'I read every one'], 'note-guest.gif', paper=(170, 230, 255), seed=7, angle=4)
     note(['couldn\'t have done', 'it without them <3'], 'note-thanks.gif', paper=(255, 190, 220), seed=8, angle=-4)
-    note(['take them!! that\'s', 'what GPL is for'], 'note-drivers.gif', paper=(190, 255, 170), seed=9, angle=3)
-    doodle('click me!!', 'doodle-click.gif', seed=11)
+    note(['take them, that\'s', 'what GPL is for'], 'note-drivers.gif', paper=(190, 255, 170), seed=9, angle=3)
+    doodle('click me', 'doodle-click.gif', seed=11)
     doodle('click the parts!', 'doodle-parts.gif', flip=True, ink=(80, 220, 255), seed=12)
-    doodle('the new one!!', 'doodle-new.gif', ink=(255, 200, 40), seed=13)
+    doodle('the new one', 'doodle-new.gif', ink=(255, 200, 40), seed=13)
     for n, c in (('red', (220, 30, 30)), ('blue', (40, 90, 230)), ('green', (30, 170, 60)), ('gold', (230, 170, 20))):
         ball('ball-%s.gif' % n, c)

@@ -200,7 +200,7 @@ def mailbox():
 # ---------------------------------------------------------------- embedded MIDI player box ("now playing")
 def jukebox():
     w, h = 300, 64
-    title = '~*~ now playing: PORT220_THEME.MID (SC-55 mix) ~*~ turn your speakers up!! ~*~    '
+    title = '~*~ now playing: PORT220_THEME.MID (SC-55 mix) ~*~ turn your speakers up ~*~    '
     font, small = F('DejaVuSansMono-Bold.ttf', 12), F('DejaVuSans-Bold.ttf', 10)
     frames = []
     for k in range(24):
@@ -248,7 +248,7 @@ def award():
     d = crisp(ImageDraw.Draw(im))
     d.rectangle([0, 0, 87, 30], outline=(0, 255, 0))
     d.text((44, 9), 'Y2K', font=F('DejaVuSans-Bold.ttf', 13), fill=(0, 255, 0), anchor='mm')
-    d.text((44, 23), 'COMPLIANT!!', font=F('DejaVuSans-Bold.ttf', 9), fill=(255, 255, 255), anchor='mm')
+    d.text((44, 23), 'COMPLIANT', font=F('DejaVuSans-Bold.ttf', 9), fill=(255, 255, 255), anchor='mm')
     save([im], 'btn-y2k.gif')
 
 

@@ -1,3 +1,16 @@
+## beta.131-awe.1 (2026-11-18, AWE b131 sync session): MUXED beta.131 (Audigy analog + S/PDIF at once) on the AWE line
+- Sync: `git diff --binary v1.0.0-beta.130-w98.10-usb v1.0.0-beta.131-usb -- . ':!release' ':!README.md' ':!HANDOFF.md' | git apply -3 --index`;
+  conflicts only makefile VERSION (-> 1.0.0-beta.131-awe.1-usb-sc55) and README98.TXT (kept AWE's five-tab text). sc_sbliv.c
+  and sbdiag.c (SPDIF "analog outputs" line) merged cleanly, AWE lines intact; docs/90s already equal. No new F_SYNTH /
+  VMPU_ENABLED uses, no new HDPMI trap slots. Win98 part unchanged (FILES/WIN98 = awe.10, md5 checked).
+- Tests: 86Box P2B-LS at PII-450 testrig/awe/duke.sh (Duke 1.3D AWE32 music, HIMEM), awe.10 vs new, 2 runs each:
+  SBDIAG 5% CPU both, AWE32 4% render, longest 0.98 ms, IRQ avg 0.15 ms; music cmp.py RMS 0.0 dB, env corr 0.993. No Audigy
+  in emulators (MUXED: bit table checked, jack bit unchanged in 18 cases).
+- Release: rezip.py from the awe.10 zip (28 swapped: DOS EXEs, README.TXT, HWTEST.TXT). README: awe.1 news on top, MUXED
+  beta.131 at the top of Older news. HWTEST: beta.131 item + an AWE32-on line. Wiki not posted (README-only task).
+- Test downloads: DJGPP v3.4 (/tmp/dl/djgpp), 86Box 0935207 + xpad diff (automation build), store-dos71, store-86box-roms.
+- Next: HWTEST beta.131 item on the P5PE-VM (Audigy 2: speakers + receiver, AWE32 on).
+
 ## beta.130-awe.10 (2026-11-17, AWE w98.10 sync session): MUXED beta.130-w98.10 (Win98 debug link free when on) on the AWE line
 - Sync: `git diff --binary v1.0.0-beta.130-w98.9-usb v1.0.0-beta.130-w98.10-usb -- . ':!release' | git apply -3 --index`;
   conflicts dbg98.c, dbgtest.c, run.sh, VERSION/nsbver.h, binaries, docs; sbcore.c merged cleanly.

@@ -1625,6 +1625,8 @@ CONTENTS
   SBDIAG TONE  (1 kHz tone left, right, both). No lock on the receiver:
   SBEMU /SPDIFINV:1, then SBDIAG SPDIF again. /SPDIF:0 gives the jack
   back to the Center/Sub speakers. The S/PDIF stream is always 48 kHz.
+  The front / rear speakers keep playing next to the S/PDIF out (before
+  beta.131 /SPDIF:1 muted them); SBDIAG SPDIF shows "analog outputs: on".
 
   FREEZES YOU CANNOT EXPLAIN - WATCH SBEMU LIVE (beta.127): connect the
   DOS PC's COM1 to a second PC (null-modem cable + USB-serial adapter),

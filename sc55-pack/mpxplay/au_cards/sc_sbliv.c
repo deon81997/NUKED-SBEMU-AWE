@@ -413,6 +413,14 @@ static int snd_emu_jack_inverted(struct emu10k1_card *card)
  return ((card->chips&EMU_CHIPS_0151) && card->serial != 0x20071102) ^ (SBLIVE_SpdifInv ? 1 : 0);
 }
 
+/* the analog DACs' mute bit 40h as snd_emu10k1_hw_init sets it: 1 = on for chiprev 4 (Audigy 2 / ZS / 4 PRO), 0 = on for
+ * the Audigy 1; the Audigy 2 Value / 4 (CA0108) unmute with 60h */
+static int snd_emu_analog_on(struct emu10k1_card *card)
+{
+ const uint32_t io = inl(card->iobase + A_IOCFG);
+ return (card->chiprev == 4 || (card->chips&EMU_CHIPS_0108)) ? (io & 0x40) != 0 : (io & 0x40) == 0;
+}
+
 /* S/PDIF output rate (the chips that have a rate register: Audigy 2 / ZS / 4 / 2 Value) + channel status */
 static void snd_emu_spdif_rate(struct emu10k1_card *card, unsigned long freq)
 {
@@ -436,7 +444,10 @@ static void snd_emu_spdif_jack(struct emu10k1_card *card)
  }else{
   const int sw = dig ^ snd_emu_jack_inverted(card);
   uint32_t io = inl(card->iobase + A_IOCFG), hc = inl(card->iobase + HCFG);
-  io = sw ? (io | A_IOCFG_GPOUT0) : (io & ~A_IOCFG_GPOUT0);
+  /* beta.131: only the jack bit (04h). A_IOCFG_GPOUT0 (44h, as ALSA's "Analog/Digital Output Jack") also holds the
+   * analog mute bit 40h (DISABLE_ANALOG, = 'enable' on the Audigy 2 family), so /SPDIF:1 muted the front/rear
+   * analog outputs: no analog + S/PDIF at once. 40h stays as snd_emu10k1_hw_init set it (analog on). */
+  io = sw ? (io | A_IOCFG_ENABLE_DIGITAL) : (io & ~A_IOCFG_ENABLE_DIGITAL);
   hc = sw ? (hc | HCFG_GPOUT0) : (hc & ~HCFG_GPOUT0);
   outl(card->iobase + A_IOCFG, io);
   outl(card->iobase + HCFG, hc);
@@ -462,12 +473,12 @@ int SBLIVE_SpdifSet(int mode, char *t, int n)
   snd_emu_spdif_jack(card);
   if(f & 0x200) __asm__ __volatile__("sti" ::: "memory");
  }
- return snprintf(t, n, "SPDIF=%d MODE=%s CARD=%s SSID=%08X REV=%d JACK=%s%s RATE=%lu IOCFG=%04X HCFG=%08X SPCS0=%08X",
+ return snprintf(t, n, "SPDIF=%d MODE=%s CARD=%s SSID=%08X REV=%d JACK=%s%s RATE=%lu ANALOG=%s IOCFG=%04X HCFG=%08X SPCS0=%08X",
    SBLIVE_SpdifMode, SBLIVE_ModeName[SBLIVE_SpdifMode % 3],
    card->card_capabilities->longname ? card->card_capabilities->longname : "Audigy", (unsigned)card->serial, card->chiprev,
    (card->chips&EMU_CHIPS_0108) ? (SBLIVE_SpdifMode ? "own-spdif-on" : "own-spdif-off") : (SBLIVE_SpdifMode ? "digital" : "analog"),
    (card->chips&EMU_CHIPS_0108) ? "" : snd_emu_jack_inverted(card) ? "(inv)" : "",
-   SBLIVE_SpdifHz, (unsigned)(inl(card->iobase + A_IOCFG) & 0xFFFF), (unsigned)inl(card->iobase + HCFG),
+   SBLIVE_SpdifHz, snd_emu_analog_on(card) ? "on" : "MUTED", (unsigned)(inl(card->iobase + A_IOCFG) & 0xFFFF), (unsigned)inl(card->iobase + HCFG),
    (unsigned)emu10k1_readptr(card, SPCS0, 0));
 }
 #endif

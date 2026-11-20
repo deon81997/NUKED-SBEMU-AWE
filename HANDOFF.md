@@ -1,3 +1,37 @@
+## beta.131-awe.3 (2026-11-20, Descent Win98 freeze session): MPU-401 real-card timing in DOS boxes, port owner names
+- User log (D810, awe.10, level 3): Descent DOS box, MPU -> AWE32 MIDI Synth; ~75 s in: mpu=130666, "MPU-401 reset (FFh)",
+  then ~190k reads/s with ack=0 for 4 s and serial output stops mid-line ("VXD I v") = hard hang; earlier ~6 s then exit.
+- Cause (HMIMDRV.386 "mpu401.com" disassembled, 0x21d reset): mask PIC (or 0FDh = all but IRQ 1), wait up to 3FFFFh
+  reads for DSR=0, out FFh, then loop up to 0FFFFFh reads WHILE DSR=0, read. A card's ACK comes after some us, so the
+  first read says "no data" and HMI is done; our FEh was there at once -> 262143 + 1048575 trapped reads (= the log: 130666
+  + 131k, then 5.6 s at 187k/s; QEMU HMIMPU baseline p=262143 w=1048575 exactly). Song change / quit = this reset.
+- Fix (win98/vxd/mpu98.c, #included by sbcore.c; host test win98/test/mputest.sh, 6194 checks, old code fails it):
+  a command's reply shows on DSR from the 2nd status read (mpu_hide); busy (DRR) at most 64 status reads per byte;
+  2048 status reads in a row with nothing queued (UART / not intelligent) = one active-sensing FEh (ends HMI's pre-wait);
+  FFh = no back-pressure until the next data byte; dbg I line per long spin + "S mpu spins=" line. HMIMPU now i=1 a=FE
+  p=2047 w=0 r=FE. NOT done: VMM Release_Time_Slice on long spins (tried: the DOS box then got 1 slice/s = 4096 reads/s,
+  HMIMPU 15 s per 64 bytes; VMM treats it as idle).
+- The hard hang itself is not reproduced (QEMU: 3x1.38M reads in ~4 s, Windows fine). Facts: trap path per read = a few
+  adds (no time call unless the ring is 3/4 full), dbg lines only at reset/UART/spin; the cut line was the first FIFO
+  chunk of an I line ("vm=..."), async time-outs then stopped = ring-0 interrupts off / machine locked while the VM sat
+  in HMI's masked-PIC loop. With the fix that loop is 1 read, so the window is gone; if the D810 still hangs, the
+  log's last lines now show where (spins=, reset, ack=).
+- OPL 388 owner: helper port_owner() reads HKEY_DYN_DATA\Config Manager\Enum\*\Allocation (IOType_Range 12 records)
+  + HKLM\Enum\<HardWareKey> DeviceDesc; attach_problems (status window, start-up box) names the owner for SB/OPL/MPU
+  port conflicts; "SC55W E OPL ports 388-38B belong to: <name>" on the debug link + SC55W.LOG. Claiming is not done:
+  VMM has one handler per port and Remove_IO_Handler cannot give it back (until reboot) - documented in README98.
+  UNTESTED with a real owner (QEMU acpi has none): 86Box acpi's SB16 driver owns 220/330/388 - run hmi98-style there.
+- Tests: mputest/dbgtest/routetest PASS; QEMU acpi testrig/w98dbg/hmi98.sh (new): hmi (HMIMPU 3+2 + S spin) old
+  p=262143 w=1048575 / new p=2047 w=0; desc (Descent 1.4 shareware from testgames, 4GWBIND in the VM, desckeys.sh;
+  keys finished by hand in the VM, script fixed after): 3 starts + 3 quits, ~13 min of level/menu music, 789 S lines with
+  midi, AWE32 MIDI Synth 190680 bytes / 28310 notes, normal play mpu= 240-1000/s (2 per byte), max 65638/s = HMI init's
+  own 0FFFFh read loop, 6 MPU resets each done in ~50 ms, no hang.
+- MUXED port (TODO, other chat): the standard Win98 build has the same front end (sbcore.c MPU section = mpu98.c here,
+  copy it + test/mputest.*; nothing AWE-specific in it). DOS SBEMU main.c MAIN_MPU_331 non-USB path answers at once too
+  (mpu_state 1 -> status 0 until read): HMI loops 1M reads in DOS as well (~1-2 s, PIC masked) - same hide/sense there.
+- Test downloads: OW snapshot, JWasm, munt d885a95, apt nasm arj p7zip-full librtmidi6, store-w98qi-qemu,
+  store-86box-roms (awe32.raw), store-86rig, store-w98qi-86box; Descent = testgames/desc14sw.exe (zip -> ARJ volumes).
+
 ## beta.131-awe.2 (2026-11-20, AWE native-driver session): Duke 3D / Descent AWE32 music = all voices (emu8k.c)
 - User report: Duke 3D and Descent set to AWE32 music (their own drivers, Creative's AWE32 SDK inside Apogee Sound System
   / HMI SOS) thin + wrong instruments; General MIDI on awemidi + SYNTHGM.SBK right.

@@ -3,6 +3,7 @@
 # hmi98.sh ZIP [VXD] [CASE] - HMI SOS MPU-401 code (Descent's) in a Win98 DOS box, QEMU acpi VM (store-w98qi-qemu), MPU ->
 # AWE32 MIDI Synth (/AWE:620 /AWEMPU:GM, [AWE32 MIDI] Synth=1), debug link COM1:1 -> DBGLOG.PY (/tmp/w98dbg/hmi.log).
 #   CASE hmi (default): HMIMPU.COM 3 (init, 64 bytes, reset) -> D:\R\H.TXT; w= = loops after FFh (real MPU: 1)
+#   CASE midplay: MIDPLAY /Q:40 TEST.MID (MPU reset/ACK handshake, B0h panel), then HMIMPU 1
 #   CASE desc: Descent 1.4 shareware (/tmp/g/descent: desc14sw.exe -> ARJ, 4GWBIND in the VM) DESCENT.CFG SB Pro 240/7/3
 #        + MPU 330, started RUNS times (default 3; DARGS = its arguments); desckeys.sh plays PLAY s (120) each and quits
 #        to DOS; S lines give mpu=/s, a hang = no S lines
@@ -19,6 +20,9 @@ w() { echo "CHOICE /T:Y,$1 /C:Y >NUL"; }
 case $CASE in
 hmi) { echo '@ECHO OFF'; echo "START $S /DBG:COM1:1"; w 30; echo 'D:\T\HMIMPU.COM 3 > D:\R\H.TXT'; w 5
        echo 'D:\T\HMIMPU.COM 2 >> D:\R\H.TXT'; w 5; echo 'D:\T\HMIMPU.COM S >> D:\R\H.TXT'; w 5; echo 'ECHO done> D:\R\DONE.TXT'; } | sed 's/$/\r/' > $W/d/T/TH.BAT ;;
+midplay) cp $H/TEST.MID $W/d/T/
+     { echo '@ECHO OFF'; echo "START $S /DBG:COM1:1"; w 30; echo 'D:\PACK\FILES\SC55\MIDPLAY.EXE /Q:40 D:\T\TEST.MID > D:\R\M.TXT'
+       echo 'ECHO midplay ran> D:\R\H.TXT'; w 5; echo 'D:\T\HMIMPU.COM 1 >> D:\R\H.TXT'; w 3; echo 'ECHO done> D:\R\DONE.TXT'; } | sed 's/$/\r/' > $W/d/T/TH.BAT ;;
 desc) cp -r /tmp/g/descent $W/d/T/DESCENT
       printf 'DigiDeviceID=0xe001\r\nDigiPort=0x240\r\nDigiIrq=7\r\nDigiDma=3\r\nMidiDeviceID=0xa001\r\nMidiPort=0x330\r\nDigiVolume=8\r\nMidiVolume=8\r\n' > $W/d/T/DESCENT/DESCENT.CFG
       { echo '@ECHO OFF'; echo "START $S /DBG:COM1:1"; w 30; echo 'D:'; echo 'CD \T\DESCENT'

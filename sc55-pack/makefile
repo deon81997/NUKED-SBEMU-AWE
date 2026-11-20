@@ -12,6 +12,9 @@ PACKVER = -DNSB_VER=\"$(VERSION)\" -include tools/packver.h
 
 INCLUDES := -I./mpxplay -I./sbemu -I./drivers/include -I./sc55 -I./third_party/nuked-opl3-fast
 DEFINES := -D__DOS__ -DSBEMU -DDEBUG=$(DEBUG) -DSBEMU_VSC55=$(VSC55) -DMAIN_SBEMU_VER=\"$(VERSION)\"
+ifeq ($(AWEREC),1)
+DEFINES += -DAWEREC
+endif
 CFLAGS := -fcommon -march=i386 -ffast-math -O2 -flto $(INCLUDES) $(DEFINES)
 LDFLAGS := -lstdc++ -lm -Wno-attributes
 

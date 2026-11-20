@@ -85,3 +85,9 @@ void be_render(int16_t *out, int frames)
         frames -= n;
     }
 }
+void be_probe(int ch, uint32_t *pitch, uint32_t *vol, uint32_t *cut, uint32_t *addr)
+{
+    emu8k_voice_t *v = &ref->voice[ch & 31];
+    *pitch = v->cpf_curr_pitch; *vol = v->cvcf_curr_volume; *cut = v->cvcf_curr_filt_ctoff;
+    *addr = v->addr.int_address & 0xFFFFFF;
+}

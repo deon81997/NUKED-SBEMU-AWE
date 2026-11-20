@@ -20,12 +20,19 @@
   + HKLM\Enum\<HardWareKey> DeviceDesc; attach_problems (status window, start-up box) names the owner for SB/OPL/MPU
   port conflicts; "SC55W E OPL ports 388-38B belong to: <name>" on the debug link + SC55W.LOG. Claiming is not done:
   VMM has one handler per port and Remove_IO_Handler cannot give it back (until reboot) - documented in README98.
-  UNTESTED with a real owner (QEMU acpi has none): 86Box acpi's SB16 driver owns 220/330/388 - run hmi98-style there.
+  86Box acpi (SB16 with its driver, ours at 240/300, OPL on): SC55W.LOG "OPL ports 388-38B belong to: 16-bit Sound
+  [ROOT\*PNPB003\0000]" (= the SB16 devnode; /tmp/opl86.sh = cpu86.sh without /OPL:0, PORTS=24E).
 - Tests: mputest/dbgtest/routetest PASS; QEMU acpi testrig/w98dbg/hmi98.sh (new): hmi (HMIMPU 3+2 + S spin) old
   p=262143 w=1048575 / new p=2047 w=0; desc (Descent 1.4 shareware from testgames, 4GWBIND in the VM, desckeys.sh;
   keys finished by hand in the VM, script fixed after): 3 starts + 3 quits, ~13 min of level/menu music, 789 S lines with
   midi, AWE32 MIDI Synth 190680 bytes / 28310 notes, normal play mpu= 240-1000/s (2 per byte), max 65638/s = HMI init's
   own 0FFFFh read loop, 6 MPU resets each done in ~50 ms, no hang.
+- Final zip (awe.2 zip + Win98 rebuilt with awe.2's emu8k.c): QEMU MIDPLAY in a DOS box (hmi98.sh midplay; Start > Run
+  missed once, run by hand): FFh, FFh, 3Fh handshake + TEST.MID played (2 reads per byte). 86Box r98.sh (copy with
+  MUSDEV=4: Duke 3D General MIDI at 300 -> /AWEMPU:GM AWE32 MIDI Synth, DUKEONLY, SERIALLOG + /DBG:COM1:1): 386 s of
+  music, 12678 notes, max mpu 2178/s (= 2 per byte), 1 reset, 0 spins. (86Box resyncs in SC55W E lines = emulator.)
+- CPU 86Box P3B-F PII-450 cpu86.sh (8M trapped INs, 55 ms ticks, 24E x3 / 301 x3 = MPU status at /P:300), awe.1 vs
+  this VxD alternated: old 158/162, new 155/154, old 158/161, new 155/155 - no cost (MPU path 4% fewer ticks).
 - MUXED port (TODO, other chat): the standard Win98 build has the same front end (sbcore.c MPU section = mpu98.c here,
   copy it + test/mputest.*; nothing AWE-specific in it). DOS SBEMU main.c MAIN_MPU_331 non-USB path answers at once too
   (mpu_state 1 -> status 0 until read): HMI loops 1M reads in DOS as well (~1-2 s, PIC masked) - same hide/sense there.

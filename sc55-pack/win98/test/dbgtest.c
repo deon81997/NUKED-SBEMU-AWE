@@ -55,6 +55,7 @@ static int awe_port(u32 port) { u32 o = port - 0x620; return o < 4 || o - 0x400 
 static u32 awe_stats_calls, awe_stats_acc, awe_attach_calls;
 static void dbg(char kind, const char *f, ...);
 static void awe_dbg_attach(u32 st) { (void)st; awe_attach_calls++; }
+static void mpu_dbg_stats(void) { }
 static void awe_dbg_stats(u32 acc) { awe_stats_calls++; awe_stats_acc = acc; if (acc) dbg('S', "awe vm=00000000 ports=%u voices=0/32 ramw=0 ram=512K", acc); }
 
 #include "../vxd/dbg98.c"

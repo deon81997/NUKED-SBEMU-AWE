@@ -147,6 +147,7 @@ struct Published {
 } g_pub;
 // w98.8: what the DOS boxes / Windows programs sent, every 10 s while it changes (SC55W.LOG, for BUGREP)
 static void logf(const char* fmt, ...);
+static std::string port_owner_text(unsigned lo, unsigned hi);   // beta.131-awe.3: whose ports (Configuration Manager)
 static void log_activity(const EngineStats& s, DWORD now, double load)
 {
     static DWORD t; static unsigned m, o, p, a, am;
@@ -631,6 +632,11 @@ static DWORD WINAPI audio_main(LPVOID)
                 LeaveCriticalSection(&g_cs);
                 logf("attach %X:%d:%d:%d type %d mpu %X -> status %05lX", want.sb_port, want.irq, want.dma8,
                      want.dma16, want.sbtype, want.vmpu ? want.mpu_port : 0, st);
+                if (st & ST_ERR_OPLPORT) {   // beta.131-awe.3: whose (log + debug link)
+                    std::string ow = port_owner_text(0x388, 0x38B);
+                    logf("OPL ports 388-38B belong to: %s", ow.c_str());
+                    dbg_line('E', "OPL ports 388-38B belong to: %s", ow.c_str());
+                }
             }
             Options eo = engine_opts(want);
             if (!have || want.rate != cur.rate || !eng.apply_live(eo)) {
@@ -994,6 +1000,59 @@ static const char* type_name(int t)
     return t >= 1 && t <= 6 ? n[t] : "?";
 }
 
+// beta.131-awe.3: which Windows device has I/O ports lo-hi (the attach found them trapped by another driver): Configuration
+// Manager's allocations (HKEY_DYN_DATA\Config Manager\Enum\*: HardWareKey + Allocation), the device's name from
+// HKLM\Enum\<HardWareKey> DeviceDesc. Allocation = Windows 9x LOG_CONF records; an I/O range is IOD_Type 12
+// (IOType_Range), IOD_Alloc_Base, IOD_Alloc_End as WORDs - scanned for, not walked. "" = none found (a VxD from
+// SYSTEM.INI that traps the ports without a device, e.g. a DOS-box Sound Blaster emulator).
+static std::string port_owner(unsigned lo, unsigned hi)
+{
+    std::string r;
+    HKEY e;
+    if (RegOpenKeyExA(HKEY_DYN_DATA, "Config Manager\\Enum", 0, KEY_READ, &e) != ERROR_SUCCESS) return r;
+    for (DWORD i = 0; i < 4096; i++) {
+        char sub[64], hw[256], desc[256];
+        DWORD sl = sizeof sub;
+        if (RegEnumKeyExA(e, i, sub, &sl, NULL, NULL, NULL, NULL) != ERROR_SUCCESS) break;
+        HKEY d;
+        if (RegOpenKeyExA(e, sub, 0, KEY_READ, &d) != ERROR_SUCCESS) continue;
+        unsigned char al[1024];
+        DWORD hl = sizeof hw - 1, alen = sizeof al, t;
+        bool hit = false;
+        if (RegQueryValueExA(d, "HardWareKey", NULL, &t, (LPBYTE)hw, &hl) == ERROR_SUCCESS &&
+            RegQueryValueExA(d, "Allocation", NULL, &t, al, &alen) == ERROR_SUCCESS) {
+            hw[hl < sizeof hw ? hl : sizeof hw - 1] = 0;
+            for (DWORD k = 0; k + 6 <= alen && !hit; k += 2) {
+                unsigned ty = al[k] | al[k + 1] << 8, b = al[k + 2] | al[k + 3] << 8, en = al[k + 4] | al[k + 5] << 8;
+                if (ty == 12 && b <= en && en - b < 0x400 && b <= hi && en >= lo) hit = true;
+            }
+        }
+        RegCloseKey(d);
+        if (!hit) continue;
+        desc[0] = 0;
+        HKEY h;
+        if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, ("Enum\\" + std::string(hw)).c_str(), 0, KEY_READ, &h) == ERROR_SUCCESS) {
+            DWORD dl = sizeof desc - 1;
+            if (RegQueryValueExA(h, "DeviceDesc", NULL, &t, (LPBYTE)desc, &dl) == ERROR_SUCCESS) desc[dl < sizeof desc ? dl : sizeof desc - 1] = 0;
+            else desc[0] = 0;
+            RegCloseKey(h);
+        }
+        if (!r.empty()) r += ", ";
+        r += std::string(desc[0] ? desc : "?") + " [" + hw + "]";
+    }
+    RegCloseKey(e);
+    return r;
+}
+
+static std::string port_owner_text(unsigned lo, unsigned hi)
+{
+    static std::string cache[3];
+    static unsigned key[3];
+    int slot = lo == 0x388 ? 0 : lo >= 0x300 && lo < 0x340 ? 1 : 2;
+    if (key[slot] != lo + 1) { cache[slot] = port_owner(lo, hi); key[slot] = lo + 1; }
+    return cache[slot].empty() ? "a driver loaded from SYSTEM.INI (no Windows device has these ports)" : cache[slot];
+}
+
 static std::string attach_problems(const Options& o, DWORD st)
 {
     std::string m;
@@ -1004,12 +1063,19 @@ static std::string attach_problems(const Options& o, DWORD st)
         snprintf(b, sizeof b, "- Port %X is taken by another driver (a sound card's own Sound Blaster "
                  "emulation?). DOS programs get no Sound Blaster.\r\n", o.sb_port);
         m += b;
+        m += "   It belongs to: " + port_owner_text(o.sb_port, o.sb_port + 15) + "\r\n";
     }
-    if (st & ST_ERR_OPLPORT) m += "- Port 388 (AdLib/FM) is taken by another driver.\r\n";
+    if (st & ST_ERR_OPLPORT) {
+        // beta.131-awe.3: say whose. VMM gives each port to one driver (no sharing); taking it away would leave that
+        // driver without it until Windows restarts, so FM in DOS boxes stays with it. OPL off hides this line.
+        m += "- Ports 388-38B (AdLib/FM) belong to another driver: " + port_owner_text(0x388, 0x38B) +
+             ".\r\n   DOS programs get FM from that driver, not from NUKED SB-EMU (Settings: FM off hides this).\r\n";
+    }
     if (st & ST_ERR_MPUPORT) {
         snprintf(b, sizeof b, "- Port %X (MPU-401) is taken by another driver; DOS MIDI will not "
                  "reach the synth.\r\n", o.mpu_port);
         m += b;
+        m += "   It belongs to: " + port_owner_text(o.mpu_port, o.mpu_port + 1) + "\r\n";
     }
     if (st & ST_ERR_IRQ) {
         snprintf(b, sizeof b, "- IRQ %d could not be taken over.\r\n", o.irq);

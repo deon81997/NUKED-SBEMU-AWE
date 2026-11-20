@@ -443,6 +443,14 @@ nothing when it is silent.
      Another Sound Blaster emulation has the port: SBEMUL (run Setup again
      with that box ticked), or a sound card driver with its own DOS
      support - turn that off in its settings, or choose port 240 here.
+  "Ports 388-38B (AdLib/FM) belong to another driver: <name>"
+     Since beta.131-awe.3 the status line, SC55W.LOG and the debug link
+     name the Windows device that has the ports (Device Manager's name),
+     or say it is a driver from SYSTEM.INI. Windows gives a port to one
+     driver only, and taking it away would leave that driver without it
+     until Windows restarts, so FM in DOS boxes stays with that driver
+     (often a sound card's own DOS support: turn it off there). FM off in
+     Settings hides the line.
   "IRQ n / DMA n could not be taken over"
      Choose another IRQ (5, 7, 9 or 10) or DMA channel; the game's setup
      must then use the same values.
@@ -475,6 +483,15 @@ nothing when it is silent.
                  answer, command parameter bytes are no longer played as
                  notes. Status / SC55W.LOG count sequencer bytes the
                  MPU-401 ignores (its own sequencer is not emulated).
+  Windows freezes or a DOS game stops for seconds when its music
+                 changes (Descent, other HMI SOS games: the song ends, a
+                 level loads, you quit): fixed in beta.131-awe.3. The
+                 MPU-401's answer to a reset now arrives a moment later, as
+                 on a card, so HMI's driver no longer reads the port a
+                 million times; a driver that waits for data nobody sent
+                 gets "active sensing" after ~10 ms. A debug link line
+                 "MPU-401: ... reads the status 2048 times in a row" shows
+                 it happening.
   Keys typed by themselves in a DOS game with a pad (stick drift, a
                  trigger resting half way): fixed in beta.130-w98.8 (as DOS
                  beta.125): a stick types its key past half the travel

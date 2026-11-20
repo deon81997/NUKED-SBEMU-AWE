@@ -155,6 +155,7 @@ static void dbg_stats(void)
         c_ack - s_last.ack, c_midi - s_last.midi, c_dmab - s_last.dmab, evq, EVRING_SIZE, evl - s_last.evlost,
         pcl - s_last.pcmlost, dbg_lost - s_last.lost);
     awe_dbg_stats(c_awe - s_last.awe);          /* AWE line: EMU8000 voices / RAM (sbcore.c), only while used */
+    mpu_dbg_stats();                            /* beta.131-awe.3: MPU-401 status spins (mpu98.c), only when any */
     if (evl != s_last.evlost)
         dbg('E', "event ring full: %u events lost (SC55W did not take them in time)", evl - s_last.evlost);
     if (pcl != s_last.pcmlost)

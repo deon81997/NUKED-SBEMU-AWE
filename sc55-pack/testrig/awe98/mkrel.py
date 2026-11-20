@@ -25,7 +25,8 @@ for i in z.infolist():
         names = [e.filename for e in sz.infolist() if not e.filename.endswith('/')]
         names += ['win98/helper/awe.cpp', 'win98/helper/awe.h', 'awe/synth/emu8k.c', 'awe/synth/emu8k.h', 'awe/synth/emu8k_rom.c',
                   'awe/synth/awemidi.c', 'awe/synth/awemidi.h', 'awe/synth/awegm.h',   # awe.5: AWE32 MIDI Synth
-                  'win98/vxd/dbg98.c', 'win98/test/dbgtest.c', 'win98/test/dbgtest.sh']   # awe.9: serial debug link
+                  'win98/vxd/dbg98.c', 'win98/test/dbgtest.c', 'win98/test/dbgtest.sh',   # awe.9: serial debug link
+                  'win98/vxd/mpu98.c', 'win98/test/mputest.c', 'win98/test/mputest.sh']   # beta.131-awe.3: MPU-401 front end
         for f in dict.fromkeys(names):   # once each (a zip built by this script has the AWE files already)
             src = 'sc55-pack/' + f
             if os.path.isfile(src): out.write(src, f)

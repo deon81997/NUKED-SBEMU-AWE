@@ -1,6 +1,22 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.2)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.3)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.3 Descent in a Windows 98 DOS box no longer freezes Windows
+    (D810, same serial log setup as the awe.10 item: DBGLOG.PY COM3 on the
+    main PC, Settings > Debug level 1 or SC55W /DBG:COM1; MPU-401 played by
+    the AWE32 MIDI Synth as before). 1) C:\DESCENT\DESCENTR.EXE in a DOS
+    box, SB + MPU-401 music, play 5+ minutes through a song change (die,
+    finish a level or wait for the song to end): the music goes on, no
+    freeze. 2) Quit to DOS and start it again, 3 times. 3) In the log:
+    "MPU-401 reset (FFh)" at each song change / quit followed at once by
+    normal S lines (mpu= in the hundreds or low thousands, ack= > 0), never
+    seconds of mpu=150000+; "MPU-401: ... reads the status 2048 times in a
+    row" lines are fine (that is HMI's wait, now cut short). 4) The
+    "VXD E OPL ports 388-38B belong to another driver" line now has a
+    "SC55W E OPL ports 388-38B belong to: <name>" line after it (and the
+    tray status says the same): send that name. 5) Duke 3D + MIDPLAY in a
+    DOS box: music as before. Send the dbg-*.log.
 
 [ ] beta.131-awe.2 AWE32 music in Duke 3D and Descent (their own AWE32
     drivers; D810 and/or P5PE-VM; AWE32.RAW in C:\SC55\ROMS; SETTINGS >

@@ -103,7 +103,7 @@ int main(void)
     drain();
     check(r == 0 && dbg_owned && !strcmp(vcomm_name, "COM1"), "COM1 claimed through VCOMM");
     check(lines_matching("^4\\.000 VXD I Serial debug link: COM1 \\(3F8\\), 115200 baud, level 1, port claimed from Windows$") == 1, "first line as DOS");
-    check(lines_matching("^4\\.000 VXD I VxD loaded: NUKED SB-EMU v1.0.0-test \\(SC55W.VXD\\) build 4242, interface 11, 4\\.000 s ago$") == 1, "VxD load line");
+    check(lines_matching("^4\\.000 VXD I VxD loaded: NUKED SB-EMU v1.0.0-test \\(SC55W.VXD\\) build 4242, interface 12, 4\\.000 s ago$") == 1, "VxD load line");
 
     fake_ms += 1234;
     dbg_raw(0, "SC55W", 'I', "synth: SC-55 mk1 started");

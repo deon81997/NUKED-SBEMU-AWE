@@ -1080,7 +1080,8 @@ static u32 aw_size, awe_base, trapped_awe;
 static u16 *aw_rom, *aw_ram;
 static u32 aw_ram_end, aw_ram_alloc;       /* word addresses: end of RAM, end of the allocated blocks */
 static u32 aw_reg[4][8][32];               /* raw register file as written (Data0..Data3, reg, channel) */
-static u32 aw_wev[3][32];                  /* AWE ring position + 1 of the last write to CPF / CVCF / CCCA */
+static u32 aw_wev[4][32];                  /* AWE ring position + 1 of the last write to CPF / CVCF / CCCA / VTFT */
+static u32 aw_non[32];                     /* beta.131-awe.4: ring position + 1 of the last note-on (DCYSUSV bit 7 clear) */
 static u32 aw_smalr, aw_smarr, aw_smalw, aw_smarw;
 static u16 aw_smld_buf, aw_smrd_buf;
 static u8  aw_ch, aw_rg, aw_rnd, aw_env[32];
@@ -1126,6 +1127,16 @@ static int awe_dword1(u32 r, u32 ch)   /* Data1/Data2 pair forms one dword */
 static int awe_fresh(int k, u32 ch) { u32 w = aw_wev[k][ch]; return w && (s32)(w - 1 - aw->snap_ev) >= 0; }
 static u32 awe_cpf(u32 ch)  { return awe_fresh(0, ch) ? (aw_reg[0][0][ch] & 0xFFFF0000UL) | (aw->cpf[ch] & 0xFFFF) : aw->cpf[ch]; }
 static u32 awe_cvcf(u32 ch) { return awe_fresh(1, ch) ? aw_reg[0][2][ch] : aw->cvcf[ch]; }
+/* beta.131-awe.4: VTFT as the chip shows it (DOS awe.2 emu8k.c vtft_now): its envelope engine rewrites the targets
+ * every sample. A note-on the helper has not rendered yet = the attack's start (volume target 0; 86Box 005Ch); else the
+ * helper's live value unless the program wrote VTFT since. HMI SOS (Descent) picks the voice to take from VTFT: the
+ * written initial attenuation (33D2h) made it take sounding voices (thin, wrong instruments). */
+static u32 awe_vtft(u32 ch)
+{
+    u32 n = aw_non[ch];
+    if (n && (s32)(n - 1 - aw->snap_ev) >= 0) return aw_reg[0][3][ch] & 0xFFFF;
+    return awe_fresh(3, ch) ? aw_reg[0][3][ch] : aw->vtft[ch];
+}
 static u32 awe_ccca(u32 ch) { return awe_fresh(2, ch) ? aw_reg[1][0][ch] : (aw_reg[1][0][ch] & 0xFF000000UL) | (aw->ccca[ch] & AW_ADDR); }
 
 static u32 awe_cfg1_raw(u32 ch)
@@ -1148,6 +1159,7 @@ static u32 awe_read(u32 p, u32 r, u32 ch)
     case 0:
         if (r == 0) return awe_cpf(ch);
         if (r == 2) return awe_cvcf(ch);
+        if (r == 3) return awe_vtft(ch);
         return aw_reg[0][r][ch];
     case 1:
         if (r == 0) return awe_ccca(ch);
@@ -1216,10 +1228,11 @@ static void awe_wr16(u32 idx, u16 w)
     /* the mirror */
     if (idx <= 1) {
         m = &aw_reg[0][r][ch];
-        d = r == 0 ? awe_cpf(ch) : r == 2 ? awe_cvcf(ch) : *m;
+        d = r == 0 ? awe_cpf(ch) : r == 2 ? awe_cvcf(ch) : r == 3 ? awe_vtft(ch) : *m;
         *m = idx ? (d & 0xFFFF) | ((u32)w << 16) : (d & 0xFFFF0000UL) | w;
         if (r == 0) aw_wev[0][ch] = aw->ev_head;
         if (r == 2) aw_wev[1][ch] = aw->ev_head;
+        if (r == 3) aw_wev[3][ch] = aw->ev_head;
         return;
     }
     if (idx <= 3 && awe_dword1(r, ch)) {
@@ -1235,6 +1248,7 @@ static void awe_wr16(u32 idx, u16 w)
     if (p == 1 && r == 5) {   /* DCYSUSV: envelope on -> HWCF3 = 4 (emu8k_write: Doom / OpenCP never set it) */
         int was = aw_env[ch];
         aw_env[ch] = (u8)!(w & 0x80);
+        if (aw_env[ch]) aw_non[ch] = aw->ev_head;   /* note-on: VTFT = attack start until rendered */
         if (aw_env[ch] && !was && aw_reg[1][1][31] != 4) aw_reg[1][1][31] = 4;
     }
 }
@@ -1293,14 +1307,18 @@ static void awe_reset_mirror(void)
     u32 ch;
     mset(aw_reg, 0, sizeof aw_reg);
     mset(aw_wev, 0, sizeof aw_wev);
+    mset(aw_non, 0, sizeof aw_non);
     mset(aw_env, 0, sizeof aw_env);
     mset(aw_rv, 0, sizeof aw_rv);
     for (ch = 0; ch < 32; ch++) {
-        aw_reg[1][5][ch] = 0x80;       /* DCYSUSV: envelope off */
+        aw_reg[1][5][ch] = ch < 30 ? 0x807F : 0x80;   /* DCYSUSV as AWEUTIL /S leaves it (awe.2 emu8k.c): 0-29 released
+                                                         807Fh, 30/31 DRAM refresh 0080h; the SDK drivers (Duke, Descent)
+                                                         only take voices with bit 7 set, 0080h gave Duke 2 of 30 */
         aw_reg[0][3][ch] = 0xFFFF;     /* VTFT: filter target open */
         aw_reg[2][4][ch] = 0x8000;     /* ATKHLDV */
         aw_reg[2][6][ch] = 0x8000;     /* ATKHLD */
         aw->cvcf[ch] = 0xFFFF;
+        aw->vtft[ch] = 0xFFFF;         /* volume target 0, filter open: an idle voice */
     }
     aw_reg[1][1][29] = 0x59; aw_reg[1][1][30] = 0x20; aw_reg[1][1][31] = 0;   /* HWCF1-3 */
     aw_smalr = aw_smarr = aw_smalw = aw_smarw = 0;

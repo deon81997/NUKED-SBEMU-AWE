@@ -28,7 +28,7 @@ typedef int32_t  s32;
 #endif
 
 #define SC55W_MAGIC      0x57353543UL   /* "C55W" */
-#define SC55W_IF_VERSION 11   /* 10 = AWE line: EMU8000 (SC55W_AWE); 11 = AWE32 MIDI Synth device */
+#define SC55W_IF_VERSION 12   /* 10 = AWE line: EMU8000 (SC55W_AWE); 11 = AWE32 MIDI Synth device; 12 = SC55W_AWE vtft[] */
 
 /* DeviceIoControl codes */
 #define IOCTL_SC55W_VERSION  0x10   /* out: u32 interface version            */
@@ -258,6 +258,7 @@ typedef struct {
     /* helper -> VxD (mirror): dynamic registers as of AWE ring position snap_ev */
     volatile u32 snap_ev, snap_seq;
     volatile u32 cpf[32], cvcf[32], ccca[32];
+    volatile u32 vtft[32];              /* IF 12: emu8k_read(VTFT) = live envelope targets */
 
     volatile u32 reserved1[11];
 
@@ -270,7 +271,7 @@ typedef struct {
 /* the same layout in Open Watcom (VxDs) and MinGW (helper): checked at compile time */
 #define SC55W_CHECK(n, c) typedef char n[(c) ? 1 : -1]
 SC55W_CHECK(sc55w_chk_size, sizeof(SC55W_SHARED) == 529584);
-SC55W_CHECK(sc55w_chk_awe, sizeof(SC55W_AWE) == 131584);
+SC55W_CHECK(sc55w_chk_awe, sizeof(SC55W_AWE) == 131712);
 SC55W_CHECK(sc55w_chk_cfg, sizeof(SC55W_CONFIG) == 16);
 SC55W_CHECK(sc55w_chk_wjoy, sizeof(SC55W_WJOY) == 28);
 

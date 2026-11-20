@@ -6,7 +6,8 @@
 #   CASE midplay: MIDPLAY /Q:40 TEST.MID (MPU reset/ACK handshake, B0h panel), then HMIMPU 1
 #   CASE desc: Descent 1.4 shareware (/tmp/g/descent: desc14sw.exe -> ARJ, 4GWBIND in the VM) DESCENT.CFG SB Pro 240/7/3
 #        + MPU 330, started RUNS times (default 3; DARGS = its arguments); desckeys.sh plays PLAY s (120) each and quits
-#        to DOS; S lines give mpu=/s, a hang = no S lines
+#        to DOS; S lines give mpu=/s, a hang = no S lines. MIDIDEV=0xa008 MIDIPORT=0x620 = HMI's AWE32 driver
+#        ("S awe ... voices=" lines)
 # VXD = an SC55W.VXD to test instead of the zip's.
 ZIP=$1; VXD=$2; CASE=${3:-hmi}; VM=acpi
 H=$(cd "$(dirname "$0")" && pwd); P=$H/../..; R98=$H/../w98par/run.sh; W=/tmp/w98t; L=/tmp/w98dbg; PORT=${PORT:-4560}
@@ -24,7 +25,7 @@ midplay) cp $H/TEST.MID $W/d/T/
      { echo '@ECHO OFF'; echo "START $S /DBG:COM1:1"; w 30; echo 'D:\PACK\FILES\SC55\MIDPLAY.EXE /Q:40 D:\T\TEST.MID > D:\R\M.TXT'
        echo 'ECHO midplay ran> D:\R\H.TXT'; w 5; echo 'D:\T\HMIMPU.COM 1 >> D:\R\H.TXT'; w 3; echo 'ECHO done> D:\R\DONE.TXT'; } | sed 's/$/\r/' > $W/d/T/TH.BAT ;;
 desc) cp -r /tmp/g/descent $W/d/T/DESCENT
-      printf 'DigiDeviceID=0xe001\r\nDigiPort=0x240\r\nDigiIrq=7\r\nDigiDma=3\r\nMidiDeviceID=0xa001\r\nMidiPort=0x330\r\nDigiVolume=8\r\nMidiVolume=8\r\n' > $W/d/T/DESCENT/DESCENT.CFG
+      printf 'DigiDeviceID=0xe001\r\nDigiPort=0x240\r\nDigiIrq=7\r\nDigiDma=3\r\nMidiDeviceID=%s\r\nMidiPort=%s\r\nDigiVolume=8\r\nMidiVolume=8\r\n' "${MIDIDEV:-0xa001}" "${MIDIPORT:-0x330}" > $W/d/T/DESCENT/DESCENT.CFG
       { echo '@ECHO OFF'; echo "START $S /DBG:COM1:1"; w 30; echo 'D:'; echo 'CD \T\DESCENT'
         echo 'IF NOT EXIST DCNTSHR.EXE 4GWBIND 4GWPRO.EXE DESCENT.UBN DCNTSHR.EXE -Q > NUL'; echo 'ECHO bound> D:\R\B.TXT'
         for i in $(seq ${RUNS:-3}); do echo "DCNTSHR.EXE $DARGS"; echo "ECHO run $i>> D:\\R\\B.TXT"; done

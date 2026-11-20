@@ -1,3 +1,16 @@
+## beta.131-awe.4 IN PROGRESS (2026-11-20, same Descent session): Win98 DOS-box AWE32 reads = DOS awe.2 (NOT RELEASED)
+- User (D810, awe.3, banks set): Descent with AWE32 music (HMI awemidi, 0xa008 at 620) "bugged"; log: S awe voices=0-2.
+  = awe.2's open item: the VxD mirror still gave awe.1 read-backs.
+- Done on branch wip/awe-vtft-2026-11-20 (built, win98/out, VERSION awe.4): sbcore.c mirror reset DCYSUSV 0-29 807Fh /
+  30-31 0080h; VTFT read = awe_vtft(): attack start (vol 0 | written cut) after a note-on the helper has not rendered,
+  else helper's live vtft[] (new SC55W_AWE vtft[32], IF 12, size 131712; awe.cpp awe_snapshot fills it) unless written
+  since. dbgtest updated (interface 12). mputest/dbgtest/routetest PASS.
+- Test: QEMU hmi98.sh desc with MIDIDEV=0xa008 MIDIPORT=0x620 RUNS=1 PLAY=180 (new env vars in hmi98.sh): voices up to
+  20 (most 4-11), user's awe.3 log 0-2. Not yet: same run with the awe.3 zip for a like-for-like number; Duke AWE
+  (86Box r98.sh, MUSDEV default 6) old vs new voices; then release.
+- Next: optional old-vs-new runs above, README news/feature + HWTEST item (Descent/Duke AWE32 music in a Win98 DOS box,
+  banks set), README98 line, wiki row awe.4; mkrel.py --keepdos from the awe.3 zip; check tags; tag beta.131-awe.4.
+
 ## beta.131-awe.3 (2026-11-20, Descent Win98 freeze session): MPU-401 real-card timing in DOS boxes, port owner names
 - User log (D810, awe.10, level 3): Descent DOS box, MPU -> AWE32 MIDI Synth; ~75 s in: mpu=130666, "MPU-401 reset (FFh)",
   then ~190k reads/s with ack=0 for 4 s and serial output stops mid-line ("VXD I v") = hard hang; earlier ~6 s then exit.

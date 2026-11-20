@@ -93,6 +93,7 @@ void awe_snapshot()
         B->cpf[ch] = emu8k_read(EMU8K_CPF, ch);
         B->cvcf[ch] = emu8k_read(EMU8K_CVCF, ch);
         B->ccca[ch] = emu8k_read(EMU8K_CCCA, ch);
+        B->vtft[ch] = emu8k_read(EMU8K_VTFT, ch);   // beta.131-awe.4: live VTFT (HMI picks voices by it)
     }
     MemoryBarrier();
     B->snap_ev = B->ev_tail;

@@ -1,7 +1,7 @@
 Open Watcom Linker Version 2.0 beta Nov 20 2026 07:47:02 (64-bit)
 Copyright (c) 2002-2026 The Open Watcom Contributors. All Rights Reserved.
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       26/11/20 14:35:18
+Created on:       26/11/20 17:41:15
 Executable Image: SC55W.VXD
 creating a Windows VxD dynamic link library
 
@@ -13,7 +13,7 @@ creating a Windows VxD dynamic link library
 Group                           Address              Size
 =====                           =======              ====
 
-DGROUP                          0002:00000000        00003566
+DGROUP                          0002:00000000        00003666
 
 
 
@@ -26,11 +26,11 @@ Segment                Class          Group          Address         Size
 
 _LDATA                 LCODE          AUTO           0001:00000000   0000008c
 _LTEXT                 LCODE          AUTO           0001:0000008c   000006d3
-_TEXT                  CODE           AUTO           0001:00000760   00006131
+_TEXT                  CODE           AUTO           0001:00000760   0000621d
 _DATA                  DATA           DGROUP         0002:00000000   00000010
 CONST                  DATA           DGROUP         0002:00000010   00000b94
 CONST2                 DATA           DGROUP         0002:00000ba4   00000181
-_BSS                   BSS            DGROUP         0002:00000d28   0000283e
+_BSS                   BSS            DGROUP         0002:00000d28   0000293e
 
 
                         +----------------+
@@ -90,7 +90,7 @@ Module: sc55w.o(sc55w.o)
 0001:000005b3* Int21_Hook
 0001:000006f1* Dbg_CB
 Module: sbcore.obj(sbcore.obj)
-0002:000033a0  _sc_dbg_cap
+0002:000034a0  _sc_dbg_cap
 0002:00000ba4+ _nsb_version_tag
 0001:00001144  _sc_eoi
 0001:00002019  _sc_tick
@@ -105,14 +105,14 @@ Module: sbcore.obj(sbcore.obj)
 0001:00004a4d  _sc_vm_msg
 0001:00004a92  _sc_dyn_init
 0001:00004d99  _sc_int21
-0001:0000588a  _sc_iow
-0001:000063d7  _sc_ioctl
-0001:0000675b  _sc_api_midi
-0001:00006770  _sc_api_volume
-0001:000067a5  _sc_api_midi2
-0001:000067a9  _sc_api_volume2
-0001:000067de  _sc_exit
-0001:0000684f  _sc_api_open
+0001:00005939  _sc_iow
+0001:000064c3  _sc_ioctl
+0001:00006847  _sc_api_midi
+0001:0000685c  _sc_api_volume
+0001:00006891  _sc_api_midi2
+0001:00006895  _sc_api_volume2
+0001:000068ca  _sc_exit
+0001:0000693b  _sc_api_open
 
 
                         +-----------------------+
@@ -120,5 +120,5 @@ Module: sbcore.obj(sbcore.obj)
                         +-----------------------+
 
 Stack size:  0000 (0.)
-Memory size:  9df7 (40439.)
-Link time: 00:00.42
+Memory size:  9fe3 (40931.)
+Link time: 00:00.57

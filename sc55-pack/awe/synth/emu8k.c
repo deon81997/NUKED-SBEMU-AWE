@@ -359,23 +359,11 @@ static int32_t s8scale(int v) /* signed 8-bit amount -> +-0x4000 */
     return v < 0 ? v * 0x4000 / 0x80 : v * 0x4000 / 0x7F;
 }
 
-static void mod_update(voice_t *v, int n)
+/* volume / filter / pitch targets from the envelopes' current values (ve = venv_step, me = menv_step) */
+static inline __attribute__((always_inline)) void
+mod_targets(const voice_t *v, int32_t ve, int32_t me, int32_t *vol_t, uint32_t *cut_t, uint32_t *pitch_t)
 {
-    int32_t att = v->init_att, cut = v->init_filt, pitch = v->ip, ve, me, l1;
-    ve = venv_step(&v->venv, n);
-    me = menv_step(&v->menv, n);
-    if (v->lfo1_delay > 0) {
-        v->lfo1_delay -= n;
-        if (v->lfo1_delay < 0)
-            v->lfo1_delay = 0;
-    } else
-        v->lfo1_cnt += v->lfo1_speed * (uint32_t) n;
-    if (v->lfo2_delay > 0) {
-        v->lfo2_delay -= n;
-        if (v->lfo2_delay < 0)
-            v->lfo2_delay = 0;
-    } else
-        v->lfo2_cnt += v->lfo2_speed * (uint32_t) n;
+    int32_t att = v->init_att, cut = v->init_filt, pitch = v->ip, l1;
     att = ve < 0 ? ATT_MAX : att + ve;
     l1 = tri(v->lfo1_cnt);
     if (v->m_env_pitch)
@@ -393,9 +381,44 @@ static void mod_update(voice_t *v, int n)
     pitch = pitch < 0 ? 0 : pitch > 0xFFFF ? 0xFFFF : pitch;
     att   = att < 0 ? 0 : att > ATT_MAX ? ATT_MAX : att;
     cut   = cut < 0 ? 0 : cut > ATT_MAX ? ATT_MAX : cut;
-    v->vol_t   = vol_of((uint32_t) att >> 5);
-    v->cut_t   = (uint32_t) cut >> 5;
-    v->pitch_t = pitch_of((uint32_t) pitch);
+    *vol_t   = vol_of((uint32_t) att >> 5);
+    *cut_t   = (uint32_t) cut >> 5;
+    *pitch_t = pitch_of((uint32_t) pitch);
+}
+
+static void mod_update(voice_t *v, int n)
+{
+    int32_t ve, me;
+    ve = venv_step(&v->venv, n);
+    me = menv_step(&v->menv, n);
+    if (v->lfo1_delay > 0) {
+        v->lfo1_delay -= n;
+        if (v->lfo1_delay < 0)
+            v->lfo1_delay = 0;
+    } else
+        v->lfo1_cnt += v->lfo1_speed * (uint32_t) n;
+    if (v->lfo2_delay > 0) {
+        v->lfo2_delay -= n;
+        if (v->lfo2_delay < 0)
+            v->lfo2_delay = 0;
+    } else
+        v->lfo2_cnt += v->lfo2_speed * (uint32_t) n;
+    mod_targets(v, ve, me, &v->vol_t, &v->cut_t, &v->pitch_t);
+}
+
+/* VTFT as the chip shows it at this moment: its envelope engine writes the targets every sample, so right after a
+ * note-on the volume target is the attack's start (near 0), not the initial attenuation. The SDK drivers (HMI SOS,
+ * Apogee) read VTFT to pick the voice to take; a stale value made Descent take other voices than on a real card.
+ * Changes nothing (copies of the envelopes). */
+static uint32_t vtft_now(const voice_t *v)
+{
+    env_t ve = v->venv, me = v->menv;
+    int32_t vol;
+    uint32_t cut, pitch;
+    if (!v->env_on)
+        return ((uint32_t) v->vol_t << 16) | v->cut_t;
+    mod_targets(v, venv_step(&ve, 0), menv_step(&me, 0), &vol, &cut, &pitch);
+    return ((uint32_t) vol << 16) | cut;
 }
 
 static void lfo_reset(voice_t *v)
@@ -1028,7 +1051,7 @@ void emu8k_write(int reg, int ch, uint32_t val)
         return;
     case EMU8K_IFATN:
         /* 86Box: ignore the all-zero "note off" some trackers write */
-        if ((w & 0xFF) == 0 && v->cur_vol == 0 && v->vol_t == 0 && v->dcysusv == 0x80 && v->ip == 0)
+        if ((w & 0xFF) == 0 && v->cur_vol == 0 && v->vol_t == 0 && (v->dcysusv == 0x80 || v->dcysusv == 0x807F) && v->ip == 0)
             return;
         v->ifatn     = w;
         v->init_att  = (int32_t) (((w & 0xFF) << 21) / 0xFF);
@@ -1073,7 +1096,7 @@ uint32_t emu8k_read(int reg, int ch)
     case EMU8K_CPF: return (v->cur_pitch << 16) | (v->frac & 0xFFFF);
     case EMU8K_PTRX: return (v->ptrx & 0xFFFF) | (v->pitch_t << 16);
     case EMU8K_CVCF: return ((uint32_t) v->cur_vol << 16) | v->cur_cut;
-    case EMU8K_VTFT: return ((uint32_t) v->vol_t << 16) | v->cut_t;
+    case EMU8K_VTFT: return vtft_now(v);
     case EMU8K_Z2: return v->z2;
     case EMU8K_Z1: return v->z1;
     case EMU8K_PSST: return v->psst;
@@ -1164,7 +1187,8 @@ void emu8k_io_write(int off, uint16_t val)
         return;
     case 0x000:
     case 0x002:
-        d = emu8k_read(EMU8K_REG(0, r), ch);
+        d = r == 3 ? ((uint32_t) E.v[ch].vol_t << 16) | E.v[ch].cut_t   /* VTFT halves: the stored targets */
+                   : emu8k_read(EMU8K_REG(0, r), ch);
         d = (off & 2) ? (d & 0xFFFF) | ((uint32_t) val << 16) : (d & 0xFFFF0000u) | val;
         emu8k_write(EMU8K_REG(0, r), ch, d);
         return;
@@ -1223,6 +1247,33 @@ void emu8k_set_fx(int on)
     E.fx_off = !on;
 }
 
+/* Power-on state = a card after Creative's AWEUTIL /S (every AWE32/AWE64 install runs it from AUTOEXEC.BAT; the DOS
+ * games' own drivers - Apogee Sound System in Duke 3D, HMI SOS in Descent, both from Creative's AWE32 SDK - never set
+ * the effects up themselves and only send reverb/chorus amounts per voice). Without it the effects engine has no
+ * program: no reverb at all, the chorus a plain copy - dry and thin next to a real card. AWEUTIL's defaults = Creative's
+ * AWE Control: reverb Hall 2, chorus Chorus 3 (parameters from Linux emu8000.c, as awemidi.c's apply_fx). */
+static void aweutil_fx(void)
+{
+    static const uint16_t hall2[28] = {
+        0xB488, 0xA470, 0x9570, 0x84B5, 0x383A, 0x3EB5, 0x7254, 0x7234, 0x7224, 0x7254, 0x7264, 0x7294, 0x44C3, 0x45C3,
+        0xA404, 0xA504, 0x842A, 0x852A, 0x842A, 0x852A, 0x8429, 0x8529, 0x8429, 0x8529, 0x8428, 0x8528, 0x8428, 0x8528};
+    /* INIT1 = Data1 r2, INIT2 = Data2 r2, INIT3 = Data1 r3, INIT4 = Data2 r3 */
+    static const uint8_t cmd[28][2] = {
+        {1, 0x03}, {1, 0x05}, {4, 0x1F}, {1, 0x07}, {2, 0x14}, {2, 0x16}, {1, 0x0F}, {1, 0x17}, {1, 0x1F}, {2, 0x07},
+        {2, 0x0F}, {2, 0x17}, {2, 0x1D}, {2, 0x1F}, {3, 0x01}, {3, 0x03}, {1, 0x09}, {1, 0x0B}, {1, 0x11}, {1, 0x13},
+        {1, 0x19}, {1, 0x1B}, {2, 0x01}, {2, 0x03}, {2, 0x09}, {2, 0x0B}, {2, 0x11}, {2, 0x13}};
+    static const int reg[5] = {0, EMU8K_INIT1, EMU8K_INIT2, EMU8K_INIT3, EMU8K_INIT4};
+    int i;
+    for (i = 0; i < 28; i++) emu8k_write(reg[cmd[i][0]], cmd[i][1], hall2[i]);
+    emu8k_write(EMU8K_INIT3, 0x09, 0xE610);     /* Chorus 3: feedback, delay offset, LFO depth */
+    emu8k_write(EMU8K_INIT3, 0x0C, 0x031A);
+    emu8k_write(EMU8K_INIT4, 0x03, 0xBC84);
+    emu8k_write(EMU8K_CFG1, 9, 0);              /* HWCF4: right delay, HWCF5: LFO frequency, HWCF6/7 */
+    emu8k_write(EMU8K_CFG1, 10, 0x83);
+    emu8k_write(EMU8K_CFG1, 13, 0x8000);
+    emu8k_write(EMU8K_CFG1, 14, 0);
+}
+
 static int init_with(int ram_kb, uint16_t *rom, uint16_t *ram)
 {
     int j, i;
@@ -1257,7 +1308,11 @@ static int init_with(int ram_kb, uint16_t *rom, uint16_t *ram)
         E.ram_alloc_end = EMU8K_RAM_START + nblk * 0x10000u;
     }
     for (i = 0; i < 32; i++) {
-        E.v[i].dcysusv = 0x80;
+        /* AWEUTIL /S leaves 0-29 released (807Fh, as the end of Creative's init sequence) and 30/31 envelope-off
+           (0080h, its DRAM refresh voices). Drivers from Creative's SDK read DCYSUSV to find free voices and skip
+           the ones with bit 7 set: with 0080h everywhere Descent's HMI driver found none and took sounding voices
+           (notes cut off). Only the read-back value: the envelope stays off until a note starts. */
+        E.v[i].dcysusv = i < 30 ? 0x807F : 0x80;
         E.v[i].cur_cut = E.v[i].cut_t = 0xFFFF;
         E.v[i].atkhldv = E.v[i].atkhld = 0x8000;
     }
@@ -1265,6 +1320,7 @@ static int init_with(int ram_kb, uint16_t *rom, uint16_t *ram)
     E.hwcf2 = 0x20;
     E.hwcf3 = 0;
     E.ok    = 1;
+    aweutil_fx();
     return 0;
 }
 

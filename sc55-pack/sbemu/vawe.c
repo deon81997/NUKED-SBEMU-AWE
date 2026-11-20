@@ -42,6 +42,20 @@ static volatile uint32_t VAWE_Count;
 /* word port index 0..5 for offsets 000 002 400 402 800 802 (+1 = its high byte) */
 static int VAWE_Index(uint32_t off) { return (int)((off >> 10) * 2 + ((off >> 1) & 1)); }
 
+#ifndef VAWE_TRACE
+#define VAWE_TRACE 0   /* 1 = test build: every EMU8000 byte access as a dword OUT to port 5E0h (86Box capture build) */
+#endif
+#if VAWE_TRACE
+#include <pc.h>
+static uint32_t VAWE_IO2(uint32_t port, uint32_t val, uint32_t out);
+static uint32_t VAWE_IO(uint32_t port, uint32_t val, uint32_t out)
+{
+    uint32_t off = (port & 0xFFFF) - (uint32_t)VAWE_BasePort, r = VAWE_IO2(port, val, out);
+    outportl(0x5E0, (out ? 0x80000000u : 0) | ((off & 0xFFF) << 16) | ((out ? val : r) & 0xFF));
+    return r;
+}
+#define VAWE_IO VAWE_IO2
+#endif
 static uint32_t VAWE_IO(uint32_t port, uint32_t val, uint32_t out)
 {
     uint32_t off = (port & 0xFFFF) - (uint32_t)VAWE_BasePort;   /* 0..3, 400h..403h, 800h..803h */
@@ -77,6 +91,9 @@ void VAWE_GetIODT(QEMM_IODT* iodt)
     for(int i = 0; i < VAWE_PORTS; ++i)
     {
         iodt[i].port = (uint32_t)(VAWE_BasePort + off[i]) | QEMM_IODT_SPLIT;
+#if VAWE_TRACE
+#undef VAWE_IO
+#endif
         iodt[i].handler = &VAWE_IO;
     }
 }

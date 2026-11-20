@@ -39,6 +39,47 @@ static uint8_t  VAWE_RLatch[6];     /* high byte of the word last read, per word
 static uint8_t  VAWE_RValid[6];
 static volatile uint32_t VAWE_Count;
 
+
+#ifdef AWEREC
+/* Test build only (make AWEREC=1): every committed EMU8000 word access, with the TSC, into a 16 MB buffer;
+ * SBDIAG FLUSH (MPU command A9h) writes it to C:\AWEREC.BIN (testrig/awenative). Format: "AWEREC1\0", u32 TSC Hz / 256,
+ * u32 count, then count x { u32 tsc >> 8, u16 off | 0x8000 = write, u16 value }. Replay: awe/synth/test/harness -s. */
+#include "dpmi/dpmi.h"
+#define REC_N (2u << 20)
+typedef struct { uint32_t t; uint16_t off, val; } RecEv;
+/* the buffer starts with a 16-byte header "AWErec" 01 02, Hz, count (kept current): a host rig can also copy it out of
+ * guest memory while the game runs (testrig/awe/recmem.py - for games that never get back to DOS, e.g. ROTT) */
+static RecEv* Rec; static uint32_t* Rec_Hdr; static uint32_t Rec_W; static int Rec_Done;
+static inline uint32_t rec_tsc(void) { uint32_t lo, hi; __asm__ volatile(".byte 0x0f, 0x31" : "=a"(lo), "=d"(hi)); return (lo >> 8) | (hi << 24); }
+static inline void rec(uint32_t off, uint16_t v, int w) { if(Rec && Rec_W < REC_N) { RecEv* e = &Rec[Rec_W++]; e->t = rec_tsc(); e->off = (uint16_t)(off | (w ? 0x8000 : 0)); e->val = v; Rec_Hdr[3] = Rec_W; } }
+static int rec_dos(DPMI_REG* r) { return DPMI_CallRealModeINT(0x21, r) == 0 && !(r->w.flags & 1); }
+void VAWE_RecFlush(void)
+{
+    static uint32_t seg; DPMI_REG r; uint32_t lin, done, n, hz; int h; char hdr[16];
+    if(!Rec || Rec_Done) return;
+    if(!seg && !(seg = DPMI_DOSMalloc(4096 / 16))) return;
+    lin = (seg & 0xFFFF) << 4;
+    DPMI_LMemcpy(lin, DPMI_PTR2L((void*)"C:\\AWEREC.BIN"), 14);
+    memset(&r, 0, sizeof r); r.h.ah = 0x3C; r.w.ds = (uint16_t)seg; r.w.dx = 0;
+    if(!rec_dos(&r)) return;
+    h = r.w.ax; n = Rec_W; hz = (uint32_t)(DIAG_CyclesPerSec() / 256);
+    memcpy(hdr, "AWEREC1", 8); memcpy(hdr + 8, &hz, 4); memcpy(hdr + 12, &n, 4);
+    for(done = 0; done < 16 + n * 8; )
+    {
+        uint32_t k = 16 + n * 8 - done; if(k > 4096) k = 4096;
+        if(done < 16) { k = 16; DPMI_LMemcpy(lin, DPMI_PTR2L(hdr), 16); }
+        else DPMI_LMemcpy(lin, DPMI_PTR2L((char*)Rec + done - 16), k);
+        memset(&r, 0, sizeof r); r.h.ah = 0x40; r.w.bx = (uint16_t)h; r.w.cx = (uint16_t)k; r.w.ds = (uint16_t)seg; r.w.dx = 0;
+        if(!rec_dos(&r)) break;
+        done += k;
+    }
+    memset(&r, 0, sizeof r); r.h.ah = 0x3E; r.w.bx = (uint16_t)h; rec_dos(&r);
+    Rec_Done = 1;
+}
+#define REC(o, v, w) rec(o, v, w)
+#else
+#define REC(o, v, w) ((void)0)
+#endif
 /* word port index 0..5 for offsets 000 002 400 402 800 802 (+1 = its high byte) */
 static int VAWE_Index(uint32_t off) { return (int)((off >> 10) * 2 + ((off >> 1) & 1)); }
 
@@ -67,22 +108,26 @@ static uint32_t VAWE_IO(uint32_t port, uint32_t val, uint32_t out)
         if(!(off & 1))
         {
             VAWE_WLatch[idx] = (uint8_t)val;
-            if(woff == 0x802) emu8k_io_write((int)woff, (uint16_t)(val & 0xFF));
+            if(woff == 0x802) { REC(woff, (uint16_t)(val & 0xFF), 1); emu8k_io_write((int)woff, (uint16_t)(val & 0xFF)); }
         }
         else
+        {
+            REC(woff, (uint16_t)(VAWE_WLatch[idx] | ((val & 0xFF) << 8)), 1);
             emu8k_io_write((int)woff, (uint16_t)(VAWE_WLatch[idx] | ((val & 0xFF) << 8)));
+        }
         VAWE_RValid[idx] = 0;
         return val;
     }
     if(!(off & 1))
     {
         uint16_t w = emu8k_io_read((int)woff);
+        REC(woff, w, 0);
         VAWE_RLatch[idx] = (uint8_t)(w >> 8);
         VAWE_RValid[idx] = 1;
         return w & 0xFF;
     }
     if(VAWE_RValid[idx]) { VAWE_RValid[idx] = 0; return VAWE_RLatch[idx]; }
-    return emu8k_io_read((int)woff) >> 8;   /* a lone read of the high byte */
+    { uint16_t w = emu8k_io_read((int)woff); REC(woff, w, 0); return w >> 8; }   /* a lone read of the high byte */
 }
 
 void VAWE_GetIODT(QEMM_IODT* iodt)
@@ -155,6 +200,15 @@ int VAWE_Init(int base, int ram_kb, const char* rom, int* rom_found, char* rom_u
     memset(VAWE_RValid, 0, sizeof VAWE_RValid);
     VAWE_BasePort = base;
     VAWE_On = 1;
+#ifdef AWEREC
+    if(!Rec_Hdr && (Rec_Hdr = (uint32_t*)malloc(16 + REC_N * sizeof(RecEv))) != NULL)
+    {
+        Rec = (RecEv*)(Rec_Hdr + 4);
+        Rec_Hdr[0] = 0x72455741; Rec_Hdr[1] = 0x0201 << 16 | 0x6365;      /* "AWErec" 01 02 */
+        Rec_Hdr[2] = (uint32_t)(DIAG_CyclesPerSec() / 256);
+    }
+    Rec_W = 0; Rec_Done = 0; if(Rec_Hdr) Rec_Hdr[3] = 0;
+#endif
     return 0;
 }
 

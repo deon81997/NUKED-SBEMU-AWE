@@ -38,6 +38,26 @@
   (mpu_state 1 -> status 0 until read): HMI loops 1M reads in DOS as well (~1-2 s, PIC masked) - same hide/sense there.
 - Test downloads: OW snapshot, JWasm, munt d885a95, apt nasm arj p7zip-full librtmidi6, store-w98qi-qemu,
   store-86box-roms (awe32.raw), store-86rig, store-w98qi-86box; Descent = testgames/desc14sw.exe (zip -> ARJ volumes).
+## AWE native extras (2026-11-20, duplicate "native mode vs real EMU8000" chat; branch wip/awe-native-extras-2026-11-20, not released)
+- Same task as beta.131-awe.2 (released 14:16 by the native-driver session); this chat found the same cause independently
+  and stopped at the clash. Only test tools here, no engine change (emu8k.c untouched = awe.2).
+- Why only DCYSUSV counts for Apogee (Duke 3D 1.3D, ROTT 1.3): Creative's AWE32 library inside DUKE3D.EXE (file 0xDC574)
+  has a 32-bit register read that ends `or eax,esi` then `pop eax` (its saved EFLAGS): every VTFT/CCCA/PSST/CSL read
+  returns EFLAGS. The allocator (0xDC5E8) scores voice = (table != FFFFh ? 200h : 0) + (DCYSUSV bit 15 ? 0 : 1000h)
+  + VTFT(=EFLAGS>>16), takes the LAST lowest in order 0,3,..,30,1,..,31,2,..,29; its table is BSS 0 (never FFFFh), so
+  only the release bit decides. A python model of it (allocator vs recorded reads) matched 748 of 748 Duke picks.
+  On a real card AWEUTIL /S leaves 807Fh = all idle voices "released"; 0080h/0000h = 26 and 29 only.
+- ROTT checked with awe.2: 2 voices (26, 29) on awe.1 -> 13 voices (2..29) on awe.2 (SBEMU stream, 70 s attract mode).
+- Engine vs 86Box on the same stream (harness -s + -P probe, pvdiff.py; Duke/ROTT/Heretic): pitch 0.00 cents, volume
+  p99 0.3-0.6 dB, cutoff/address equal. Open: Heretic (DMX, filtered voices IFATN hi DC/BA/E2, Q 0) is darker than 86Box
+  above 5 kHz (-1..-9 dB 5-10 kHz, up to -15 dB > 10 kHz per voice, -solo): our bilinear biquad has a zero at
+  Nyquist, 86Box a Chamberlin SVF without one. Which one a real EMU8000 is needs a real-card recording (not changed).
+- Tools: AWEREC=1 SBEMU build (make AWEREC=1; vawe.c logs every EMU8000 word access + TSC into 16 MB; SBDIAG FLUSH
+  writes C:\AWEREC.BIN, or testrig/awe/recmem.py copies it out of the running 86Box guest - ROTT never returns to DOS,
+  its credits hang); testrig/awe/rec.sh duke|rott|heretic EXE SECS (NATIVE=1: 86Box AWE64 + AWEREC86 logger, patch
+  in priavte testrig/awenative/86box-emu8krec.diff); harness -s REC [-P probe] [-solo CH] [-t SECS] (ours and
+  harness_ref); pvdiff.py, recstat.py. HERETIC.CFG = snd_musicdevice 9 (AWE32).
+- Test downloads: DJGPP v3.4, 86Box 0935207 (+ xpad, + emu8krec), store-dos71, store-86box-roms, Linux sound/ + tiwai/awesfx (refs).
 
 ## beta.131-awe.2 (2026-11-20, AWE native-driver session): Duke 3D / Descent AWE32 music = all voices (emu8k.c)
 - User report: Duke 3D and Descent set to AWE32 music (their own drivers, Creative's AWE32 SDK inside Apogee Sound System

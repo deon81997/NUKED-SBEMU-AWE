@@ -1,6 +1,12 @@
 /* harness.c - feed an EMU8000 register script, write a stereo WAV.
  *
  *   harness [-r rate] [-o out.wav] [-q] script.awe
+ *   harness [-o out.wav] [-q] [-rom ROM] [-ram KB] [-P probe.txt] [-solo CH] [-t SECS] -s AWEREC.BIN
+ *
+ * -s replays a port stream recorded by an AWEREC SBEMU build (sbemu/vawe.c: every word access with
+ * its time) at 44100 Hz; -P writes "frame ch pitch vol cut addr" every 64 frames for each sounding voice
+ * (the CPF/CVCF/CCCA current values); -solo CH plays only that voice (every other IFATN write gets
+ * attenuation 0xFF, filter byte kept); -t stops after SECS seconds of the stream.
  *
  * Built against emu8k.c (default) or, with -DREF86, against 86Box's
  * snd_emu8k.c (see fetch_build.sh) for reference renders. Script syntax:
@@ -18,6 +24,7 @@ int      be_init(int ram_kb, const char *rom);
 void     be_io_w(int off, uint16_t v);
 uint16_t be_io_r(int off);
 void     be_render(int16_t *out, int frames);
+void     be_probe(int ch, uint32_t *pitch, uint32_t *vol, uint32_t *cut, uint32_t *addr);
 
 #ifndef REF86
 #include "emu8k.h"
@@ -35,6 +42,12 @@ int be_init(int ram_kb, const char *rom)
 void be_io_w(int off, uint16_t v) { emu8k_io_write(off, v); }
 uint16_t be_io_r(int off) { return emu8k_io_read(off); }
 void be_render(int16_t *out, int frames) { emu8k_render(out, frames, out_rate); }
+void be_probe(int ch, uint32_t *pitch, uint32_t *vol, uint32_t *cut, uint32_t *addr)
+{
+    uint32_t cvcf = emu8k_read(EMU8K_CVCF, ch);
+    *pitch = emu8k_read(EMU8K_CPF, ch) >> 16; *vol = cvcf >> 16; *cut = cvcf & 0xFFFF;
+    *addr = emu8k_read(EMU8K_CCCA, ch) & 0xFFFFFF;
+}
 #else
 static int out_rate = 44100;
 #endif
@@ -149,11 +162,61 @@ static int write_wav(const char *path)
     return fclose(f);
 }
 
+
+/* ---- -s: replay an AWEREC stream ---- */
+static FILE *probe_f;
+static void render_probed(long frames)
+{
+    while (frames > 0) {
+        long k = 64 - (wav_frames & 63);
+        if (k > frames) k = frames;
+        render(k);
+        frames -= k;
+        if (probe_f && !(wav_frames & 63)) {
+            int c;
+            for (c = 0; c < 32; c++) {
+                uint32_t pi, vo, cu, ad;
+                be_probe(c, &pi, &vo, &cu, &ad);
+                if (vo)
+                    fprintf(probe_f, "%ld %d %u %u %u %u\n", wav_frames, c, pi, vo, cu, ad);
+            }
+        }
+    }
+}
+static int replay(const char *path, int ram_kb, const char *rom, int solo, double secs)
+{
+    FILE *f = fopen(path, "rb");
+    unsigned char h[16], r[8];
+    uint32_t hz, n, i, t0 = 0, ptr = 0;
+    if (!f || fread(h, 1, 16, f) != 16 || memcmp(h, "AWEREC1", 8)) { fprintf(stderr, "%s: not an AWEREC1 file\n", path); return 1; }
+    memcpy(&hz, h + 8, 4); memcpy(&n, h + 12, 4);
+    if (be_init(ram_kb, rom)) return 1;
+    for (i = 0; i < n && fread(r, 1, 8, f) == 8; i++) {
+        uint32_t t; uint16_t off, val; long fr;
+        memcpy(&t, r, 4); memcpy(&off, r + 4, 2); memcpy(&val, r + 6, 2);
+        if (!i) t0 = t;
+        fr = (long) ((double) (uint32_t) (t - t0) * 44100.0 / hz);
+        if (secs > 0 && fr > secs * 44100) break;
+        if (fr > wav_frames) render_probed(fr - wav_frames);
+        if (off & 0x8000) {
+            off &= 0x7FFF;
+            if (off == 0x802) ptr = val;
+            if (solo >= 0 && off == 0x800 && ((ptr >> 5) & 7) == 1 && (int) (ptr & 31) != solo) val |= 0xFF;
+            be_io_w(off, val);
+        } else
+            (void) be_io_r(off);
+    }
+    render_probed(44100);   /* 1 s tail */
+    fclose(f);
+    return 0;
+}
 int main(int argc, char **argv)
 {
     const char *out = "out.wav", *script = NULL, *rom = NULL;
     char line[512];
-    int ram_kb = 512, inited = 0, i, lineno = 0;
+    int ram_kb = 512, inited = 0, i, lineno = 0, solo = -1;
+    const char *stream = NULL;
+    double secs = 0;
     FILE *f;
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-o") && i + 1 < argc)
@@ -162,8 +225,27 @@ int main(int argc, char **argv)
             out_rate = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-q"))
             quiet = 1;
+        else if (!strcmp(argv[i], "-s") && i + 1 < argc)
+            stream = argv[++i];
+        else if (!strcmp(argv[i], "-rom") && i + 1 < argc)
+            rom = argv[++i];
+        else if (!strcmp(argv[i], "-ram") && i + 1 < argc)
+            ram_kb = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-P") && i + 1 < argc)
+            probe_f = fopen(argv[++i], "w");
+        else if (!strcmp(argv[i], "-solo") && i + 1 < argc)
+            solo = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-t") && i + 1 < argc)
+            secs = atof(argv[++i]);
         else
             script = argv[i];
+    }
+    if (stream) {
+        if (replay(stream, ram_kb, rom, solo, secs) || write_wav(out))
+            return 1;
+        if (probe_f) fclose(probe_f);
+        if (!quiet) printf("%s: %ld frames\n", out, wav_frames);
+        return 0;
     }
     if (!script || !(f = fopen(script, "r"))) {
         fprintf(stderr, "usage: harness [-r rate] [-o out.wav] [-q] script.awe\n");

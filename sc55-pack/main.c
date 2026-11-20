@@ -956,7 +956,11 @@ static QEMM_IODT MAIN_MPUIODT[2] =
 /* flight recorder: every byte the program writes to the MPU-401, then the real handler (VMPU or hardware) */
 static uint32_t (*MAIN_MPUReal[2])(uint32_t port, uint32_t val, uint32_t out);
 static uint32_t MAIN_MPU_T0(uint32_t port, uint32_t val, uint32_t out) { if(out) TRACE_Mpu(0, (uint8_t)val); return MAIN_MPUReal[0](port, val, out); }
-static uint32_t MAIN_MPU_T1(uint32_t port, uint32_t val, uint32_t out) { if(out) { TRACE_Mpu(1, (uint8_t)val); if((val & 0xFF) == 0xA9) TRACE_Flush(); } return MAIN_MPUReal[1](port, val, out); }
+static uint32_t MAIN_MPU_T1(uint32_t port, uint32_t val, uint32_t out) { if(out) { TRACE_Mpu(1, (uint8_t)val); if((val & 0xFF) == 0xA9) { TRACE_Flush();
+#ifdef AWEREC
+        { void VAWE_RecFlush(void); VAWE_RecFlush(); }
+#endif
+    } } return MAIN_MPUReal[1](port, val, out); }
 static void MAIN_MPU_Wrap(void)
 {
     if(MAIN_MPUIODT[0].handler != &MAIN_MPU_T0) { MAIN_MPUReal[0] = MAIN_MPUIODT[0].handler; MAIN_MPUIODT[0].handler = &MAIN_MPU_T0; }

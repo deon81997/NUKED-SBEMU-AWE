@@ -17,7 +17,10 @@ inside Windows 98:
     mixed into the DOS box's sound. Settings > AWE32, or SC55W /AWE:620 [/AWERAM:kb /AWEMPU:0|1|GM|GS|MT32];
     the Sound Blaster becomes type 16 and BLASTER gets E620. The MPU-401
     keeps its SC-55 (/AWEMPU:1). Needs the 1 MB AWE ROM (86Box's
-    awe32.raw) in C:\SC55\ROMS, found by content.
+    awe32.raw) in C:\SC55\ROMS, found by content. beta.131-awe.2: its
+    reverb and chorus start set up like a real card after AWEUTIL /S
+    (Hall 2, Chorus 3); the full voice count for Duke 3D / Descent in a
+    DOS box comes with the next SC55W.VXD (DOS SBEMU has it now).
   * AWE32 edition: Windows programs also get a second MIDI device, "AWE32
     MIDI Synth", played by the EMU8000 like Creative's AWE32 Windows
     driver: Creative's own banks SYNTHGM.SBK / SYNTHGS.SBK / SYNTHMT.SBK

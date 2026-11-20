@@ -42,6 +42,15 @@ PY
   done
 fi
 cmp -s "$W/ours/t11_reads.txt" "$W/ref/t11_reads.txt" || { echo "FAIL register read-back differs from 86Box"; diff "$W/ours/t11_reads.txt" "$W/ref/t11_reads.txt"; fail=1; }
+if [ -f "$AWEROM" ]; then   # SDK drivers (Duke 3D, Descent): power-on read-backs as after AWEUTIL /S, live VTFT
+  python3 -I - "$W/ours/t14_sdk.txt" <<'PY' || fail=1
+import re, sys
+r = [int(x, 16) for x in re.findall(r"= 0x([0-9A-F]+)", open(sys.argv[1]).read())]
+ok = r[0] == 0x807F and r[1] == 0x807F and r[2] == 0x80 and r[3] == 0x80 and (r[4] >> 16) < 0x400 and r[5] == 0x201 and (r[6] >> 16) > 0x1000
+print("t14_sdk: DCYSUSV idle %04X/%04X refresh %04X/%04X, VTFT at note-on %08X, after 100 ms %08X: %s" % (r[0], r[1], r[2], r[3], r[4], r[6], "ok" if ok else "FAIL"))
+sys.exit(0 if ok else 1)
+PY
+fi
 p() { for b in "$@"; do [ -f "$W/ours/$b.wav" ] && printf '%s %s ' "$W/ours/$b.wav" "$W/ref/$b.wav"; done; }
 echo "-- exact paths (SNR >= 40 dB, level within 0.5 dB)"
 python3 "$T/compare.py" --min-snr 40 --max-lvl 0.5 $(p t01_sine t03_env t06_pan t08_rom t09_direct) || fail=1

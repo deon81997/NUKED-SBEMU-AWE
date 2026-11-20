@@ -1,3 +1,44 @@
+## beta.131-awe.2 (2026-11-20, AWE native-driver session): Duke 3D / Descent AWE32 music = all voices (emu8k.c)
+- User report: Duke 3D and Descent set to AWE32 music (their own drivers, Creative's AWE32 SDK inside Apogee Sound System
+  / HMI SOS) thin + wrong instruments; General MIDI on awemidi + SYNTHGM.SBK right.
+- Method (testrig/awe/cap.sh NAME sbemu|native duke|descent|heretic SECS): 86Box 0935207 capture build (io.c + snd_emu8k.c
+  patch, EMU8K_TRACE=file: native card word accesses; port 5E0h = records from an SBEMU VAWE_TRACE=1 build, every trapped
+  byte). emustream.py dump|diff|awe (diff aligns writes, lists reads that differ / path splits; awe = harness script),
+  steals.py (note set-ups on a voice whose note had no note-off). Patch for 86Box: io.c emu8k_trace() + 5E0h handler,
+  snd_emu8k.c emu8k_inw/outw wrappers = testrig/awe/86box-emu8ktrace.diff (git apply after 86box-xpad.diff).
+- Findings: (1) the SDK drivers never init the chip (no INIT1-4, no SMALR/ROM reads, no DRAM sizing - they rely on
+  AWEUTIL /S); (2) they pick voices by reading DCYSUSV (bit 7 set = not for notes) + VTFT. awe.1 started every voice at
+  DCYSUSV 0080h -> Duke found 2 voices (26, 29) and set up 78% of its notes on a sounding voice (86Box native: the
+  same, its power-on 0000 is no better for Apogee); Descent's HMI: fine until a read of VTFT right after a note-on
+  returned the stale initial-attenuation target (33D2h vs 86Box 005Ch). Write streams SBEMU vs 86Box native were
+  otherwise identical (Duke 45 s: 10 PTRX.hi read-modify-writes differ), and replaying the same stream into emu8k.c vs
+  86Box's snd_emu8k.c gives -38 dB residual (same notes, same timbre); DJGPP build of emu8k.c = host bit for bit.
+- Fix (emu8k.c only): power-on = after AWEUTIL /S: DCYSUSV 807Fh voices 0-29 (end of Creative's init sequence),
+  0080h 30/31 (DRAM refresh), reverb Hall 2 + chorus Chorus 3 programmed (aweutil_fx; without it the effects engine
+  had no program: no reverb, chorus = dry copy); VTFT read = vtft_now() (envelope copies, no state change; io Data0
+  half-writes merge with the stored VTFT). IFATN-zero ignore also for 807Fh idle voices.
+- Results: Duke 2 -> 15 voices, steals 78% -> 0%; Descent 24 -> 30 voices, 0 steals (VTFT fix alone: 17 voices, 7%
+  steals - the two belong together); Heretic (DMX, own init + allocation over 32 voices) stream unchanged. Duke replay
+  awe.1 vs new: +8 dB, notes held (spectrogram: chords / pads instead of chopped notes).
+- Tests: awe/synth/test/run_tests.sh PASS (ref86box/glue.c gives 86Box the same AWEUTIL start; new t14_sdk: idle
+  807F/807F, refresh 0080, VTFT at note-on 1414h vol 0, after 100 ms loud); awemidi_tests.sh PASS, all 12 WAVs
+  bit-identical to awe.1 (GM mode unchanged); notetest /AWE:620 /AWEMPU:GM 02.mid: 0 dropped (old and new).
+  86Box P2B-LS PII-450 duke.sh (HIMEM, 60 s): awe.1 SBEMU 5% CPU, AWE32 4%, longest block 0.98 ms (2 runs); new 10% /
+  AWE32 9% / longest 3.1 ms - the cost of 15 voices instead of 2 (per-voice cost unchanged, callgrind: render_voice
+  ~27%, reverb ~16% of the engine). Win98: SC55W2/SC55WM rebuilt (apt mingw win32; munt d885a95, nopl3/sbemu-src ->
+  win98/third_party symlinks), r98.sh awe.1 vs new: AWEDET all ok, AWETIME / IDLEMTR equal (INIT 56.6 / 56.5 ms, idle 1518k both), AWELOAD 16
+  voices, Duke -40 dBFS both, load 6.6% both (the DOS box still gets awe.1 read-backs from the VxD).
+- NOT in Win98 DOS boxes yet (sbcore.c is the Descent-freeze chat's): the VxD mirror answers the reads. Owner of
+  sbcore.c: line ~1409 `aw_reg[1][5][ch] = 0x80;` -> `ch < 30 ? 0x807F : 0x80;` (that alone gives Duke its voices);
+  VTFT reads: the mirror returns the written VTFT - needs the helper's live VTFT in the snapshot (awe_snapshot +
+  a vtft[32] in SC55W_AWE, IF version bump) for HMI. SC55W.VXD / SC55MIDI.DRV / NUKEDJOY.VXD in the zip = awe.10's
+  (no OW/JWasm here; /VER shows awe.10 for those three).
+- Release: mkrel.py from the awe.1 zip (DOS EXEs + README.TXT + HWTEST + Win98 EXEs). Wiki: priavte wiki/src
+  (Changelog rows awe.1 + awe.2, AWE page CPU line) + out/awe regenerated; post in the browser (pending).
+- Test downloads: DJGPP v3.4, 86Box master@0935207 (+ xpad diff + capture patch), store-dos71, store-86box-roms,
+  store-personal (ROMS check: AWEROM.BIN = AWE32.RAW = 86Box awe32.raw), store-w98qi-86box, munt d885a95, apt arj nasm.
+- Next: sbcore.c owner applies the two read fixes (then Win98 DOS boxes = DOS); HWTEST awe.2 item on D810/P5PE-VM.
+
 ## beta.131-awe.1 (2026-11-18, AWE b131 sync session): MUXED beta.131 (Audigy analog + S/PDIF at once) on the AWE line
 - Sync: `git diff --binary v1.0.0-beta.130-w98.10-usb v1.0.0-beta.131-usb -- . ':!release' ':!README.md' ':!HANDOFF.md' | git apply -3 --index`;
   conflicts only makefile VERSION (-> 1.0.0-beta.131-awe.1-usb-sc55) and README98.TXT (kept AWE's five-tab text). sc_sbliv.c

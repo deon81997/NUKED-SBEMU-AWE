@@ -1,6 +1,24 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.1)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.2)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.2 AWE32 music in Duke 3D and Descent (their own AWE32
+    drivers; D810 and/or P5PE-VM; AWE32.RAW in C:\SC55\ROMS; SETTINGS >
+    MIDI synth = AWE32). Keep the awe.1 zip for an A/B.
+    1) Plain DOS (your SC55 boot): Duke 3D, SETUP > Music = AWE32, EMU port
+    620; let the title/attract music play 2 minutes. Then the same with the
+    awe.1 SBEMU.EXE. New: fuller (chords and long notes hold, drums do not
+    cut the bass, some reverb); awe.1: thin, notes chopped off.
+    2) Descent 1.4 shareware: SETUP > Music card = Sound Blaster AWE32, port
+    620; menu music 2 minutes, new vs awe.1 as above.
+    3) MENU > Tests > SBDIAG while Duke plays (or SBDIAG after quitting):
+    write down the "AWE32 needs N% of real time" and "longest" numbers
+    (Pentium II 450 in 86Box: 9%, longest 3.1 ms; awe.1: 4%, 1.0 ms) and
+    whether anything stutters.
+    4) A game set to General MIDI on the AWE32 (/AWEMPU:GM): sounds as before.
+    5) Windows 98 DOS box, Duke with AWE32 music: reverb is there now; the
+    voice fix itself still needs a newer SC55W.VXD (a later release), so
+    it may still sound thinner than in plain DOS - say if it does.
 
 [ ] beta.130-awe.10 Windows 98 debug link left on (D810 or P5PE-VM, same
     cable and setup as the awe.9 item below; do that one first if not done).

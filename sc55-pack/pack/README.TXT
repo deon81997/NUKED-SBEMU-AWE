@@ -588,8 +588,15 @@ CONTENTS
   its own ports (620h...) and keeps playing. Both follow the game's Sound
   Blaster 16 mixer (MIDI and master) and /VMIDIVOL. Options: /AWE:620 (or 640/660/680), /AWERAM:512
   (sample RAM in KB: AWE32 512, AWE64 Gold 4096, up to 28672), /AWEROM:file
-  or folder. CPU: about 2-3% of a Pentium II 400 while Duke 3D's music plays;
-  needs a Pentium Pro / Pentium II or newer (like the SC-55). Reverb and
+  or folder. CPU: about 9% of a Pentium II 450 while Duke 3D's music plays
+  (all of its notes since beta.131-awe.2; 2-3% before, when only 2 played);
+  needs a Pentium Pro / Pentium II or newer (like the SC-55).
+  The emulated card starts like a real one after Creative's AWEUTIL /S:
+  free voices marked free and reverb Hall 2 + chorus Chorus 3 set up
+  (beta.131-awe.2). The AWE32 drivers inside Duke 3D, Descent and other
+  games built on Creative's AWE32 kit rely on that: before, they found only
+  1-2 free voices and cut their own notes off (thin music, wrong-sounding
+  instruments, no reverb). Reverb and
   chorus: /AWEFX (on by default; 0 = dry). Differences to a real card
   (open work): the filter is a little brighter. AWE settings (except
   /AWEFX) only change when SBEMU is loaded again.

@@ -166,7 +166,7 @@ s.l.append("ior 0x802")
 s.ms(10)
 scripts.append(s)
 
-s = S("t12_sends", "reverb/chorus sends set (effects are stubs: dry must match)")
+s = S("t12_sends", "reverb/chorus sends set (both engines start as after AWEUTIL /S: Hall 2, Chorus 3)")
 a = tone(s, RAM, "sine", 120)
 s.note(0, *a, rev=0x80, cho=0x40); s.ms(500); s.off(0); s.ms(200)
 scripts.append(s)
@@ -214,6 +214,22 @@ for i, name in enumerate(CHO):
     a = tone(s, RAM, "saw", 150)
     s.note(0, *a, cho=0xFF, att=0x20); s.ms(3000); s.off(0, 0x7F); s.ms(500)
     scripts.append(s)
+
+# t14: what the AWE32 SDK drivers (Apogee in Duke 3D, HMI SOS in Descent) see: no init of their own (they rely on
+# AWEUTIL /S), free voices found by reading DCYSUSV (bit 7 set = not for notes) and VTFT right after a note-on.
+# The note is Descent's first one, register for register from its port stream (testrig/awe/cap.sh). Checked in
+# run_tests.sh (ours only): idle voices 807F, refresh voices 0080, VTFT volume near 0 at the attack's start.
+s = S("t14_sdk", "SDK driver read-backs: idle DCYSUSV, VTFT right after a note-on", rom=True)
+s.l = [x for x in s.l if not x.startswith("w ")]         # no set-up: the game's driver writes none
+s.l += ["rd DCYSUSV 0", "rd DCYSUSV 29", "rd DCYSUSV 30", "rd DCYSUSV 31"]
+for reg, v in (("DCYSUSV", 0x807F), ("IP", 0xE000), ("DCYSUSV", 0x0080), ("VTFT", 0x0000FFFF), ("ENVVOL", 0x8000),
+               ("ATKHLDV", 0x7F7D), ("ENVVAL", 0x8000), ("ATKHLD", 0x7F7D), ("DCYSUS", 0x004D), ("IP", 0xCAB8),
+               ("IFATN", 0x1425), ("LFO1VAL", 0x8000), ("LFO2VAL", 0x8000), ("PEFE", 0x0072), ("FMMOD", 0),
+               ("TREMFRQ", 0x0080), ("FM2FRQ2", 0), ("PTRX", 0x19744000), ("PSST", 0x9903BF7E), ("CSL", 0x0003C129),
+               ("CCCA", 0x0003BF48), ("DCYSUSV", 0x0201)):
+    s.w(reg, 29, v)
+s.l += ["rd VTFT 29", "rd DCYSUSV 29", "ms 100", "rd VTFT 29"]
+scripts.append(s)
 
 for s in scripts:
     s.save()

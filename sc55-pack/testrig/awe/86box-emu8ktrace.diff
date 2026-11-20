@@ -1,0 +1,111 @@
+diff --git a/src/io.c b/src/io.c
+index 2b8f794a2..9ac15166e 100644
+--- a/src/io.c
++++ b/src/io.c
+@@ -95,6 +95,26 @@ io_log(const char *fmt, ...)
+ #    define io_log(fmt, ...)
+ #endif
+ 
++/* EMU8000 stream capture (NUKED SB-EMU AWE testrig): EMU8K_TRACE=file logs native EMU8000 port accesses
++   (snd_emu8k.c) and an SBEMU trace build's records written to port 5E0h (dword: bit31 out, bits 16-27 offset, low 16 value) */
++#include <stdio.h>
++#include <stdlib.h>
++#include <86box/timer.h>
++static FILE *emu8k_tf;
++static int emu8k_tf_init;
++void emu8k_trace(char k, unsigned off, unsigned val)
++{
++    if (!emu8k_tf_init) { const char *f = getenv("EMU8K_TRACE"); emu8k_tf_init = 1; if (f) emu8k_tf = fopen(f, "w"); }
++    static unsigned n;
++    if (emu8k_tf) { fprintf(emu8k_tf, "%llu %c %03X %04X\n", (unsigned long long) tsc, k, off & 0xFFF, val & 0xFFFF); if (!(++n & 1023)) fflush(emu8k_tf); }
++}
++static void emu8k_dbg_outl(uint16_t port, uint32_t val, void *priv)
++{
++    (void) port; (void) priv;
++    emu8k_trace((val & 0x80000000u) ? 'w' : 'r', (val >> 16) & 0xFFF, val & 0xFFFF);
++}
++static void emu8k_dbg_outw(uint16_t port, uint16_t val, void *priv) { (void) port; (void) priv; if (val == 0xFFFF && emu8k_tf) fflush(emu8k_tf); }
++
+ void
+ io_init(void)
+ {
+@@ -128,6 +148,8 @@ io_init(void)
+ 
+     memset(io_claims, 0x00, sizeof(io_claims));
+     memset(io_claimed, 0x00, sizeof(io_claimed));
++    if (getenv("EMU8K_TRACE"))
++        io_sethandler(0x5E0, 4, NULL, NULL, NULL, NULL, emu8k_dbg_outw, emu8k_dbg_outl, NULL);
+ }
+ 
+ void
+diff --git a/src/sound/snd_emu8k.c b/src/sound/snd_emu8k.c
+index 555f110fc..29d7b5bb3 100644
+--- a/src/sound/snd_emu8k.c
++++ b/src/sound/snd_emu8k.c
+@@ -395,8 +395,13 @@ EMU8K_WRITE(emu8k_t *emu8k, uint32_t addr, uint16_t val)
+     emu8k->ram[addr - EMU8K_RAM_MEM_START] = val;
+ }
+ 
++void emu8k_trace(char k, unsigned off, unsigned val);
++uint16_t emu8k_inw_raw(uint16_t addr, void *priv);
++void emu8k_outw_raw(uint16_t addr, uint16_t val, void *priv);
++uint16_t emu8k_inw(uint16_t addr, void *priv);
++void emu8k_outw(uint16_t addr, uint16_t val, void *priv);
+ uint16_t
+-emu8k_inw(uint16_t addr, void *priv)
++emu8k_inw_raw(uint16_t addr, void *priv)
+ {
+     emu8k_t *emu8k = (emu8k_t *) priv;
+     uint16_t ret   = 0xffff;
+@@ -789,7 +794,7 @@ emu8k_inw(uint16_t addr, void *priv)
+ }
+ 
+ void
+-emu8k_outw(uint16_t addr, uint16_t val, void *priv)
++emu8k_outw_raw(uint16_t addr, uint16_t val, void *priv)
+ {
+     emu8k_t *emu8k = (emu8k_t *) priv;
+ 
+@@ -1534,9 +1539,7 @@ emu8k_inb(uint16_t addr, void *priv)
+ {
+     /* Reading a single byte is a feature that at least Impulse tracker uses,
+      * but only on detection code and not for odd addresses.*/
+-    if (addr & 1)
+-        return emu8k_inw(addr & ~1, priv) >> 8;
+-    return emu8k_inw(addr, priv) & 0xff;
++    { uint16_t r = emu8k_inw_raw(addr & ~1, priv); r = (addr & 1) ? r >> 8 : r & 0xff; emu8k_trace('r', addr - ((emu8k_t *) priv)->addr, r); return r; }
+ }
+ 
+ void
+@@ -1544,10 +1547,11 @@ emu8k_outb(uint16_t addr, uint8_t val, void *priv)
+ {
+     /* TODO: AWE32 docs says that you cannot write in bytes, but if
+      * an app were to use this implementation, the content of the LS Byte would be lost.*/
++    emu8k_trace('w', addr - ((emu8k_t *) priv)->addr, val);
+     if (addr & 1)
+-        emu8k_outw(addr & ~1, val << 8, priv);
++        emu8k_outw_raw(addr & ~1, val << 8, priv);
+     else
+-        emu8k_outw(addr, val, priv);
++        emu8k_outw_raw(addr, val, priv);
+ }
+ 
+ /* TODO: This is not a correct emulation, just a workalike implementation. */
+@@ -2387,3 +2391,17 @@ emu8k_close(emu8k_t *emu8k)
+     if (emu8k->ram)
+         free(emu8k->ram);
+ }
++
++uint16_t
++emu8k_inw(uint16_t addr, void *priv)
++{
++    uint16_t r = emu8k_inw_raw(addr, priv);
++    emu8k_trace('R', addr - ((emu8k_t *) priv)->addr, r);
++    return r;
++}
++void
++emu8k_outw(uint16_t addr, uint16_t val, void *priv)
++{
++    emu8k_trace('W', addr - ((emu8k_t *) priv)->addr, val);
++    emu8k_outw_raw(addr, val, priv);
++}

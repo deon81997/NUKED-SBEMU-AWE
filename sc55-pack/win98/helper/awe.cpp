@@ -309,6 +309,7 @@ static void scan_dir(const std::string& dir, int depth, std::vector<Found>& out,
         int kind = -1; char nm[64];
         int rc = awem_probe(p.c_str(), &kind, nm, sizeof nm);
         if (rc != 1 && rc != 2) continue;
+        if (kind == -2) continue;   // a small bank (Creative's Special Effects SYNTHGM.SBK): never the GM/GS/MT-32 bank
         if (kind < 0) {     // the presets did not tell: the file name, else GM
             std::string u = fd.cFileName;
             for (auto& ch : u) ch = (char)toupper((unsigned char)ch);
@@ -346,6 +347,14 @@ std::string awe_midi_scan(const std::string& root, const std::string& romdir)
         if (!best) continue;
         bool have = GetFileAttributesA(dst.c_str()) != INVALID_FILE_ATTRIBUTES;
         if (have && (same_file(best->path, dst) || lstrcmpiA(best->path.c_str(), dst.c_str()) == 0)) { r += std::string(r.empty() ? "" : ", ") + kSbk[k]; continue; }
+        if (have) {     // a small bank there (Special Effects named SYNTHGM.SBK): out of the way as .OLD, then copy
+            int dk = -1; char dn[64];
+            if (awem_probe(dst.c_str(), &dk, dn, sizeof dn) && dk == -2) {
+                std::string old = dst.substr(0, dst.size() - 3) + "OLD";
+                DeleteFileA(old.c_str());
+                if (MoveFileA(dst.c_str(), old.c_str())) { have = false; r += std::string(r.empty() ? "" : ", ") + kSbk[k] + " was " + dn + " (moved to " + old.substr(old.find_last_of("\\/") + 1) + ")"; }
+            }
+        }
         if (have) { r += std::string(r.empty() ? "" : ", ") + kSbk[k] + " (kept)"; continue; }
         CreateDirectoryA(romdir.c_str(), NULL);
         if (CopyFileA(best->path.c_str(), dst.c_str(), TRUE)) { copied++; r += std::string(r.empty() ? "" : ", ") + kSbk[k] + " <- " + best->path; }
@@ -381,6 +390,12 @@ static void load_banks(const std::string& romdir, uint32_t ram_words, AwemBank* 
         nb[k] = NULL;
         std::string p = romdir + "\\" + kSbk[k];
         if (GetFileAttributesA(p.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
+        int pk = -1; char pn[64];
+        if (awem_probe(p.c_str(), &pk, pn, sizeof pn) && pk == -2) {   // e.g. Creative's Special Effects bank named SYNTHGM.SBK
+            note += std::string(kSbk[k]) + " in ROMS is \"" + pn + "\", a small bank, not " + (k == 0 ? "General MIDI" : k == 1 ? "GS" : "MT-32")
+                  + ": not used (Search for SBK files, or copy Creative's " + (k == 0 ? "General MIDI" : k == 1 ? "GS" : "MT-32") + " bank there). ";
+            continue;
+        }
         char err[128] = "";
         nb[k] = awem_bank_load(p.c_str(), ram_words, err, sizeof err);
         if (!nb[k]) note += std::string(kSbk[k]) + ": " + err + ". ";

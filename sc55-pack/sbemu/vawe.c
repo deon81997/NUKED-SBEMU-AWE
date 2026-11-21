@@ -286,6 +286,7 @@ int VAWE_MidiStart(int mode, int ram_kb, const char* dir, char* desc, int descle
             if(!VAWEM_IsSbk(p)) continue;
             rc = awem_probe(p, &kind, nm, sizeof nm);
             if(rc != 1 && rc != 2) continue;
+            if(kind == -2) continue;   /* a small bank (Special Effects SYNTHGM.SBK): never the GM/GS/MT-32 bank */
             ++found;
             if(kind < 0)
             {   /* the presets did not tell: the file name, else GM */

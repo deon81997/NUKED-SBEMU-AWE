@@ -498,6 +498,7 @@ static int guess_kind(const Riff* r, char* bname)
         if (prog == 7) { if (name_has(n, "honk")) mt++; if (name_has(n, "clav")) gm++; }
         if (prog == 24) { if (name_has(n, "cel")) mt++; if (name_has(n, "guit") || name_has(n, "nylon") || name_has(n, "gtr")) gm++; }
     }
+    if (r->nphdr < 65) return -2;   /* < 64 presets: not a GM/GS/MT-32 bank (Creative's Special Effects SYNTHGM.SBK) */
     if (mt >= 2 && mt > gm) return AWEM_MT32;
     if (var >= 8) return AWEM_GS;
     if (gm >= 2) return AWEM_GM;
@@ -563,12 +564,12 @@ AwemBank* awem_bank_load(const char* path, uint32_t ram_words, char* err, int er
         for (i = 0; i < r.nshdr; i++) if (!smp[i].rom) { any = 1; if (smp[i].end + 48 > ram_need) ram_need = smp[i].end + 48; }
         if (any) {
             uint32_t words = r.smpl_bytes / 2;
-            if (ram_need > words) ram_need = words;
+            if (ram_need > words + 48) ram_need = words + 48;   /* the last sample's 48-word guard past the file's data: zeros */
             if (ram_need > ram_words) ram_need = ram_words;
             if (ram_need) {
                 b->ram = (uint16_t*)malloc(ram_need * 2);
                 if (!b->ram) FAIL("out of memory");
-                for (k = 0; k < ram_need; k++) b->ram[k] = rd16(r.smpl + k * 2);
+                for (k = 0; k < ram_need; k++) b->ram[k] = k < words ? rd16(r.smpl + k * 2) : 0;
                 b->ram_words = ram_need;
             }
         }

@@ -31,7 +31,8 @@ int         awem_bank_skipped(const AwemBank* b); /* zones dropped (RAM full) */
 
 /* content check of a file (no full load): 1 = SoundFont 1 bank (.SBK) that plays from the GM ROM (a Creative
    AWE32/AWE64 bank), 2 = other SoundFont 1, 3 = SoundFont 2, 0 = not a SoundFont. kind = AWEM_GM/GS/MT32
-   guessed from the presets (GS: variation banks; MT-32: MT-32 instrument names), -1 if unsure. */
+   guessed from the presets (GS: variation banks; MT-32: MT-32 instrument names), -1 if unsure,
+   -2 = fewer than 64 presets: not a GM/GS/MT-32 bank (e.g. Creative's Special Effects bank, also named SYNTHGM.SBK). */
 int awem_probe(const char* path, int* kind, char* name, int namelen);
 
 /* chip start (emu8k_init* done): HWCF, voices, effect arrays; uploads the banks' RAM samples */

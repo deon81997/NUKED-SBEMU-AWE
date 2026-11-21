@@ -1,6 +1,19 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.4)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.5)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.5 AWE32 MIDI Synth GM bank = Creative's General MIDI bank
+    (P5PE-VM and D810, Windows 98; your Creative SBKs under C:\SC55 as now).
+    1) Settings > AWE32 > "Search for SBK files": the result line says
+    "SYNTHGM.SBK was Special Effects (moved to SYNTHGM.OLD)" and
+    "SYNTHGM.SBK <- C:\SC55\SYNTHGM.SBK" (or wherever your General MIDI one
+    is); Bank 0 then reads "General MIDI (SYNTHGM.SBK)" and no "sounds left
+    out" line (SYNTHMT.SBK too). 2) MPU-401 plays on = "AWE32 MIDI Synth, GM
+    bank": a GM DOS game (Duke 3D General MIDI at 330, or MIDPLAY) in a DOS
+    box sounds full, like GS did. 3) Media Player on "AWE32 MIDI Synth" with
+    Bank = GM, then GS, then MT-32: all three play every instrument.
+    4) In DOS (SC55.BAT /AWEMPU:GM): MIDPLAY a GM song, same. Send
+    SC55W.LOG if any of it is silent or wrong.
 
 [ ] beta.131-awe.4 Duke 3D and Descent AWE32 music in a Windows 98 DOS box
     (D810; Settings > AWE32 on at 620, your banks set as now; serial log as

@@ -149,6 +149,12 @@ int main(int argc, char** argv)
     }
     /* G: bank manager: SF2 + SBK as user banks 1/2, bank select CC0/CC32, RAM full, replace, single presets,
        drum kit, RAM size cut, DOS box clobbering the RAM (argv[5] = SF2, argv[6] = small SBK) */
+    if (argc >= 7) {   /* a 12-preset bank (like Creative's Special Effects SYNTHGM.SBK) is never taken as the GM bank */
+        int kind = -9; char nm[64];
+        int rc = awem_probe(argv[6], &kind, nm, sizeof nm);
+        CHECK(rc == 2 && kind == -2, "small bank probe %d kind %d (want -2)", rc, kind);
+        printf("12-preset bank: kind %d (not GM/GS/MT-32)\n", kind);
+    }
     if (argc >= 7) {
         char err[160] = "";
         uint32_t u1, u2, used;

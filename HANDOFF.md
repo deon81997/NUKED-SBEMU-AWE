@@ -1,3 +1,22 @@
+## beta.131-awe.5 (2026-11-20, user found it on the P5PE-VM): GM bank = Special Effects SYNTHGM.SBK; last SBK sample dropped
+- User (P5PE-VM, awe.4): MPU-401 plays on "AWE32 MIDI Synth, GM bank" (/AWEMPU:GM) = bugged, GS fine. Screenshots: Bank 0
+  "Special Effects (SYNTHGM.SBK)"; their C:\SC55 (7z, not in any repo): ROMS\SYNTHGM.SBK = SAMPLE.SBK (8 presets,
+  "Special Effects", md5 3c95923c), the real GM bank (129 presets, ROM only) = C:\SC55\SYNTHGM.SBK. guess_kind gave -1,
+  scan/vawe fell back to the file name -> GM. GS worked only because SYNTHGS.SBK came first. User log
+  testrig/awe98/user-d810-heretic-awe4.log (= P5PE-VM? user says ASUS for the screenshots): 4507 of 6826 notes "without a sound".
+- Fix: awemidi.c guess_kind = -2 for < 64 presets (after the INAM MT/GS name checks); vawe.c + awe.cpp scan skip -2;
+  awe.cpp scan moves a -2 file already in ROMS to .OLD and copies the real one; load_banks refuses a -2 file with a note
+  (GM mode then = NUKED's GM map). 2nd bug: bank load clamped RAM to the smpl data, so the last RAM sample (end + 48 guard)
+  was always "left out" (SFX 1, SYNTHMT 2 zones): RAM = data + 48 zero words. awemidtest: 12-preset bank probes -2.
+- Tests: awemidtest + ASan PASS (fluidsynth not installable here: chroma part not run; render path unchanged); user banks
+  on the host (awemid, 02.mid, 28 MB): SFX as GM 9093/9093 missing, real GM 0; skipped 1/2 -> 0. Not run in a Win98 VM
+  (awe.cpp scan/move = Win32 only): HWTEST top item. No runtime change (load path only): no 86Box speed run.
+- Release: mkrel.py from the awe.4 zip (DOS rebuilt DJGPP v3.4 = awe.5; SC55WM/W2/W.EXE rebuilt mingw win32 + munt d885a95;
+  SC55W.VXD/SC55MIDI.DRV/NUKEDJOY.VXD = awe.4's, no OW here, /VER shows awe.4 for those). README news/feature, HWTEST.
+  Wiki not posted. Heretic "underwater" (wip/awe-heretic-2026-11-20) still OPEN - check whether it was this bank too
+  (that log played Heretic + MIDPLAY GM via the effects bank).
+- Test downloads: DJGPP v3.4, apt mingw-w64-i686-win32, munt d885a95, py7zr, pefile, 86Box roms-6_0 (awe32.raw).
+
 ## beta.131-awe.4 (2026-11-20): Win98 DOS-box AWE32 reads = DOS awe.2 (Duke 3D / Descent all voices in a DOS box)
 - User (D810, awe.3, banks set): Descent with AWE32 music (HMI awemidi, 0xa008 at 620) "bugged"/thin; log S awe voices=0-2.
 - Fix (sbcore.c mirror): DCYSUSV 0-29 start 807Fh / 30-31 0080h (AWEUTIL /S); VTFT read = awe_vtft(): attack start

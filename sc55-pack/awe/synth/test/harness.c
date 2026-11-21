@@ -3,6 +3,7 @@
  *   harness [-r rate] [-o out.wav] [-q] script.awe
  *   harness [-o out.wav] [-q] [-rom ROM] [-ram KB] [-P probe.txt] [-solo CH] [-t SECS] -s AWEREC.BIN
  *
+ * -tone: real-card output EQ on (emu8k_set_tone; off by default here).
  * -s replays a port stream recorded by an AWEREC SBEMU build (sbemu/vawe.c: every word access with
  * its time) at 44100 Hz; -P writes "frame ch pitch vol cut addr" every 64 frames for each sounding voice
  * (the CPF/CVCF/CCCA current values); -solo CH plays only that voice (every other IFATN write gets
@@ -28,9 +29,10 @@ void     be_probe(int ch, uint32_t *pitch, uint32_t *vol, uint32_t *cut, uint32_
 
 #ifndef REF86
 #include "emu8k.h"
-static int out_rate = 44100;
+static int out_rate = 44100, g_tone;
 int be_init(int ram_kb, const char *rom)
 {
+    emu8k_set_tone(g_tone);   /* the output EQ is off unless -tone: the engine is compared with 86Box's */
     if (emu8k_init(ram_kb))
         return -1;
     if (rom && emu8k_load_rom(rom)) {
@@ -49,7 +51,7 @@ void be_probe(int ch, uint32_t *pitch, uint32_t *vol, uint32_t *cut, uint32_t *a
     *addr = emu8k_read(EMU8K_CCCA, ch) & 0xFFFFFF;
 }
 #else
-static int out_rate = 44100;
+static int out_rate = 44100, g_tone;
 #endif
 
 typedef struct { const char *name; int port, r, ch, dword; } regname_t;
@@ -195,8 +197,8 @@ static int replay(const char *path, int ram_kb, const char *rom, int solo, doubl
         uint32_t t; uint16_t off, val; long fr;
         memcpy(&t, r, 4); memcpy(&off, r + 4, 2); memcpy(&val, r + 6, 2);
         if (!i) t0 = t;
-        fr = (long) ((double) (uint32_t) (t - t0) * 44100.0 / hz);
-        if (secs > 0 && fr > secs * 44100) break;
+        fr = (long) ((double) (uint32_t) (t - t0) * out_rate / hz);   /* output frames (-r) */
+        if (secs > 0 && fr > secs * out_rate) break;
         if (fr > wav_frames) render_probed(fr - wav_frames);
         if (off & 0x8000) {
             off &= 0x7FFF;
@@ -206,7 +208,7 @@ static int replay(const char *path, int ram_kb, const char *rom, int solo, doubl
         } else
             (void) be_io_r(off);
     }
-    render_probed(44100);   /* 1 s tail */
+    render_probed(out_rate);   /* 1 s tail */
     fclose(f);
     return 0;
 }
@@ -233,6 +235,8 @@ int main(int argc, char **argv)
             ram_kb = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-P") && i + 1 < argc)
             probe_f = fopen(argv[++i], "w");
+        else if (!strcmp(argv[i], "-tone"))
+            g_tone = 1;
         else if (!strcmp(argv[i], "-solo") && i + 1 < argc)
             solo = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-t") && i + 1 < argc)

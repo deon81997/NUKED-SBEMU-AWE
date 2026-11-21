@@ -1,6 +1,6 @@
 #!/bin/bash
 # rec.sh GAME SBEMU.EXE [SECS] : record the EMU8000 port stream of a game set to AWE32 music (beta.131-awe.2).
-# GAME = duke | rott | heretic. 86Box P2B-LS (duke.sh's VM), MS-DOS 7.1 HIMEM, HDPMI32I + an AWEREC SBEMU build
+# GAME = duke | rott | heretic | descent (/tmp/games/desc: cap.sh's unpack; title music). 86Box P2B-LS (duke.sh's VM), MS-DOS 7.1 HIMEM, HDPMI32I + an AWEREC SBEMU build
 # (make AWEREC=1: sbemu/vawe.c logs every EMU8000 word access with the TSC), game for SECS (default 70) of emulated
 # time in its demo/attract mode, quit keys, SBDIAG FLUSH writes C:\AWEREC.BIN -> /tmp/rec-GAME/AWEREC.BIN, plus
 # SBEMU's own output in aud/main.wav. Replay: awe/synth/test/harness -s AWEREC.BIN (ours) / harness_ref (86Box).
@@ -18,6 +18,9 @@ case $G in
   duke) cp /tmp/duke/D/* $V/c/GAME/; cp $H/DUKE3D.CFG $V/c/GAME/; RUN=DUKE3D ;;
   rott) cp /tmp/rott/R/* $V/c/GAME/; cp $H/SOUND.ROT $V/c/GAME/; RUN=ROTT ;;
   heretic) cp /tmp/htic/H/* $V/c/GAME/; cp $H/HERETIC.CFG $V/c/GAME/; RUN=HERETIC ;;
+  descent) for f in /tmp/games/desc/*; do case $(basename $f) in *.SOW|*.ARJ|*.A01|*.exe|INSTALL.EXE) ;; *) cp $f $V/c/GAME/ ;; esac; done
+        printf 'MidiDeviceID=0xa008\r\nMidiPort=0x620\r\nMidiVolume=100\r\n' > $V/c/GAME/DESCENT.CFG
+        RUN='4GWBIND 4GWPRO.EXE DESCENT.UBN DCNTSHR.EXE -Q > NUL\r\nDCNTSHR' ;;
 esac
 printf 'DEVICE=C:\\DOS\\HIMEM.SYS\r\nDOS=HIGH\r\nFILES=40\r\n' > $V/c/CONFIG.SYS
 SB="C:\\\\SC55\\\\HDPMI32I -r\r\nCD \\\\SC55\r\nSBEMU ${OPTS:-/A220 /I5 /D1 /H5 /T6 /AWE:620 /AWERAM:1024} > C:\\\\SB.TXT"

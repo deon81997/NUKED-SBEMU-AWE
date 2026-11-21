@@ -1,6 +1,14 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.5)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.6)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.6 AWE32 MIDI Synth stereo: centre is centre
+    (either PC, Windows 98, headphones). 1) Media Player on "AWE32 MIDI
+    Synth" (GM bank): a piano-led MIDI sits in the middle, not in the left
+    ear; instruments spread left and right as the song pans them. 2) A DOS
+    GM game with MPU-401 plays on "AWE32 MIDI Synth, GM bank" (Duke 3D
+    General MIDI at 330): the same. 3) Duke 3D with AWE32 music (its own
+    driver) sounds as in awe.5. Say if anything is still lopsided.
 
 [ ] beta.131-awe.5 AWE32 MIDI Synth GM bank = Creative's General MIDI bank
     (P5PE-VM and D810, Windows 98; your Creative SBKs under C:\SC55 as now).

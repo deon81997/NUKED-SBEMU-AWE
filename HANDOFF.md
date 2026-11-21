@@ -1,3 +1,16 @@
+## beta.131-awe.6 (2026-11-20): AWE32 MIDI synth pan was ~17 dB left at centre (vs a real AWE32 recording)
+- Reference: KITR (Karl's Retro Channel) Part 20 AWE32 audio, priavte branch store-kitr-awe (README = chapters + clip
+  times; Duke 3D AWE32 1517-1546 = GRABBAG.MID from its start, clip 0.5 s = song 1.3 s). Host: awemid -r AWE32.RAW -b the
+  user's real SYNTHGM.SBK (store-personal user-sc55-2026-11-20.7z) -m gm -v 4 -c 2 GRABBAG; cmp.py env corr 0.90.
+- Bug: awemidi.c calc_pan_ used ALSA emux pan_volumes[] (constant-power, EMU10K1) as the EMU8000 PSST pan byte, which is a
+  linear position (emu8k.c: L = pan, R = 255 - pan): centre = 180/255, ~17 dB left. Now linear (apan = 127 - 2*(pan-64)).
+  Pan 64 +0.2 dB, 32 +9.9, 96 -9.3; GRABBAG L-R 0.4 dB (card 1.1, was 11.6). Only our MIDI path (Win98 AWE32 MIDI Synth,
+  DOS /AWEMPU); games' own drivers write PSST themselves.
+- Left vs the card (same song, ours through SYNTHGM.SBK, not Duke's own driver): bands within 2 dB (ours -1.5/-2 dB at
+  1.6-6.4 kHz, +1.9 at 6.4-12.8k; above 12.8k = AAC cut), ours narrower (L/R corr 0.85 vs 0.73). Next: tuning chat
+  (prompt in chat) - real-driver captures (rec.sh duke/descent, hmi98) vs the KITR clips before any filter change.
+- Tests: awemidtest + ASan PASS. Release: DOS make clean (version is in every object) + Win98 exes as awe.5; VxD/DRV/JOY = awe.4's.
+
 ## beta.131-awe.5 (2026-11-20, user found it on the P5PE-VM): GM bank = Special Effects SYNTHGM.SBK; last SBK sample dropped
 - User (P5PE-VM, awe.4): MPU-401 plays on "AWE32 MIDI Synth, GM bank" (/AWEMPU:GM) = bugged, GS fine. Screenshots: Bank 0
   "Special Effects (SYNTHGM.SBK)"; their C:\SC55 (7z, not in any repo): ROMS\SYNTHGM.SBK = SAMPLE.SBK (8 presets,

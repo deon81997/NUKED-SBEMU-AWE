@@ -168,9 +168,9 @@ static void dbg_stats(void)
 static void dbg_frame(int idx)
 {
     if (dbg_level != 2) return;
-    dbg('F', "sb=%u mpu=%u opl=%u joy=%u virq=%u ack=%u dma%u=%05X/%X", c_sb - f_last.sb, c_mpu - f_last.mpu,
+    dbg('F', "sb=%u mpu=%u opl=%u joy=%u virq=%u ack=%u dma%u=%08X/%X bad=%u", c_sb - f_last.sb, c_mpu - f_last.mpu,
         c_opl - f_last.opl, c_joy - f_last.joy, c_virq - f_last.virq, c_ack - f_last.ack,
-        idx ? (u32)cfg.dma16 : (u32)cfg.dma8, dmach[idx].addr & 0xFFFFF, dmach[idx].count);
+        idx ? (u32)cfg.dma16 : (u32)cfg.dma8, dmach[idx].addr, dmach[idx].count, c_dmabad);
     f_last.sb = c_sb; f_last.mpu = c_mpu; f_last.opl = c_opl; f_last.joy = c_joy; f_last.virq = c_virq; f_last.ack = c_ack;
 }
 

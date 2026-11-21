@@ -13,6 +13,7 @@ static SC55W_SHARED *sh;
 static SC55W_CONFIG cfg;
 static u32 owner_vm = 0xC1000000u, joy_port = 0x201;
 static struct { int valid; u32 addr, count, mode, base_addr, base_count; } dmach[2];
+static u32 c_dmabad;                     /* awe.7 dma98.c counter (F line) */
 
 /* fake machine */
 static char wire[1 << 20]; static int wire_n;

@@ -1,7 +1,7 @@
 Open Watcom Linker Version 2.0 beta Nov 20 2026 07:47:02 (64-bit)
 Copyright (c) 2002-2026 The Open Watcom Contributors. All Rights Reserved.
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       26/11/20 17:41:15
+Created on:       26/11/20 23:53:26
 Executable Image: SC55W.VXD
 creating a Windows VxD dynamic link library
 
@@ -13,7 +13,7 @@ creating a Windows VxD dynamic link library
 Group                           Address              Size
 =====                           =======              ====
 
-DGROUP                          0002:00000000        00003666
+DGROUP                          0002:00000000        00003766
 
 
 
@@ -25,12 +25,12 @@ Segment                Class          Group          Address         Size
 =======                =====          =====          =======         ====
 
 _LDATA                 LCODE          AUTO           0001:00000000   0000008c
-_LTEXT                 LCODE          AUTO           0001:0000008c   000006d3
-_TEXT                  CODE           AUTO           0001:00000760   0000621d
+_LTEXT                 LCODE          AUTO           0001:0000008c   0000072f
+_TEXT                  CODE           AUTO           0001:000007bc   00006589
 _DATA                  DATA           DGROUP         0002:00000000   00000010
-CONST                  DATA           DGROUP         0002:00000010   00000b94
-CONST2                 DATA           DGROUP         0002:00000ba4   00000181
-_BSS                   BSS            DGROUP         0002:00000d28   0000293e
+CONST                  DATA           DGROUP         0002:00000010   00000c59
+CONST2                 DATA           DGROUP         0002:00000c6c   00000181
+_BSS                   BSS            DGROUP         0002:00000df0   00002976
 
 
                         +----------------+
@@ -44,75 +44,79 @@ Address        Symbol
 =======        ======
 
 Module: sc55w.o(sc55w.o)
-0001:000002ee  _vxd_time_us
-0001:00000328  _vxd_muldiv
-0001:00000343  _vxd_raise_irq
-0001:00000368  _vxd_lower_irq
-0001:0000038d  _vxd_dma_get
-0001:000003e0  _vxd_dma_set
-0001:00000427  _vxd_timer_arm
-0001:0000044a  _vxd_install_io
-0001:00000460  _vxd_remove_io
-0001:0000046b  _vxd_virt_irq
-0001:00000493  _vxd_unvirt_irq
-0001:000004a6  _vxd_virt_dma
-0001:000004ec  _vxd_unvirt_dma
-0001:00000504  _vxd_map_block
-0001:00000546  _vxd_unmap_block
-0001:0000066e  _vxd_min_period
-0001:000006b7  _vxd_time_ms
-0001:00000703  _vxd_dbg_arm
-0001:00000729  _vxd_vcomm_open
-0001:0000073b  _vxd_vcomm_close
-0001:00000749  _vxd_hang
-0001:0000074c  _vxd_fault_test
-0001:0000074f  _vxd_heap_alloc
-0001:00000651  _vxd_sys_vm
-0001:0000065c  _vxd_port_in
-0001:00000664  _vxd_port_out
-0001:0000058d  _vxd_hook_int15
-0001:000005d9  _vxd_hook_int21
-0001:00000631  _vxd_kbd_owner
-0001:0000063c  _vxd_force_keys
-0001:000005ff  _vxd_nest_begin
-0001:00000612  _vxd_nest_int21
-0001:0000061e  _vxd_nest_end
+0001:000002f3  _vxd_time_us
+0001:0000032d  _vxd_muldiv
+0001:00000348  _vxd_raise_irq
+0001:0000036d  _vxd_lower_irq
+0001:00000392  _vxd_dma_get
+0001:000003e5  _vxd_dma_set
+0001:00000483  _vxd_timer_arm
+0001:000004a6  _vxd_install_io
+0001:000004bc  _vxd_remove_io
+0001:000004c7  _vxd_virt_irq
+0001:000004ef  _vxd_unvirt_irq
+0001:00000502  _vxd_virt_dma
+0001:00000548  _vxd_unvirt_dma
+0001:00000560  _vxd_map_block
+0001:000005a2  _vxd_unmap_block
+0001:000006ca  _vxd_min_period
+0001:0000042c  _vxd_vm_high
+0001:00000440  _vxd_map_phys
+0001:0000045b  _vxd_lin_lock
+0001:0000046f  _vxd_lin_unlock
+0001:00000713  _vxd_time_ms
+0001:0000075f  _vxd_dbg_arm
+0001:00000785  _vxd_vcomm_open
+0001:00000797  _vxd_vcomm_close
+0001:000007a5  _vxd_hang
+0001:000007a8  _vxd_fault_test
+0001:000007ab  _vxd_heap_alloc
+0001:000006ad  _vxd_sys_vm
+0001:000006b8  _vxd_port_in
+0001:000006c0  _vxd_port_out
+0001:000005e9  _vxd_hook_int15
+0001:00000635  _vxd_hook_int21
+0001:0000068d  _vxd_kbd_owner
+0001:00000698  _vxd_force_keys
+0001:0000065b  _vxd_nest_begin
+0001:0000066e  _vxd_nest_int21
+0001:0000067a  _vxd_nest_end
 0001:00000000  SC55W_DDB
 0001:0000008c* SC55W_Control
-0001:00000124* PM_API
-0001:000001f6* IO_Stub
-0001:000002b0* Timer_CB
-0001:000002c2* Hw_Int
-0001:000002c4* EOI_Proc
-0001:000002d0* DMA_CB0
-0001:000002df* DMA_CB1
-0001:00000573* Int15_Hook
-0001:000005b3* Int21_Hook
-0001:000006f1* Dbg_CB
+0001:00000129* PM_API
+0001:000001fb* IO_Stub
+0001:000002b5* Timer_CB
+0001:000002c7* Hw_Int
+0001:000002c9* EOI_Proc
+0001:000002d5* DMA_CB0
+0001:000002e4* DMA_CB1
+0001:000005cf* Int15_Hook
+0001:0000060f* Int21_Hook
+0001:0000074d* Dbg_CB
 Module: sbcore.obj(sbcore.obj)
-0002:000034a0  _sc_dbg_cap
-0002:00000ba4+ _nsb_version_tag
-0001:00001144  _sc_eoi
-0001:00002019  _sc_tick
-0001:0000221d  _sc_dma_changed
-0001:00002eed  _sc_int15
-0001:00003048  _sc_in
-0001:0000323d  _sc_out
-0001:00003e65  _sc_dbg_capture
-0001:00003e8a  _sc_dbg_capw
-0001:00003ed4  _sc_dbg_timer
-0001:00004a08  _sc_vm_gone
-0001:00004a4d  _sc_vm_msg
-0001:00004a92  _sc_dyn_init
-0001:00004d99  _sc_int21
-0001:00005939  _sc_iow
-0001:000064c3  _sc_ioctl
-0001:00006847  _sc_api_midi
-0001:0000685c  _sc_api_volume
-0001:00006891  _sc_api_midi2
-0001:00006895  _sc_api_volume2
-0001:000068ca  _sc_exit
-0001:0000693b  _sc_api_open
+0002:00003598  _sc_dbg_cap
+0002:00000c6c+ _nsb_version_tag
+0001:00001359  _sc_eoi
+0001:000022e0  _sc_tick
+0001:000024e4  _sc_dma_changed
+0001:00003234  _sc_int15
+0001:0000338f  _sc_in
+0001:00003584  _sc_out
+0001:000041b2  _sc_dbg_capture
+0001:000041d7  _sc_dbg_capw
+0001:00004221  _sc_dbg_timer
+0001:00004d54  _sc_vm_gone
+0001:00004dfa  _sc_vm_msg
+0001:00004e48  _sc_dyn_init
+0001:0000514f  _sc_int21
+0001:00005ced  _sc_iow
+0001:0000688b  _sc_ioctl
+0001:00006c0f  _sc_api_midi
+0001:00006c24  _sc_api_volume
+0001:00006c59  _sc_api_midi2
+0001:00006c5d  _sc_api_volume2
+0001:00006c92  _sc_exit
+0001:00006d03  _sc_api_open
 
 
                         +-----------------------+
@@ -120,5 +124,5 @@ Module: sbcore.obj(sbcore.obj)
                         +-----------------------+
 
 Stack size:  0000 (0.)
-Memory size:  9fe3 (40931.)
-Link time: 00:00.57
+Memory size:  a4ab (42155.)
+Link time: 00:00.94

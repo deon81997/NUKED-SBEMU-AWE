@@ -1,6 +1,20 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.3)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.4)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.4 Duke 3D and Descent AWE32 music in a Windows 98 DOS box
+    (D810; Settings > AWE32 on at 620, your banks set as now; serial log as
+    in the awe.3 item: DBGLOG.PY COM3 on the main PC, Settings > Debug
+    level 1 or SC55W /DBG:COM1). Keep the awe.3 zip's C:\SC55\WIN98 files
+    for an A/B. 1) Descent (SETUP: Music = Sound Blaster AWE32, port 620)
+    in a DOS box: menu + level 1 music, 3 minutes. 2) Duke 3D (SETUP:
+    Music = AWE32, EMU port 620) in a DOS box: title/attract music, 3
+    minutes. 3) Both should sound full (chords, long notes, bass under the
+    drums), like DOS SBEMU /AWE. In the log, "VXD S awe ... voices=" now
+    goes well above 2 (86Box Duke: up to 17; awe.3 stayed at 0-2).
+    4) Then close the DOS box, wait 15 s, play a MIDI file in Media Player
+    on the AWE32 MIDI Synth (your banks), and start Descent again: the
+    music is still full. Send the dbg-*.log and say which sounded thin.
 
 [ ] beta.131-awe.3 Descent in a Windows 98 DOS box no longer freezes Windows
     (D810, same serial log setup as the awe.10 item: DBGLOG.PY COM3 on the

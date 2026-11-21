@@ -19,8 +19,9 @@ inside Windows 98:
     keeps its SC-55 (/AWEMPU:1). Needs the 1 MB AWE ROM (86Box's
     awe32.raw) in C:\SC55\ROMS, found by content. beta.131-awe.2: its
     reverb and chorus start set up like a real card after AWEUTIL /S
-    (Hall 2, Chorus 3); the full voice count for Duke 3D / Descent in a
-    DOS box comes with the next SC55W.VXD (DOS SBEMU has it now).
+    (Hall 2, Chorus 3). beta.131-awe.4: the chip's read-backs match DOS
+    SBEMU (free voices marked free, VTFT = the live volume target), so
+    Duke 3D / Descent with their own AWE32 drivers use all the voices.
   * AWE32 edition: Windows programs also get a second MIDI device, "AWE32
     MIDI Synth", played by the EMU8000 like Creative's AWE32 Windows
     driver: Creative's own banks SYNTHGM.SBK / SYNTHGS.SBK / SYNTHMT.SBK

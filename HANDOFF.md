@@ -1,3 +1,27 @@
+## WIP awe.7 (2026-11-20, branch wip/awe-vxd0e-2026-11-20): BLUE SCREEN 0E in SC55W.VXD, Descent main menu (OPEN)
+- User (ASUS P5PE-VM, awe.6 = awe.4's VxD, unchanged since): Descent in a Win98 DOS box, at the main menu with music
+  playing: "exception 0E at 0028:E994AB1A in VxD SC55W(01) + 0000178A, called from SC55W(01) + 000002B0" (photo
+  sc55-pack/testrig/w98dbg/user-asus-descent-0e.jpg). Music device unknown (likely AWE32 620 or MPU -> AWE32 MIDI Synth).
+- Mapped (sc55w.map + ndisasm of LE object 1 from the shipped VxD, toolchain rebuild = byte-identical code): +178A =
+  convert() `xf.carry[xf.carryn++] = p[i]` reading the DOS program's SB DMA buffer (p = dmach[idx].addr, xf_pull from
+  sc_tick); +2B0 = Timer_CB. So the timer read an unmapped address while the DOS box was ALIVE (menu, not quitting).
+- dmach[].addr comes from VDMAD_Get_Virt_State ESI (sbcore.c sc_dma_notify ~600, sc55w.asm _vxd_dma_get). DDK: ESI is the
+  HIGH LINEAR address only while VDMAD translation is on for that VM; it can be a PHYSICAL address (VDS-locked DPMI
+  buffer: DOS4GW/HMI SOS = Descent's driver can use VDS) -> reading a physical address as linear = 0E. Lead #1: check
+  the region/flags (VDMAD_Get_Virt_State DL/DH bits, VDS lock state) and only read via a valid linear (map with
+  _MapPhysToLinear or VDMAD_Get_Region_Info / Phys_Count, or copy via VDMAD buffer); else skip the read (silence, no crash).
+  Also validate before every read: _LinPageLock/_PageCheckLinRange or keep addr inside the VM's 0..10FFFFh high-linear.
+  Lead #2: auto-init wrap (base_addr/base_count) after the game reprogrammed the DMA mid-transfer (count > buffer).
+- Done here (source only, NOT built into a release; VxD/obj/map in git = awe.4's): sc_vm_gone stops the transfer and
+  invalidates dmach when the owning DOS box ends; sc55w.asm also sends VM_Not_Executeable (0Bh) to sc_vm_msg. That is
+  a real bug (a box closing with auto-init DMA running) but NOT the user's crash. Repro rig for it:
+  testrig/w98dbg/vmquit98.sh + dmaquit.asm (DMAQUIT.COM) - written, never run to the end (QEMU acpi store-w98qi-qemu).
+- Build: OW snapshot (Current-build ow-snapshot.tar.xz -> /home/claude/ow), JWasm (Baron-von-Riedesel/JWasm, make -f
+  GccUnix.mak -> /home/claude/jwasm-src), sh sc55-pack/win98/vxd/build.sh; check `python3 le.py` code diff vs shipped.
+- Repro for the real crash: hmi98.sh desc (Descent 1.4 SW, SB Pro 240/7/3) with MIDIDEV=0xa008 MIDIPORT=0x620 and with
+  MPU->AWE32 MIDI Synth, sit at the main menu 10+ min (PLAY=600), debug link level 2 ("DMA start ... addr" lines,
+  trace 4/6) to log the addresses Descent programs; QEMU + 86Box (P2B-F), and memory sizes like the user's (>= 512 MB).
+
 ## beta.131-awe.6 (2026-11-20): AWE32 MIDI synth pan was ~17 dB left at centre (vs a real AWE32 recording)
 - Reference: KITR (Karl's Retro Channel) Part 20 AWE32 audio, priavte branch store-kitr-awe (README = chapters + clip
   times; Duke 3D AWE32 1517-1546 = GRABBAG.MID from its start, clip 0.5 s = song 1.3 s). Host: awemid -r AWE32.RAW -b the

@@ -26,6 +26,7 @@ VKD_DEVICE_ID               equ 000Dh
 @VKD_Get_Kbd_Owner          equ 0008h
 Create_VM_Msg               equ 0007h
 Destroy_VM_Msg              equ 000Ch
+VM_Not_Executeable_Msg      equ 000Bh
 @VTD_Get_Real_Time          equ 0007h
 @VTD_Begin_Min_Int_Period   equ 0003h
 @VTD_End_Min_Int_Period     equ 0004h
@@ -89,6 +90,8 @@ SC55W_Control proc near
         cmp     eax, Create_VM_Msg
         je      ctl_vm
         cmp     eax, Destroy_VM_Msg
+        je      ctl_vm
+        cmp     eax, VM_Not_Executeable_Msg
         je      ctl_vm
         cmp     eax, Sys_Dynamic_Device_Init
         je      ctl_init

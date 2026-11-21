@@ -990,13 +990,19 @@ void __cdecl sc_vm_gone(u32 vm)
     int i = vm_slot(vm, 0);
     if (i >= 0) vms[i].vm = 0;
     if (aw && aw->vm == vm) { aw->vm = 0; aw->vm_gone++; }   /* the AWE32 MIDI Synth may take the EMU8000 back */
+    if (vm && vm == owner_vm) {     /* awe.7: its DMA buffer goes with it - the timer read it after it was freed (0E in convert) */
+        if (xf.active) xf_stop();
+        dmach[0].valid = dmach[1].valid = 0;
+        irq_line = 0; owner_vm = 0;
+        if (dbg_level) dbg('I', "DOS box gone while it owned the Sound Blaster: DMA stopped");
+    }
 }
 
-/* Create_VM (7) / Destroy_VM (0Ch) */
+/* Create_VM (7) / VM_Not_Executeable (0Bh) / Destroy_VM (0Ch) */
 void __cdecl sc_vm_msg(u32 vm, u32 msg)
 {
-    if (msg == 0x0C) sc_vm_gone(vm);
-    if (dbg_level) dbg('I', msg == 0x0C ? "DOS box stop vm=%08X" : "DOS box start vm=%08X", vm);
+    if (msg == 0x0B || msg == 0x0C) sc_vm_gone(vm);   /* VM_Not_Executeable (0Bh) comes first: stop reading its memory then */
+    if (dbg_level && msg != 0x0B) dbg('I', msg == 0x0C ? "DOS box stop vm=%08X" : "DOS box start vm=%08X", vm);
 }
 
 /* Sys_Dynamic_Device_Init: the debug link's clock starts here */

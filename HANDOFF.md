@@ -1,3 +1,29 @@
+## OPEN after beta.131-awe.4 (2026-11-20 20:20): Heretic AWE32 in a Win98 DOS box "underwater", worse than awe.3 (NOT FIXED)
+- User (D810, awe.4, banks set, 28 MB RAM): Heretic (DMX, snd_musicdevice 9) AWE32 music sounds underwater, worse than
+  awe.3. Log: sc55-pack/testrig/awe98/user-d810-heretic-awe4.log (Heretic AWE only ~11 s at 1180 s: 7037 writes,
+  489 reads, voices 3-8; then Heretic + MIDPLAY on GM via MPU -> AWE32 MIDI Synth; Media Player on it). After a Settings
+  save at 1362 s SC55W says "AWE32: ... ROM: none found (ROM sounds silent)" - romdir = resolve(/VSCROM) (awe.cpp
+  awe_prepare): ask/check what /VSCROM or /AWEROM the user saved; the first attach is not in the log.
+- awe.3 -> awe.4 changed ONLY the VxD mirror's reads (sbcore.c): DCYSUSV start 807Fh, VTFT = live/attack-start
+  (awe_vtft). Engine (emu8k.c, 16-bit VTFT half writes = stored targets) unchanged. So DMX must read DCYSUSV/VTFT and
+  write something back (e.g. DCYSUSV bit 15 kept, or VTFT cutoff half) - find which: record DMX's port stream.
+- Measured: Duke 86Box REC.WAV awe.3 vs awe.4 band balance equal (spec.py: awe.4 0.7 dB brighter 250-6000 Hz) - Duke not
+  affected. Heretic 86Box (awe98/h98.sh) blocked: Windows "XpressAUDIO in use" dialog (a VM card's legacy driver owns
+  a port DMX touches); xdotool Return 100-160 s dismissed it but Heretic then quit (awe=0). QEMU try (w98dbg/htic98.sh
+  htic case: hmi98.sh + Heretic, RecordWav=C:\REC.WAV) started, result not read (killed at handoff).
+- Next 3 steps: 1) QEMU htic98.sh with awe.3 zip and awe.4 zip (SECS=420), compare C:\REC.WAV with awe98/spec.py
+  + listen; if QEMU can't run it, DOS harness: testrig/awe/rec.sh heretic (AWEREC=1) -> replay the stream through
+  the VxD mirror rules to see which reads DMX makes and what it writes back. 2) Fix in sbcore.c awe_read/awe_wr16
+  (keep Duke/Descent voice counts: r98.sh Duke >= 15 voices), release beta.131-awe.5. 3) User asks: test EVERY
+  AWE32 MIDI Synth sound bank (GM, GS, MT-32, each user bank 1-127 + single presets) AND the default set (no banks),
+  each with a DOS-box game (Duke, Descent, Heretic AWE32) and with MIDI (Media Player, MIDPLAY /AWEMPU:GM), and
+  SWITCH devices back and forth to catch bugs: Windows MIDI on AWE32 MIDI Synth <-> DOS box takes the EMU8000 <->
+  synth takes it back (10 s idle, awem_reclaim) <-> NUKED SB-EMU MIDI device, Settings save (re-attach, ROM found?)
+  in between; check sound + SC55W.LOG/debug link after each switch (DOS took/back counts, ROM line, voices).
+- Resume: clone NUKED-SBEMU-AWE branch wip/awe-heretic-2026-11-20; restore store-w98qi-qemu, store-86box-roms
+  (/tmp/roms/roms-6.0), store-86rig + store-w98qi-86box + store-personal (Duke/AWE32.RAW; Heretic = store-personal
+  testgames/htic_v12.zip: cat HTIC_V12.1 HTIC_V12.2 > a.exe; unzip -> /tmp/g/htic); Win98 build per LESSONS.
+
 ## beta.131-awe.4 (2026-11-20): Win98 DOS-box AWE32 reads = DOS awe.2 (Duke 3D / Descent all voices in a DOS box)
 - User (D810, awe.3, banks set): Descent with AWE32 music (HMI awemidi, 0xa008 at 620) "bugged"/thin; log S awe voices=0-2.
 - Fix (sbcore.c mirror): DCYSUSV 0-29 start 807Fh / 30-31 0080h (AWEUTIL /S); VTFT read = awe_vtft(): attack start

@@ -1,0 +1,880 @@
+# DBGLOG 2026-11-20T19:47:16 COM5 115200
+2026-11-20 19:47:16.631  1096.301 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=29/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:17.238  1096.696 SC55W S load=2.4% midi=472 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:17.645  1097.328 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:18.252  1097.696 SC55W S load=2.5% midi=375 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:18.657  1098.350 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:19.265  1098.696 SC55W S load=2.5% midi=264 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:19.673  1099.372 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=30/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:19.874  1099.425 VXD I Windows MIDI device NUKED SB-EMU closed (0 open)
+2026-11-20 19:47:20.074  1099.425 VXD I Windows MIDI device NUKED SB-EMU opened (1 open)
+2026-11-20 19:47:20.075  1099.428 VXD I Windows MIDI device NUKED SB-EMU closed (0 open)
+2026-11-20 19:47:20.075  1099.696 SC55W S load=1.6% midi=653 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:20.075  1099.716 SC55W E audio: underruns 2, late events 0, resyncs 0, load 1%
+2026-11-20 19:47:20.683  1100.416 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:21.291  1100.696 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:21.899  1101.454 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:22.101  1101.696 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:22.910  1102.489 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:23.113  1102.696 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:23.925  1103.529 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:24.130  1103.699 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:24.942  1104.583 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:25.958  1105.618 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:26.976  1106.653 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:27.997  1107.688 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:28.807  1108.342 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:28.807  1108.355 VXD I DOS box start vm=EB920074
+2026-11-20 19:47:29.011  1108.563 VXD I vm=EB920074 runs C:\WINDOWS\COMMAND.COM (93890 bytes)
+2026-11-20 19:47:29.012  1108.563 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 0 frames, late 0, resyncs 0, MPU ignored 0, load 0.2%
+2026-11-20 19:47:29.012  1108.564 SC55W I AWE32: 0 writes, 0 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:47:29.213  1108.564 SC55W I AWE32 MIDI Synth: 51307 bytes, 6826 notes (0 from user banks), 30 voices at most, 0 stolen, 4507 without a sound, 0 while a DOS box had the EMU8000 (DOS took it 0 times, back 0); sample RAM 10063 of
+2026-11-20 19:47:29.213  1108.564 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:29.214  1108.565 SC55W I pad: layout "Default" for C:\WINDOWS\COMMAND.COM
+2026-11-20 19:47:29.214  1108.569 VXD I vm=EB920074 runs H:\DEICE.EXE (31585 bytes)
+2026-11-20 19:47:29.214  1108.753 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:29.214  1108.821 SC55W I pad: layout "Default" for H:\DEICE.EXE
+2026-11-20 19:47:30.024  1109.583 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:30.226  1109.867 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:31.036  1110.585 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:31.239  1110.890 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:32.053  1111.585 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:32.257  1111.912 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:33.070  1112.586 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:33.272  1112.934 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:34.085  1113.586 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:34.287  1113.956 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:35.101  1114.586 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:35.303  1114.977 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:36.116  1115.587 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:36.318  1116.000 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:37.135  1116.588 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:37.340  1117.021 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:38.154  1117.587 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:38.358  1118.043 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:39.179  1118.589 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:39.384  1119.069 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:40.212  1119.591 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:40.417  1120.091 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:41.032  1120.591 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:41.444  1121.113 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:42.061  1121.592 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:42.473  1122.026 VXD I vm=EB920074 program ends (AH=4Ch)
+2026-11-20 19:47:42.473  1122.026 VXD I vm=EB920074 program ends (AH=4Ch)
+2026-11-20 19:47:42.473  1122.026 VXD I DOS box stop vm=EB920074
+2026-11-20 19:47:42.473  1122.135 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:43.088  1122.593 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:43.499  1123.175 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:44.114  1123.604 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:44.525  1124.229 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:45.141  1124.604 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:45.752  1125.284 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:46.162  1125.614 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:46.777  1126.339 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:46.982  1126.502 VXD I DOS box start vm=EB920074
+2026-11-20 19:47:47.188  1126.708 VXD I vm=EB920074 runs C:\HERETIC\HERETIC.EXE (728031 bytes)
+2026-11-20 19:47:47.188  1126.708 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:47:47.189  1126.709 SC55W I pad: layout "Default" for C:\HERETIC\HERETIC.EXE
+2026-11-20 19:47:47.803  1127.237 VXD I vm=EB920074 uses the Sound Blaster (DSP reset)
+2026-11-20 19:47:47.803  1127.409 VXD S vm=EB920074 sb=30 mpu=0 opl=0 joy=0 awe=0 virq=2 ack=7 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:47.804  1127.463 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:47:47.804  1127.463 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:47:47.804  1127.463 VXD I MPU-401 UART mode (3Fh) vm=EB920074
+2026-11-20 19:47:47.804  1127.463 VXD I DMA play 8-bit stereo 11025 Hz auto-init, 256 bytes per IRQ, vm=EB920074
+2026-11-20 19:47:48.007  1127.717 SC55W S load=5.7% midi=0 fm=0 pcm=694 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:47:48.008  1127.717 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:47:49.034  1128.573 VXD S vm=EB920074 sb=317 mpu=369 opl=0 joy=0 awe=0 virq=94 ack=96 midi=178 dma=24311 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:49.034  1128.576 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 9867 frames, late 0, resyncs 1, MPU ignored 0, load 1.7%
+2026-11-20 19:47:49.034  1128.576 SC55W I AWE32: 0 writes, 0 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:47:49.034  1128.576 SC55W I AWE32 MIDI Synth: 51485 bytes, 6845 notes (0 from user banks), 30 voices at most, 0 stolen, 4507 without a sound, 0 while a DOS box had the EMU8000 (DOS took it 0 times, back 0); sample RAM 10574 of
+2026-11-20 19:47:49.035  1128.716 SC55W S load=1.7% midi=0 fm=0 pcm=10720 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:50.059  1129.717 SC55W S load=1.6% midi=0 fm=0 pcm=11045 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:50.059  1129.717 SC55W E audio: underruns 2, late events 0, resyncs 1, load 1%
+2026-11-20 19:47:50.060  1129.776 VXD S vm=EB920074 sb=312 mpu=162 opl=0 joy=0 awe=0 virq=104 ack=104 midi=81 dma=26625 ev=21/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:51.081  1130.716 SC55W S load=2.2% midi=0 fm=0 pcm=11039 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:51.288  1130.816 VXD S vm=EB920074 sb=270 mpu=216 opl=0 joy=0 awe=0 virq=90 ack=90 midi=108 dma=22836 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:52.314  1131.716 SC55W S load=2.2% midi=0 fm=0 pcm=11035 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:52.314  1131.880 VXD S vm=EB920074 sb=276 mpu=312 opl=0 joy=0 awe=0 virq=92 ack=92 midi=156 dma=23535 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:53.342  1132.717 SC55W S load=1.1% midi=0 fm=0 pcm=11033 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:53.343  1132.937 VXD S vm=EB920074 sb=277 mpu=430 opl=0 joy=0 awe=0 virq=91 ack=91 midi=215 dma=23369 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:54.163  1133.716 SC55W S load=0.9% midi=0 fm=0 pcm=11030 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:54.369  1134.016 VXD S vm=EB920074 sb=276 mpu=138 opl=0 joy=0 awe=0 virq=92 ack=92 midi=69 dma=23651 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:55.191  1134.716 SC55W S load=1.2% midi=0 fm=0 pcm=11029 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:55.397  1135.073 VXD S vm=EB920074 sb=273 mpu=156 opl=0 joy=0 awe=0 virq=91 ack=91 midi=78 dma=23307 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:56.216  1135.716 SC55W S load=1.3% midi=0 fm=0 pcm=11028 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:56.424  1136.130 VXD S vm=EB920074 sb=276 mpu=162 opl=0 joy=0 awe=0 virq=92 ack=92 midi=81 dma=23379 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:57.246  1136.716 SC55W S load=1.4% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:57.656  1137.194 VXD S vm=EB920074 sb=273 mpu=150 opl=0 joy=0 awe=0 virq=91 ack=91 midi=75 dma=23394 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:58.067  1137.716 SC55W S load=1.3% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:58.679  1138.251 VXD S vm=EB920074 sb=273 mpu=150 opl=0 joy=0 awe=0 virq=91 ack=91 midi=75 dma=23359 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:47:59.088  1138.576 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 120189 frames, late 0, resyncs 1, MPU ignored 0, load 1.4%
+2026-11-20 19:47:59.088  1138.577 SC55W I AWE32: 0 writes, 0 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:47:59.290  1138.577 SC55W I AWE32 MIDI Synth: 52438 bytes, 6986 notes (0 from user banks), 30 voices at most, 0 stolen, 4507 without a sound, 0 while a DOS box had the EMU8000 (DOS took it 0 times, back 0); sample RAM 10574 of
+2026-11-20 19:47:59.290  1138.716 SC55W S load=1.3% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:47:59.904  1139.446 VXD S vm=EB920074 sb=309 mpu=390 opl=0 joy=0 awe=0 virq=103 ack=103 midi=195 dma=26407 ev=21/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:00.108  1139.716 SC55W S load=1.8% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:00.924  1140.506 VXD S vm=EB920074 sb=273 mpu=156 opl=0 joy=0 awe=0 virq=91 ack=91 midi=78 dma=23308 ev=9/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:01.128  1140.716 SC55W S load=1.7% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:01.945  1141.565 VXD S vm=EB920074 sb=276 mpu=150 opl=0 joy=0 awe=0 virq=92 ack=92 midi=75 dma=23308 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:02.150  1141.716 SC55W S load=1.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:02.966  1142.629 VXD S vm=EB920074 sb=273 mpu=138 opl=0 joy=0 awe=0 virq=91 ack=91 midi=69 dma=23466 ev=9/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:03.169  1142.756 SC55W S load=1.3% midi=0 fm=0 pcm=9270 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:48:03.170  1142.756 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:48:03.782  1143.207 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:48:03.783  1143.209 VXD I vm=EB920074 program ends (AH=4Ch)
+2026-11-20 19:48:03.986  1143.691 VXD S vm=EB920074 sb=124 mpu=419 opl=0 joy=0 awe=0 virq=47 ack=39 midi=207 dma=11896 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:04.191  1143.758 SC55W S load=0.6% midi=0 fm=0 pcm=3417 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:48:04.192  1143.758 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:48:05.011  1144.707 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:05.218  1144.758 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:06.034  1145.732 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:06.034  1145.758 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:07.053  1146.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:07.257  1146.797 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:07.664  1147.216 VXD I DOS box stop vm=EB920074
+2026-11-20 19:48:08.272  1147.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:08.272  1147.852 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:09.082  1148.587 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 167498 frames, late 0, resyncs 3, MPU ignored 0, load 0.2%
+2026-11-20 19:48:09.082  1148.587 SC55W I AWE32: 0 writes, 0 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:48:09.083  1148.587 SC55W I AWE32 MIDI Synth: 53047 bytes, 7055 notes (0 from user banks), 30 voices at most, 0 stolen, 4507 without a sound, 0 while a DOS box had the EMU8000 (DOS took it 0 times, back 0); sample RAM 10574 of
+2026-11-20 19:48:09.083  1148.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:09.488  1149.062 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:10.101  1149.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:10.507  1150.100 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:11.117  1150.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:11.524  1151.122 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:12.134  1151.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:12.539  1152.143 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:13.151  1152.766 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:13.556  1153.165 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:14.369  1153.766 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:14.574  1154.187 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:14.779  1154.392 SC55W I pad: PADMAP.TXT: none, PADUSER.TXT: 0 new
+2026-11-20 19:48:15.388  1154.766 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:15.591  1155.213 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:16.405  1155.766 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:16.607  1156.235 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:17.420  1156.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:17.624  1157.272 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:18.233  1157.767 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:18.640  1158.327 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:19.248  1158.766 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:19.656  1159.376 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:20.065  1159.726 SC55W E audio: underruns 4, late events 0, resyncs 3, load 0%
+2026-11-20 19:48:20.266  1159.745 SC55W I pad: PADMAP.TXT: none, PADUSER.TXT: 0 new
+2026-11-20 19:48:20.267  1159.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:20.676  1160.404 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:21.292  1160.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:21.700  1161.426 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:22.309  1161.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:22.721  1162.448 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:23.330  1162.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:23.734  1163.470 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:24.348  1163.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:24.755  1164.329 SC55W I pad: PADMAP.TXT: none, PADUSER.TXT: 0 new
+2026-11-20 19:48:24.755  1164.492 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:25.365  1164.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:25.773  1165.519 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:26.178  1165.771 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:26.986  1166.542 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:27.190  1166.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:27.600  1167.113 VXD I DOS box start vm=EB920074
+2026-11-20 19:48:27.600  1167.312 VXD I vm=EB920074 runs C:\HERETIC\SETUP.EXE (43325 bytes)
+2026-11-20 19:48:27.601  1167.313 SC55W I pad: layout "Default" for C:\HERETIC\SETUP.EXE
+2026-11-20 19:48:28.008  1167.608 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:28.212  1167.772 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:29.025  1168.630 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:29.228  1168.775 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:30.044  1169.652 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:30.248  1169.775 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:31.063  1170.673 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:31.267  1170.774 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:32.086  1171.695 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:32.292  1171.783 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:33.106  1172.717 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:33.308  1172.794 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:34.128  1173.739 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:34.330  1173.794 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:35.146  1174.761 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:35.349  1174.794 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:36.163  1175.783 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:36.163  1175.794 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:37.184  1176.798 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:37.185  1176.808 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:38.202  1177.802 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:38.203  1177.832 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:39.223  1178.802 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:39.223  1178.856 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:40.235  1179.806 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:40.235  1179.884 VXD S vm=EB920074 sb=29 mpu=0 opl=0 joy=0 awe=0 virq=2 ack=7 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:40.236  1179.956 VXD I DMA play 8-bit stereo 11025 Hz auto-init, 256 bytes per IRQ, vm=EB920074
+2026-11-20 19:48:41.053  1180.814 SC55W S load=1.0% midi=0 fm=0 pcm=6972 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:48:41.253  1180.814 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:48:41.253  1180.828 SC55W I AWE32 MIDI Synth: a DOS box took the EMU8000 (Windows MIDI on it paused)
+2026-11-20 19:48:41.457  1180.977 VXD S vm=EB920074 sb=308 mpu=0 opl=0 joy=0 awe=1259 virq=87 ack=92 midi=0 dma=22455 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:41.457  1180.977 VXD I AWE32: DOS box vm=EB920074 takes the EMU8000 (the AWE32 MIDI Synth waits)
+2026-11-20 19:48:41.458  1180.977 VXD S awe vm=EB920074 ports=1259 voices=8/32 ramw=0 ram=28672K
+2026-11-20 19:48:42.288  1181.814 SC55W S load=1.3% midi=0 fm=0 pcm=11049 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:42.490  1182.114 VXD S vm=EB920074 sb=294 mpu=0 opl=0 joy=0 awe=540 virq=98 ack=98 midi=0 dma=25099 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:42.490  1182.114 VXD S awe vm=EB920074 ports=540 voices=3/32 ramw=0 ram=28672K
+2026-11-20 19:48:43.306  1182.815 SC55W S load=1.8% midi=0 fm=0 pcm=11042 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:43.508  1183.191 VXD S vm=EB920074 sb=279 mpu=0 opl=0 joy=0 awe=1161 virq=93 ack=93 midi=0 dma=23638 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:43.508  1183.191 VXD S awe vm=EB920074 ports=1161 voices=6/32 ramw=0 ram=28672K
+2026-11-20 19:48:44.321  1183.814 SC55W S load=1.8% midi=0 fm=0 pcm=11037 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:44.727  1184.269 VXD S vm=EB920074 sb=279 mpu=0 opl=0 joy=0 awe=1255 virq=93 ack=93 midi=0 dma=23809 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:44.727  1184.269 VXD S awe vm=EB920074 ports=1255 voices=4/32 ramw=0 ram=28672K
+2026-11-20 19:48:45.134  1184.814 SC55W S load=1.1% midi=0 fm=0 pcm=11034 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:45.748  1185.348 VXD S vm=EB920074 sb=279 mpu=0 opl=0 joy=0 awe=711 virq=93 ack=93 midi=0 dma=23815 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:45.748  1185.348 VXD S awe vm=EB920074 ports=711 voices=5/32 ramw=0 ram=28672K
+2026-11-20 19:48:46.355  1185.815 SC55W S load=1.1% midi=0 fm=0 pcm=11032 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:46.763  1186.426 VXD S vm=EB920074 sb=279 mpu=0 opl=0 joy=0 awe=906 virq=93 ack=93 midi=0 dma=23815 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:46.763  1186.426 VXD S awe vm=EB920074 ports=906 voices=6/32 ramw=0 ram=28672K
+2026-11-20 19:48:47.376  1186.815 SC55W S load=1.2% midi=0 fm=0 pcm=11030 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:47.783  1187.504 VXD S vm=EB920074 sb=276 mpu=0 opl=0 joy=0 awe=910 virq=92 ack=92 midi=0 dma=23670 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:47.987  1187.504 VXD S awe vm=EB920074 ports=910 voices=6/32 ramw=0 ram=28672K
+2026-11-20 19:48:48.390  1187.815 SC55W S load=1.3% midi=0 fm=0 pcm=11029 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:48.997  1188.576 VXD S vm=EB920074 sb=279 mpu=0 opl=0 joy=0 awe=784 virq=93 ack=93 midi=0 dma=23745 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:48.997  1188.576 VXD S awe vm=EB920074 ports=784 voices=5/32 ramw=0 ram=28672K
+2026-11-20 19:48:48.997  1188.605 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 260435 frames, late 0, resyncs 4, MPU ignored 0, load 1.3%
+2026-11-20 19:48:48.997  1188.605 SC55W I AWE32: 7037 writes, 489 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:48:49.201  1188.605 SC55W I AWE32 MIDI Synth: 53047 bytes, 7055 notes (0 from user banks), 30 voices at most, 0 stolen, 4507 without a sound, 0 while a DOS box had the EMU8000 (DOS took it 1 times, back 0), DOS box has it now;
+2026-11-20 19:48:49.403  1188.815 SC55W S load=1.2% midi=0 fm=0 pcm=11028 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:50.016  1189.725 SC55W E audio: underruns 5, late events 0, resyncs 4, load 1%
+2026-11-20 19:48:50.219  1189.798 VXD S vm=EB920074 sb=315 mpu=0 opl=0 joy=0 awe=971 virq=105 ack=105 midi=0 dma=26895 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:50.219  1189.798 VXD S awe vm=EB920074 ports=971 voices=6/32 ramw=0 ram=28672K
+2026-11-20 19:48:50.219  1189.815 SC55W S load=1.4% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:51.249  1190.815 SC55W S load=1.7% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:51.250  1190.897 VXD S vm=EB920074 sb=287 mpu=0 opl=0 joy=0 awe=2076 virq=95 ack=95 midi=0 dma=24256 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:51.250  1190.897 VXD S awe vm=EB920074 ports=2076 voices=7/32 ramw=0 ram=28672K
+2026-11-20 19:48:52.068  1191.821 SC55W S load=1.6% midi=0 fm=0 pcm=8523 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:48:52.068  1191.821 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:48:52.270  1191.868 VXD I vm=EB920074 program ends (AH=4Ch)
+2026-11-20 19:48:52.271  1191.988 VXD S vm=EB920074 sb=227 mpu=0 opl=0 joy=0 awe=345 virq=79 ack=72 midi=0 dma=20330 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:52.271  1191.988 VXD S awe vm=EB920074 ports=345 voices=0/32 ramw=0 ram=28672K
+2026-11-20 19:48:53.285  1192.821 SC55W S load=0.8% midi=0 fm=0 pcm=336 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:53.285  1193.015 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:53.286  1193.015 VXD S awe vm=EB920074 ports=0 voices=0/32 ramw=0 ram=28672K
+2026-11-20 19:48:54.298  1193.821 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:48:54.502  1194.049 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:55.115  1194.835 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:55.520  1194.889 VXD I DOS box start vm=EED20074
+2026-11-20 19:48:55.520  1195.097 VXD I vm=EED20074 runs C:\HERETIC\SETUP.EXE (43325 bytes)
+2026-11-20 19:48:55.521  1195.115 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:56.131  1195.837 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:56.538  1196.147 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:57.149  1196.842 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:57.558  1197.169 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:58.371  1197.851 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:58.573  1198.190 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:48:58.979  1198.621 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 293663 frames, late 0, resyncs 5, MPU ignored 0, load 0.3%
+2026-11-20 19:48:58.980  1198.621 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:48:59.180  1198.621 SC55W I AWE32 MIDI Synth: 53047 bytes, 7055 notes (0 from user banks), 30 voices at most, 0 stolen, 4507 without a sound, 0 while a DOS box had the EMU8000 (DOS took it 1 times, back 0), DOS box has it now;
+2026-11-20 19:48:59.383  1198.861 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:48:59.586  1199.266 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:00.409  1199.872 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:00.613  1200.288 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:01.223  1200.773 VXD I vm=EED20074 uses the Sound Blaster (DSP reset)
+2026-11-20 19:49:01.425  1200.873 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:01.425  1200.998 VXD I MPU-401 reset (FFh) vm=EED20074
+2026-11-20 19:49:01.426  1200.998 VXD I MPU-401 reset (FFh) vm=EED20074
+2026-11-20 19:49:01.426  1200.998 VXD I MPU-401 UART mode (3Fh) vm=EED20074
+2026-11-20 19:49:01.426  1200.998 VXD I DMA play 8-bit stereo 11025 Hz auto-init, 256 bytes per IRQ, vm=EED20074
+2026-11-20 19:49:01.833  1201.437 VXD S vm=EED20074 sb=179 mpu=231 opl=0 joy=0 awe=0 virq=39 ack=47 midi=109 dma=9663 ev=9/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:02.243  1201.877 SC55W S load=3.8% midi=0 fm=0 pcm=7194 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:49:02.243  1201.877 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:49:02.244  1201.891 SC55W I AWE32 MIDI Synth: has the EMU8000 again (no DOS box used it)
+2026-11-20 19:49:02.853  1202.495 VXD S vm=EED20074 sb=273 mpu=174 opl=0 joy=0 awe=0 virq=91 ack=91 midi=87 dma=23153 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:03.462  1202.877 SC55W S load=0.7% midi=0 fm=0 pcm=11048 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:03.869  1203.552 VXD S vm=EED20074 sb=273 mpu=168 opl=0 joy=0 awe=0 virq=91 ack=91 midi=84 dma=23374 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:04.482  1203.877 SC55W S load=0.5% midi=0 fm=0 pcm=11041 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:04.891  1204.609 VXD S vm=EED20074 sb=273 mpu=234 opl=0 joy=0 awe=0 virq=91 ack=91 midi=117 dma=23373 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:05.299  1204.877 SC55W S load=0.5% midi=0 fm=0 pcm=11037 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:06.114  1205.673 VXD S vm=EED20074 sb=276 mpu=376 opl=0 joy=0 awe=0 virq=92 ack=92 midi=188 dma=23374 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:06.317  1205.877 SC55W S load=0.5% midi=0 fm=0 pcm=11034 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:07.136  1206.730 VXD S vm=EED20074 sb=273 mpu=132 opl=0 joy=0 awe=0 virq=91 ack=91 midi=66 dma=23376 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:07.340  1206.877 SC55W S load=0.4% midi=0 fm=0 pcm=11031 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:08.158  1207.794 VXD S vm=EED20074 sb=273 mpu=150 opl=0 joy=0 awe=0 virq=91 ack=91 midi=75 dma=23371 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:08.361  1207.877 SC55W S load=0.4% midi=0 fm=0 pcm=11030 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:09.176  1208.627 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 375350 frames, late 0, resyncs 6, MPU ignored 0, load 0.4%
+2026-11-20 19:49:09.176  1208.627 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:49:09.379  1208.627 SC55W I AWE32 MIDI Synth: 53845 bytes, 7159 notes (0 from user banks), 30 voices at most, 0 stolen, 4601 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063 o
+2026-11-20 19:49:09.379  1208.857 VXD S vm=EED20074 sb=282 mpu=156 opl=0 joy=0 awe=0 virq=92 ack=92 midi=78 dma=23469 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:09.380  1208.877 SC55W S load=0.4% midi=0 fm=0 pcm=11029 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:10.409  1209.877 SC55W S load=0.4% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:10.410  1210.057 VXD S vm=EED20074 sb=309 mpu=180 opl=0 joy=0 awe=0 virq=103 ack=103 midi=90 dma=26458 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:11.224  1210.877 SC55W S load=0.4% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:11.428  1211.151 VXD S vm=EED20074 sb=285 mpu=144 opl=0 joy=0 awe=0 virq=95 ack=95 midi=72 dma=24163 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:12.240  1211.877 SC55W S load=0.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:12.647  1212.222 VXD S vm=EED20074 sb=276 mpu=378 opl=0 joy=0 awe=0 virq=92 ack=92 midi=189 dma=23597 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:13.260  1212.877 SC55W S load=0.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:13.666  1213.279 VXD S vm=EED20074 sb=273 mpu=150 opl=0 joy=0 awe=0 virq=91 ack=91 midi=75 dma=23371 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:14.479  1213.877 SC55W S load=0.4% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:14.680  1214.344 VXD S vm=EED20074 sb=273 mpu=168 opl=0 joy=0 awe=0 virq=91 ack=91 midi=84 dma=23374 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:15.290  1214.890 SC55W S load=0.5% midi=0 fm=0 pcm=8181 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:49:15.290  1214.890 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:49:15.493  1215.109 VXD I MPU-401 reset (FFh) vm=EED20074
+2026-11-20 19:49:15.493  1215.111 VXD I vm=EED20074 program ends (AH=4Ch)
+2026-11-20 19:49:15.696  1215.388 VXD S vm=EED20074 sb=172 mpu=419 opl=0 joy=0 awe=0 virq=63 ack=55 midi=207 dma=16022 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:16.301  1215.890 SC55W S load=0.3% midi=0 fm=0 pcm=2775 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:16.708  1216.411 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:17.317  1216.890 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:17.723  1217.435 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:18.333  1217.900 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:18.744  1218.485 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:19.153  1218.640 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 444196 frames, late 0, resyncs 7, MPU ignored 0, load 0.3%
+2026-11-20 19:49:19.154  1218.640 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:49:19.154  1218.640 SC55W I AWE32 MIDI Synth: 54568 bytes, 7247 notes (0 from user banks), 30 voices at most, 0 stolen, 4689 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063 o
+2026-11-20 19:49:19.558  1218.900 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:19.966  1219.665 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:20.166  1219.740 SC55W E audio: underruns 10, late events 0, resyncs 7, load 0%
+2026-11-20 19:49:20.370  1219.910 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:20.984  1220.720 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:21.393  1220.910 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:22.007  1221.742 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:22.414  1221.910 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:23.026  1222.763 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:23.435  1222.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:24.047  1223.785 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:24.455  1223.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:25.065  1224.807 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:25.475  1224.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:26.088  1225.829 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:26.496  1225.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:27.111  1226.851 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:27.519  1226.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:28.131  1227.873 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:28.535  1227.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:29.149  1228.894 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:29.556  1228.909 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:30.168  1229.908 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:30.372  1229.918 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:31.199  1230.908 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:31.199  1230.942 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:32.218  1231.908 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:32.218  1231.966 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:33.243  1232.908 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:33.243  1232.990 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:34.253  1233.908 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:34.458  1234.014 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:35.278  1234.908 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:35.482  1235.038 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:36.301  1235.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:36.504  1236.061 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:37.516  1236.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:37.516  1237.085 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:38.532  1237.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:38.532  1238.109 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:39.553  1238.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:39.553  1239.133 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:40.570  1239.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:40.571  1240.157 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:41.183  1240.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:41.599  1241.189 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:42.211  1241.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:42.621  1242.210 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:43.233  1242.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:43.636  1243.232 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:44.247  1243.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:44.247  1243.952 SC55W I pad: PADMAP.TXT: none, PADUSER.TXT: 0 new
+2026-11-20 19:49:44.654  1244.260 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:45.267  1244.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:45.671  1245.282 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:46.485  1245.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:46.687  1246.100 VXD I DOS box stop vm=EED20074
+2026-11-20 19:49:46.687  1246.317 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:47.504  1246.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:47.707  1247.343 VXD I DOS box stop vm=EB920074
+2026-11-20 19:49:47.707  1247.377 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:47.707  1247.377 VXD I AWE32: DOS box vm=EB920074 closed, the EMU8000 is free for the AWE32 MIDI Synth
+2026-11-20 19:49:48.324  1247.907 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:48.727  1248.467 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:49.336  1248.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:49.944  1249.516 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:50.347  1249.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:50.953  1250.566 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:51.361  1250.906 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:51.765  1251.205 VXD I DOS box start vm=EB920074
+2026-11-20 19:49:51.970  1251.411 VXD I vm=EB920074 runs C:\HERETIC\HERETIC.EXE (728031 bytes)
+2026-11-20 19:49:51.970  1251.412 SC55W I pad: layout "Default" for C:\HERETIC\HERETIC.EXE
+2026-11-20 19:49:51.971  1251.626 VXD S vm=EED20074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:52.171  1251.854 VXD I vm=EB920074 uses the Sound Blaster (DSP reset)
+2026-11-20 19:49:52.377  1251.911 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:49:52.579  1252.079 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:49:52.579  1252.079 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:49:52.579  1252.079 VXD I MPU-401 UART mode (3Fh) vm=EB920074
+2026-11-20 19:49:52.579  1252.079 VXD I DMA play 8-bit stereo 11025 Hz auto-init, 256 bytes per IRQ, vm=EB920074
+2026-11-20 19:49:53.190  1252.811 VXD S vm=EB920074 sb=254 mpu=273 opl=0 joy=0 awe=0 virq=64 ack=72 midi=130 dma=15980 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:53.190  1252.912 SC55W S load=1.7% midi=0 fm=0 pcm=6419 late=0 early=0 resync=1 synth=awake out=on
+2026-11-20 19:49:53.190  1252.912 SC55W E 1 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:49:54.208  1253.852 VXD S vm=EB920074 sb=270 mpu=144 opl=0 joy=0 awe=0 virq=90 ack=90 midi=72 dma=22993 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:54.410  1253.912 SC55W S load=1.6% midi=0 fm=0 pcm=11050 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:55.222  1254.911 VXD S vm=EB920074 sb=273 mpu=204 opl=0 joy=0 awe=0 virq=91 ack=91 midi=102 dma=23308 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:55.223  1254.912 SC55W S load=2.0% midi=0 fm=0 pcm=11042 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:56.244  1255.912 SC55W S load=0.9% midi=0 fm=0 pcm=11038 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:56.447  1255.972 VXD S vm=EB920074 sb=273 mpu=364 opl=0 joy=0 awe=0 virq=91 ack=91 midi=182 dma=23466 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:57.470  1256.912 SC55W S load=1.0% midi=0 fm=0 pcm=11034 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:57.470  1257.032 VXD S vm=EB920074 sb=275 mpu=132 opl=0 joy=0 awe=0 virq=91 ack=91 midi=66 dma=23308 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:58.489  1257.912 SC55W S load=1.3% midi=0 fm=0 pcm=11032 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:58.489  1258.089 VXD S vm=EB920074 sb=276 mpu=150 opl=0 joy=0 awe=0 virq=92 ack=92 midi=75 dma=23308 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:49:59.304  1258.652 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 513973 frames, late 0, resyncs 8, MPU ignored 0, load 1.3%
+2026-11-20 19:49:59.304  1258.653 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:49:59.304  1258.653 SC55W I AWE32 MIDI Synth: 55237 bytes, 7329 notes (0 from user banks), 30 voices at most, 0 stolen, 4689 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 o
+2026-11-20 19:49:59.304  1258.912 SC55W S load=1.3% midi=0 fm=0 pcm=11030 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:49:59.707  1259.310 VXD S vm=EB920074 sb=315 mpu=180 opl=0 joy=0 awe=0 virq=105 ack=105 midi=90 dma=26930 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:00.520  1259.912 SC55W S load=1.3% midi=0 fm=0 pcm=11029 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:00.724  1260.368 VXD S vm=EB920074 sb=273 mpu=156 opl=0 joy=0 awe=0 virq=91 ack=91 midi=78 dma=23348 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:01.534  1260.912 SC55W S load=1.3% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:01.737  1261.425 VXD S vm=EB920074 sb=273 mpu=144 opl=0 joy=0 awe=0 virq=91 ack=91 midi=72 dma=23374 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:02.347  1261.912 SC55W S load=1.3% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:02.756  1262.489 VXD S vm=EB920074 sb=276 mpu=378 opl=0 joy=0 awe=0 virq=92 ack=92 midi=189 dma=23379 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:03.367  1262.913 SC55W S load=1.8% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:03.978  1263.546 VXD S vm=EB920074 sb=273 mpu=150 opl=0 joy=0 awe=0 virq=91 ack=91 midi=75 dma=23368 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:04.387  1263.913 SC55W S load=1.6% midi=0 fm=0 pcm=11027 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:04.998  1264.610 VXD S vm=EB920074 sb=273 mpu=168 opl=0 joy=0 awe=0 virq=91 ack=91 midi=84 dma=23374 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:05.402  1264.913 SC55W S load=1.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:06.012  1265.667 VXD S vm=EB920074 sb=273 mpu=138 opl=0 joy=0 awe=0 virq=91 ack=91 midi=69 dma=23373 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:06.217  1265.913 SC55W S load=1.3% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:07.031  1266.724 VXD S vm=EB920074 sb=276 mpu=156 opl=0 joy=0 awe=0 virq=92 ack=92 midi=78 dma=23380 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:07.438  1266.913 SC55W S load=1.3% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:08.045  1267.781 VXD S vm=EB920074 sb=270 mpu=156 opl=0 joy=0 awe=0 virq=90 ack=90 midi=78 dma=23183 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:08.451  1267.913 SC55W S load=1.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:09.267  1268.653 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 624239 frames, late 0, resyncs 8, MPU ignored 0, load 1.4%
+2026-11-20 19:50:09.267  1268.653 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:50:09.267  1268.653 SC55W I AWE32 MIDI Synth: 56068 bytes, 7469 notes (0 from user banks), 30 voices at most, 0 stolen, 4689 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 o
+2026-11-20 19:50:09.267  1268.831 VXD S vm=EB920074 sb=273 mpu=192 opl=0 joy=0 awe=0 virq=91 ack=91 midi=96 dma=23151 ev=15/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:09.267  1268.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:10.285  1269.913 SC55W S load=1.9% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:10.488  1270.031 VXD S vm=EB920074 sb=309 mpu=360 opl=0 joy=0 awe=0 virq=103 ack=103 midi=180 dma=26457 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:11.507  1270.913 SC55W S load=1.6% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:11.508  1271.093 VXD S vm=EB920074 sb=276 mpu=174 opl=0 joy=0 awe=0 virq=92 ack=92 midi=87 dma=23466 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:12.525  1271.913 SC55W S load=1.5% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:12.526  1272.145 VXD S vm=EB920074 sb=273 mpu=138 opl=0 joy=0 awe=0 virq=91 ack=91 midi=69 dma=23251 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:13.337  1272.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:13.539  1273.231 VXD S vm=EB920074 sb=279 mpu=186 opl=0 joy=0 awe=0 virq=93 ack=93 midi=93 dma=23821 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:14.349  1273.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:14.757  1274.288 VXD S vm=EB920074 sb=273 mpu=144 opl=0 joy=0 awe=0 virq=91 ack=91 midi=72 dma=23368 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:15.372  1274.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:15.779  1275.345 VXD S vm=EB920074 sb=273 mpu=162 opl=0 joy=0 awe=0 virq=91 ack=91 midi=81 dma=23373 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:16.386  1275.913 SC55W S load=1.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:16.793  1276.409 VXD S vm=EB920074 sb=276 mpu=372 opl=0 joy=0 awe=0 virq=92 ack=92 midi=186 dma=23374 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:17.201  1276.913 SC55W S load=1.8% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:17.814  1277.466 VXD S vm=EB920074 sb=273 mpu=150 opl=0 joy=0 awe=0 virq=91 ack=91 midi=75 dma=23373 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:18.424  1277.913 SC55W S load=1.6% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:18.830  1278.530 VXD S vm=EB920074 sb=273 mpu=180 opl=0 joy=0 awe=0 virq=91 ack=91 midi=90 dma=23379 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:19.234  1278.653 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 734492 frames, late 0, resyncs 8, MPU ignored 0, load 1.5%
+2026-11-20 19:50:19.234  1278.653 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:50:19.235  1278.653 SC55W I AWE32 MIDI Synth: 57043 bytes, 7632 notes (0 from user banks), 30 voices at most, 0 stolen, 4689 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 o
+2026-11-20 19:50:19.235  1278.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:20.046  1279.730 VXD S vm=EB920074 sb=312 mpu=396 opl=0 joy=0 awe=0 virq=104 ack=104 midi=198 dma=26456 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:20.046  1279.743 SC55W E audio: underruns 11, late events 0, resyncs 8, load 1%
+2026-11-20 19:50:20.452  1279.913 SC55W S load=1.9% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:21.060  1280.780 VXD S vm=EB920074 sb=270 mpu=150 opl=0 joy=0 awe=0 virq=90 ack=90 midi=75 dma=23153 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:21.467  1280.913 SC55W S load=1.9% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:22.285  1281.843 VXD S vm=EB920074 sb=280 mpu=180 opl=0 joy=0 awe=0 virq=92 ack=92 midi=90 dma=23469 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:22.489  1281.913 SC55W S load=1.6% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:23.305  1282.913 VXD S vm=EB920074 sb=276 mpu=186 opl=0 joy=0 awe=0 virq=92 ack=92 midi=93 dma=23624 ev=18/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:23.305  1282.913 SC55W S load=1.3% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:24.325  1283.913 SC55W S load=1.5% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:24.325  1283.973 VXD S vm=EB920074 sb=273 mpu=372 opl=0 joy=0 awe=0 virq=91 ack=91 midi=186 dma=23307 ev=21/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:25.342  1284.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:25.342  1285.037 VXD S vm=EB920074 sb=276 mpu=294 opl=0 joy=0 awe=0 virq=92 ack=92 midi=147 dma=23536 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:26.361  1285.913 SC55W S load=1.4% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:26.564  1286.103 VXD S vm=EB920074 sb=276 mpu=210 opl=0 joy=0 awe=0 virq=92 ack=92 midi=105 dma=23553 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:27.577  1286.913 SC55W S load=1.5% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:27.577  1287.163 VXD S vm=EB920074 sb=273 mpu=384 opl=0 joy=0 awe=0 virq=91 ack=91 midi=192 dma=23308 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:28.397  1287.913 SC55W S load=1.4% midi=0 fm=0 pcm=11026 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:28.599  1288.251 VXD S vm=EB920074 sb=279 mpu=378 opl=0 joy=0 awe=0 virq=93 ack=93 midi=189 dma=23938 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:29.208  1288.653 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 844745 frames, late 0, resyncs 8, MPU ignored 0, load 1.5%
+2026-11-20 19:50:29.208  1288.653 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:50:29.208  1288.653 SC55W I AWE32 MIDI Synth: 58390 bytes, 7856 notes (0 from user banks), 30 voices at most, 0 stolen, 4689 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 o
+2026-11-20 19:50:29.208  1288.913 SC55W S load=1.5% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:29.816  1289.451 VXD S vm=EB920074 sb=312 mpu=564 opl=0 joy=0 awe=0 virq=104 ack=104 midi=282 dma=26451 ev=33/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:30.424  1289.913 SC55W S load=1.8% midi=0 fm=0 pcm=11025 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:30.835  1290.508 VXD S vm=EB920074 sb=273 mpu=492 opl=0 joy=0 awe=0 virq=91 ack=91 midi=246 dma=23366 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:31.445  1291.055 SC55W S load=1.9% midi=0 fm=0 pcm=9294 late=0 early=0 resync=2 synth=awake out=on
+2026-11-20 19:50:31.445  1291.055 SC55W E 2 clock/PCM resyncs (events dropped or skipped)
+2026-11-20 19:50:31.851  1291.362 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:50:31.851  1291.364 VXD I vm=EB920074 program ends (AH=4Ch)
+2026-11-20 19:50:31.852  1291.574 VXD S vm=EB920074 sb=192 mpu=449 opl=0 joy=0 awe=0 virq=70 ack=61 midi=222 dma=17940 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:32.461  1292.057 SC55W S load=0.6% midi=0 fm=0 pcm=2912 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:32.869  1292.606 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:33.480  1293.057 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:34.093  1293.637 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:34.503  1294.057 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:35.125  1294.687 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:35.534  1295.067 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:35.534  1295.096 VXD I DOS box stop vm=EB920074
+2026-11-20 19:50:36.143  1295.752 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:36.549  1296.067 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:37.161  1296.802 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:37.365  1297.067 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:38.179  1297.852 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:38.383  1298.067 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:39.197  1298.667 SC55W I activity: MIDI 40289 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 0.2%
+2026-11-20 19:50:39.197  1298.667 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:50:39.400  1298.667 SC55W I AWE32 MIDI Synth: 59062 bytes, 7936 notes (0 from user banks), 30 voices at most, 0 stolen, 4689 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 o
+2026-11-20 19:50:39.401  1298.902 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:39.604  1299.072 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:40.418  1300.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:40.418  1300.076 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:41.439  1301.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:41.439  1301.136 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:42.458  1302.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:42.662  1302.196 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:43.680  1303.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:43.680  1303.256 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:44.702  1304.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:44.703  1304.316 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:45.516  1305.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:45.723  1305.396 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:46.539  1306.071 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:46.741  1306.450 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:47.550  1307.070 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:47.550  1307.168 VXD I Windows MIDI device NUKED SB-EMU opened (1 open)
+2026-11-20 19:50:47.956  1307.505 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:48.567  1308.070 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:48.973  1308.560 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:49.381  1309.070 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:49.992  1309.605 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:49.992  1309.750 SC55W E audio: underruns 13, late events 0, resyncs 10, load 0%
+2026-11-20 19:50:50.395  1310.080 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:51.006  1310.655 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:51.614  1311.081 SC55W S load=1.6% midi=224 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:52.021  1311.701 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=18/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:52.634  1312.081 SC55W S load=1.5% midi=96 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:53.036  1312.740 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=13/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:53.644  1313.081 SC55W S load=2.0% midi=366 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:54.049  1313.774 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:54.660  1314.081 SC55W S load=1.4% midi=456 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:54.861  1314.516 VXD I Windows MIDI device NUKED SB-EMU closed (0 open)
+2026-11-20 19:50:55.273  1314.819 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:55.478  1315.081 SC55W S load=0.6% midi=144 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:56.293  1315.854 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:56.496  1316.081 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:57.308  1316.891 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:57.511  1317.081 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:50:58.323  1317.929 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:50:58.525  1318.089 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:59.138  1318.669 SC55W I activity: MIDI 41575 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 0.2%
+2026-11-20 19:50:59.138  1318.669 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:50:59.139  1318.669 SC55W I AWE32 MIDI Synth: 60348 bytes, 8025 notes (0 from user banks), 30 voices at most, 0 stolen, 4745 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063 o
+2026-11-20 19:50:59.546  1319.094 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:50:59.546  1319.118 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:00.564  1320.093 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:00.565  1320.173 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:01.578  1321.093 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:01.578  1321.223 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:02.601  1322.093 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:02.601  1322.278 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:03.622  1323.093 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:03.622  1323.333 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:04.435  1324.093 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:04.845  1324.403 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:05.454  1325.093 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:05.861  1325.458 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:06.680  1326.092 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:06.883  1326.512 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:07.700  1327.092 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:07.903  1327.562 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:08.514  1327.905 VXD I DOS box start vm=EB920074
+2026-11-20 19:51:08.921  1328.475 VXD I vm=EB920074 runs C:\SC55\MIDPLAY.EXE (619008 bytes)
+2026-11-20 19:51:08.921  1328.475 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:08.921  1328.476 SC55W I pad: layout "Default" for C:\SC55\MIDPLAY.EXE
+2026-11-20 19:51:08.921  1328.602 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:09.939  1329.476 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:09.939  1329.515 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:51:09.940  1329.515 VXD I MPU-401 reset (FFh) vm=EB920074
+2026-11-20 19:51:09.940  1329.516 VXD I MPU-401 UART mode (3Fh) vm=EB920074
+2026-11-20 19:51:09.940  1329.642 VXD S vm=EB920074 sb=0 mpu=12 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:10.955  1330.477 SC55W S load=3.0% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:10.955  1330.682 VXD S vm=EB920074 sb=0 mpu=3500 opl=0 joy=0 awe=0 virq=0 ack=0 midi=1021 dma=0 ev=11/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:11.974  1331.477 SC55W S load=2.8% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:12.177  1331.712 VXD S vm=EB920074 sb=0 mpu=2294 opl=0 joy=0 awe=0 virq=0 ack=0 midi=336 dma=0 ev=45/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:12.793  1332.477 SC55W S load=2.9% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:13.197  1332.743 VXD S vm=EB920074 sb=0 mpu=2236 opl=0 joy=0 awe=0 virq=0 ack=0 midi=436 dma=0 ev=10/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:13.808  1333.477 SC55W S load=2.9% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:14.212  1333.765 VXD S vm=EB920074 sb=0 mpu=2133 opl=0 joy=0 awe=0 virq=0 ack=0 midi=328 dma=0 ev=22/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:14.823  1334.477 SC55W S load=2.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:15.228  1334.787 VXD S vm=EB920074 sb=0 mpu=2143 opl=0 joy=0 awe=0 virq=0 ack=0 midi=334 dma=0 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:15.837  1335.477 SC55W S load=2.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:16.240  1335.809 VXD S vm=EB920074 sb=0 mpu=2299 opl=0 joy=0 awe=0 virq=0 ack=0 midi=337 dma=0 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:16.854  1336.477 SC55W S load=2.8% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:17.260  1336.831 VXD S vm=EB920074 sb=0 mpu=2395 opl=0 joy=0 awe=0 virq=0 ack=0 midi=314 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:17.870  1337.477 SC55W S load=3.0% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:18.274  1337.852 VXD S vm=EB920074 sb=0 mpu=2547 opl=0 joy=0 awe=0 virq=0 ack=0 midi=441 dma=0 ev=45/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:18.885  1338.477 SC55W S load=3.0% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:19.290  1338.677 SC55W I activity: MIDI 41575 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 3.0%
+2026-11-20 19:51:19.290  1338.678 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:51:19.291  1338.678 SC55W I AWE32 MIDI Synth: 64123 bytes, 8447 notes (0 from user banks), 30 voices at most, 0 stolen, 4745 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 o
+2026-11-20 19:51:19.291  1338.875 VXD S vm=EB920074 sb=0 mpu=2250 opl=0 joy=0 awe=0 virq=0 ack=0 midi=317 dma=0 ev=20/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:20.099  1339.478 SC55W S load=3.1% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:20.299  1339.950 VXD S vm=EB920074 sb=0 mpu=2453 opl=0 joy=0 awe=0 virq=0 ack=0 midi=402 dma=0 ev=30/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:21.108  1340.478 SC55W S load=2.9% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:21.310  1340.974 VXD S vm=EB920074 sb=0 mpu=2294 opl=0 joy=0 awe=0 virq=0 ack=0 midi=336 dma=0 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:21.917  1341.478 SC55W S load=3.0% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:22.319  1341.997 VXD S vm=EB920074 sb=0 mpu=2385 opl=0 joy=0 awe=0 virq=0 ack=0 midi=372 dma=0 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:22.930  1342.478 SC55W S load=2.8% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:23.339  1343.022 VXD S vm=EB920074 sb=0 mpu=2274 opl=0 joy=0 awe=0 virq=0 ack=0 midi=326 dma=0 ev=18/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:23.945  1343.478 SC55W S load=2.9% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:24.351  1344.044 VXD S vm=EB920074 sb=0 mpu=2370 opl=0 joy=0 awe=0 virq=0 ack=0 midi=431 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:24.968  1344.478 SC55W S load=3.1% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:25.372  1345.066 VXD S vm=EB920074 sb=0 mpu=2462 opl=0 joy=0 awe=0 virq=0 ack=0 midi=343 dma=0 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:25.980  1345.478 SC55W S load=3.1% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:26.384  1346.087 VXD S vm=EB920074 sb=0 mpu=2555 opl=0 joy=0 awe=0 virq=0 ack=0 midi=443 dma=0 ev=37/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:26.994  1346.478 SC55W S load=3.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:27.397  1347.109 VXD S vm=EB920074 sb=0 mpu=2512 opl=0 joy=0 awe=0 virq=0 ack=0 midi=489 dma=0 ev=24/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:28.004  1347.478 SC55W S load=3.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:28.411  1348.131 VXD S vm=EB920074 sb=0 mpu=2460 opl=0 joy=0 awe=0 virq=0 ack=0 midi=406 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:29.019  1348.478 SC55W S load=3.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:29.222  1348.678 SC55W I activity: MIDI 41575 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 3.4%
+2026-11-20 19:51:29.222  1348.678 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:51:29.222  1348.678 SC55W I AWE32 MIDI Synth: 67911 bytes, 8972 notes (0 from user banks), 30 voices at most, 10 stolen, 4745 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 
+2026-11-20 19:51:29.629  1349.208 VXD S vm=EB920074 sb=0 mpu=2190 opl=0 joy=0 awe=0 virq=0 ack=0 midi=291 dma=0 ev=2/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:30.037  1349.478 SC55W S load=3.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:30.645  1350.231 VXD S vm=EB920074 sb=0 mpu=2099 opl=0 joy=0 awe=0 virq=0 ack=0 midi=252 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:30.848  1350.478 SC55W S load=3.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:31.662  1351.257 VXD S vm=EB920074 sb=0 mpu=2155 opl=0 joy=0 awe=0 virq=0 ack=0 midi=276 dma=0 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:31.865  1351.478 SC55W S load=3.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:32.676  1352.278 VXD S vm=EB920074 sb=0 mpu=2234 opl=0 joy=0 awe=0 virq=0 ack=0 midi=310 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:32.879  1352.478 SC55W S load=3.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:33.699  1353.304 VXD S vm=EB920074 sb=0 mpu=1754 opl=0 joy=0 awe=0 virq=0 ack=0 midi=469 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:33.902  1353.353 VXD I vm=EB920074 program ends (AH=4Ch)
+2026-11-20 19:51:33.902  1353.468 VXD I DOS box stop vm=EB920074
+2026-11-20 19:51:33.902  1353.487 SC55W S load=1.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:34.718  1354.334 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:34.921  1354.487 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:35.739  1355.356 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:35.941  1355.487 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:51:36.748  1356.402 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:36.951  1356.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:37.762  1357.457 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:37.964  1357.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:38.774  1358.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:38.975  1358.522 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:39.181  1358.687 SC55W I activity: MIDI 41575 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 0.2%
+2026-11-20 19:51:39.181  1358.687 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:51:39.181  1358.687 SC55W I AWE32 MIDI Synth: 69358 bytes, 9159 notes (0 from user banks), 30 voices at most, 10 stolen, 4745 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10574 
+2026-11-20 19:51:39.997  1359.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:39.998  1359.599 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:41.011  1360.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:41.011  1360.623 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:42.028  1361.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:42.028  1361.647 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:43.045  1362.487 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:43.045  1362.671 VXD S vm=EB920074 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:43.246  1362.938 SC55W I pad: PADMAP.TXT: none, PADUSER.TXT: 0 new
+2026-11-20 19:51:43.448  1362.967 SC55W I state: Connecting the Sound Blaster
+2026-11-20 19:51:43.651  1362.967 VXD I detach: traps removed
+2026-11-20 19:51:43.651  1362.968 VXD I attach: SB 220 IRQ 7 DMA 1/5 type 6, OPL on, MPU 330, game port 201: status 2800FF
+2026-11-20 19:51:43.651  1362.968 VXD I port traps: SB ok, OPL ok, MPU ok, IRQ ok, DMA ok, DMA16 ok, joystick ok, INT 15h ok, INT 21h ok
+2026-11-20 19:51:43.652  1362.968 VXD I AWE32: EMU8000 ports 620-623, A20-A23, E20-E23 trapped, sample RAM 28672 KB
+2026-11-20 19:51:43.652  1362.968 SC55W I AWE32: EMU8000 620, RAM 28672 KB, ROM: none found (ROM sounds silent)
+2026-11-20 19:51:43.652  1362.968 SC55W I attach 220:7:1:5 type 6 mpu 330 -> status 2800FF
+2026-11-20 19:51:43.652  1362.968 SC55W I state: Running
+2026-11-20 19:51:43.854  1363.489 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:44.060  1363.777 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:44.875  1364.489 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:45.077  1364.799 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:45.893  1365.488 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:46.098  1365.820 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:46.913  1366.490 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:47.318  1366.855 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:47.929  1367.490 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:48.339  1367.910 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:48.953  1368.490 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:49.364  1368.960 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:49.771  1369.490 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:50.172  1369.750 SC55W E audio: underruns 15, late events 0, resyncs 10, load 0%
+2026-11-20 19:51:50.376  1370.010 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:50.989  1370.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:51.392  1371.065 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:52.007  1371.505 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:52.414  1372.114 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:53.023  1372.504 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:53.632  1373.169 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:54.041  1373.504 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:54.650  1374.224 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:55.054  1374.504 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:55.665  1375.274 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:55.866  1375.504 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:56.680  1376.324 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:56.883  1376.504 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:57.694  1377.379 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:58.099  1377.504 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:58.713  1378.433 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:59.120  1378.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:51:59.934  1379.488 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:51:59.935  1379.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:00.947  1380.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:00.947  1380.553 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:01.965  1381.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:01.965  1381.608 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:02.984  1382.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:02.984  1382.663 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:04.009  1383.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:04.216  1383.723 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:04.830  1384.503 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:05.241  1384.792 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:05.854  1385.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:06.262  1385.847 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:07.079  1386.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:07.284  1386.902 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:08.097  1387.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:08.300  1387.952 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:09.114  1388.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:09.317  1389.007 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:09.926  1389.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:10.535  1390.057 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:10.938  1390.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:11.564  1391.112 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:11.970  1391.502 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:12.581  1392.161 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:12.985  1392.501 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:13.595  1393.216 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:14.207  1393.501 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:14.616  1394.271 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:14.820  1394.501 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:15.633  1395.326 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:16.037  1395.501 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:16.850  1396.381 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:17.052  1396.501 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:17.869  1397.431 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:18.075  1397.501 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:18.891  1398.485 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:18.891  1398.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:19.909  1399.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:19.910  1399.550 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:20.924  1400.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:20.924  1400.610 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:21.939  1401.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:22.145  1401.670 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:23.164  1402.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:23.165  1402.725 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:23.981  1403.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:24.185  1403.805 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:24.993  1404.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:25.195  1404.859 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:26.007  1405.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:26.208  1405.909 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:27.019  1406.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:27.426  1406.964 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:28.034  1407.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:28.440  1408.019 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:28.849  1408.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:29.463  1409.069 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:29.870  1409.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:30.486  1410.124 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:31.102  1410.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:31.511  1411.178 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:32.117  1411.498 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:32.521  1412.233 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:32.925  1412.498 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:33.741  1413.288 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:33.946  1413.498 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:34.760  1414.338 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:34.964  1414.498 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:35.777  1415.393 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:35.980  1415.498 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:36.388  1415.862 VXD I Windows MIDI device NUKED SB-EMU opened (1 open)
+2026-11-20 19:52:36.796  1416.456 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:37.000  1416.499 SC55W S load=1.8% midi=158 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:37.814  1417.484 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:38.016  1417.499 SC55W S load=1.5% midi=96 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:38.829  1418.499 SC55W S load=2.0% midi=324 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:38.829  1418.505 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=26/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:39.232  1418.700 SC55W I activity: MIDI 42201 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 2.0%
+2026-11-20 19:52:39.232  1418.700 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:52:39.232  1418.700 SC55W I AWE32 MIDI Synth: 69942 bytes, 9225 notes (0 from user banks), 30 voices at most, 10 stolen, 4784 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063 
+2026-11-20 19:52:39.845  1419.499 SC55W S load=2.1% midi=272 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:39.845  1419.581 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=24/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:40.862  1420.499 SC55W S load=2.4% midi=316 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:41.067  1420.605 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=51/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:41.881  1421.499 SC55W S load=2.2% midi=290 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:42.084  1421.629 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=57/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:43.096  1422.499 SC55W S load=2.2% midi=280 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:43.097  1422.653 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=32/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:44.112  1423.499 SC55W S load=2.1% midi=309 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:44.112  1423.677 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=36/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:45.133  1424.499 SC55W S load=2.3% midi=348 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:45.133  1424.700 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=39/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:46.153  1425.499 SC55W S load=2.1% midi=297 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:46.153  1425.724 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=18/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:47.167  1426.499 SC55W S load=2.2% midi=271 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:47.167  1426.748 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=9/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:47.978  1427.499 SC55W S load=2.4% midi=282 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:48.182  1427.788 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=6/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:48.992  1428.381 VXD I Windows MIDI device NUKED SB-EMU closed (0 open)
+2026-11-20 19:52:48.992  1428.382 VXD I Windows MIDI device NUKED SB-EMU opened (1 open)
+2026-11-20 19:52:48.993  1428.383 VXD I Windows MIDI device NUKED SB-EMU closed (0 open)
+2026-11-20 19:52:48.993  1428.499 SC55W S load=2.0% midi=760 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:49.194  1428.699 SC55W I activity: MIDI 45578 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 1.3%
+2026-11-20 19:52:49.194  1428.699 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:52:49.195  1428.699 SC55W I AWE32 MIDI Synth: 73361 bytes, 9671 notes (0 from user banks), 30 voices at most, 10 stolen, 5081 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063 
+2026-11-20 19:52:49.195  1428.834 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:50.013  1429.499 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:50.216  1429.909 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:51.027  1430.499 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:51.230  1430.931 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:52.045  1431.499 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:52.251  1431.953 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:53.067  1432.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:52:53.271  1432.975 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:53.676  1433.237 VXD I Windows MIDI device AWE32 MIDI Synth opened (2 open)
+2026-11-20 19:52:54.085  1433.499 SC55W S load=0.6% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:54.290  1434.005 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:54.903  1434.499 SC55W S load=1.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:55.309  1435.027 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:55.918  1435.499 SC55W S load=1.8% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:56.322  1436.049 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=42/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:56.932  1436.499 SC55W S load=1.9% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:57.338  1437.070 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=26/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:57.949  1437.499 SC55W S load=2.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:58.358  1438.092 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:58.973  1438.499 SC55W S load=2.0% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:52:59.178  1438.699 SC55W I activity: MIDI 45578 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 2.1%
+2026-11-20 19:52:59.178  1438.700 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0
+2026-11-20 19:52:59.179  1438.700 SC55W I AWE32 MIDI Synth: 74777 bytes, 9866 notes (0 from user banks), 30 voices at most, 10 stolen, 5207 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063 
+2026-11-20 19:52:59.583  1439.166 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:52:59.989  1439.499 SC55W S load=2.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:00.596  1440.192 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=2/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:01.002  1440.499 SC55W S load=2.0% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:01.610  1441.216 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=3/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:02.013  1441.499 SC55W S load=2.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:02.628  1442.242 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=9/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:02.830  1442.500 SC55W S load=2.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:03.645  1443.264 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=12/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:03.850  1443.500 SC55W S load=2.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:04.670  1444.285 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=24/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:04.872  1444.500 SC55W S load=2.4% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:05.689  1445.307 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=18/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:05.891  1445.500 SC55W S load=2.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:06.093  1445.815 VXD I Windows MIDI device AWE32 MIDI Synth closed (1 open)
+2026-11-20 19:53:06.094  1445.817 VXD I Windows MIDI device AWE32 MIDI Synth opened (2 open)
+2026-11-20 19:53:06.094  1445.818 VXD I Windows MIDI device AWE32 MIDI Synth closed (1 open)
+2026-11-20 19:53:06.705  1446.349 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:06.907  1446.499 SC55W S load=0.7% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:07.719  1447.371 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:07.922  1447.499 SC55W S load=0.5% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:08.739  1448.393 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:08.943  1448.499 SC55W S load=0.3% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=on
+2026-11-20 19:53:09.353  1448.699 SC55W I activity: MIDI 45578 bytes, FM 0 writes, digital 870843 frames, late 0, resyncs 10, MPU ignored 0, load 0.3%
+2026-11-20 19:53:09.353  1448.700 SC55W I AWE32: 10221 writes, 697 reads, RAM 0 words written, 0 read, ring lost 0, early 0, idle
+2026-11-20 19:53:09.354  1448.700 SC55W I AWE32 MIDI Synth: 77343 bytes, 10183 notes (0 from user banks), 30 voices at most, 10 stolen, 5417 without a sound, 10 while a DOS box had the EMU8000 (DOS took it 1 times, back 1); sample RAM 10063
+2026-11-20 19:53:09.763  1449.471 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:10.167  1449.500 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:10.781  1450.492 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:10.781  1450.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:11.797  1451.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:11.797  1451.518 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:12.810  1452.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:12.810  1452.542 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:13.825  1453.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:14.030  1453.566 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:14.841  1454.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:15.043  1454.590 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:16.058  1455.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:16.672  1455.614 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:16.887  1456.499 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:17.089  1456.638 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0
+2026-11-20 19:53:18.106  1457.498 SC55W S load=0.2% midi=0 fm=0 pcm=0 late=0 early=0 resync=0 synth=awake out=asleep
+2026-11-20 19:53:18.107  1457.661 VXD S vm=00000000 sb=0 mpu=0 opl=0 joy=0 awe=0 virq=0 ack=0 midi=0 dma=0 ev=0/32768 evlost=0 pcmlost=0 lost=0

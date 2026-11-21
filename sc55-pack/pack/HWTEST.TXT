@@ -1,6 +1,15 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.7)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.8)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.8 No blue screen (0E in SC55W) with Descent's menu music
+    (ASUS P5PE-VM, Windows 98, null-modem cable to the main PC running
+    DBGLOG.PY, SC55W Settings > Debug: level 2). 1) Descent in a DOS box,
+    AWE32 music (MidiDeviceID 0xa008, port 0x620): sit at the main menu
+    15 minutes, then Quit and close the DOS box. 2) The same with General
+    MIDI at 330 (-> AWE32 MIDI Synth). Expect: no blue screen, no burst of
+    noise, music and menu sounds play. Send the serial log: the "DMA ..."
+    lines and "bad=" on the F lines say which address kind your PC uses.
 
 [ ] beta.131-awe.7 AWE32 tone vs a real card (DOS, either PC, headphones;
     keep awe.6's SBEMU.EXE as SBEMU6.EXE for an A/B). 1) Duke 3D 1.3D,

@@ -44,6 +44,10 @@ extern int  __cdecl vxd_force_keys(const u8 *codes, u32 n);
 extern void __cdecl vxd_nest_begin(u8 *save);
 extern void __cdecl vxd_nest_int21(void);
 extern void __cdecl vxd_nest_end(u8 *save);
+extern u32  __cdecl vxd_vm_high(u32 vm);
+extern u32  __cdecl vxd_map_phys(u32 phys, u32 size);
+extern u32  __cdecl vxd_lin_lock(u32 page, u32 npages);
+extern u32  __cdecl vxd_lin_unlock(u32 page, u32 npages);
 
 #include "../common/nsbver.h"
 const char nsb_version_tag[] = NSB_VER_TAG("SC55W.VXD");
@@ -100,6 +104,7 @@ static void ev_put(u8 type, u8 a, u8 b, u8 c)
 }
 
 #include "mpu98.c"            /* MPU-401 front end (host test: test/mputest.c) */
+#include "dma98.c"            /* awe.7: DMA buffer read only through a proven address (test/dmatest.c) */
 
 /* ====================================================================== */
 /* OPL: writes go to the helper; timers are emulated here                 */
@@ -516,6 +521,20 @@ static void xf_stop(void)
     if (sh) sh->dma_active = 0;
 }
 
+/* awe.7: k bytes the timer may not read: keep the stream moving (IRQs, position) with silence */
+static void silence(u32 k)
+{
+    c_dmabad += k;
+    if (xf.bits == 8 || xf.bits == 16) {
+        u32 fb = (xf.bits == 16 ? 2u : 1u) * (xf.chans ? xf.chans : 1u), t = xf.carryn + k;
+        xf.carryn = (int)(t % fb);
+        for (t /= fb; t; t--) pcm_frame(0, 0);
+    } else {
+        u32 spb = xf.bits == 4 ? 2 : xf.bits == 3 ? 3 : 4;
+        for (k *= spb; k; k--) mono(0);
+    }
+}
+
 /* move up to n bytes through the DOS program's DMA buffer; returns bytes moved */
 static u32 xf_pull(u32 n)
 {
@@ -526,7 +545,7 @@ static u32 xf_pull(u32 n)
         return 0;
     }
     while (got < n) {
-        u32 k;
+        u32 k, rd;
         if (dmach[idx].mode & DMA_MASKED) { if (xf.done == 0 && got == 0) trace(9, dmach[idx].mode, dmach[idx].count); break; }
         if (dmach[idx].count == 0) {
             if (!(dmach[idx].mode & DMA_AUTOINIT) || !dmach[idx].base_count) break;
@@ -536,8 +555,10 @@ static u32 xf_pull(u32 n)
         if (xf.done == 0 && got == 0) trace(4, dmach[idx].addr, (dmach[idx].count << 8) | (dmach[idx].mode & 0xFF));
         k = n - got;
         if (k > dmach[idx].count) k = dmach[idx].count;
-        if (xf.record) mset((void *)dmach[idx].addr, xf.bits == 16 ? 0 : 0x80, k);
-        else convert((const u8 *)dmach[idx].addr, k);
+        rd = dma_at(idx, dmach[idx].addr, k);       /* awe.7: never a raw VDMAD address */
+        if (!rd) silence(k);
+        else if (xf.record) mset((void *)rd, xf.bits == 16 ? 0 : 0x80, k);
+        else convert((const u8 *)rd, k);
         dmach[idx].addr += k; dmach[idx].count -= k; got += k;
         if (dmach[idx].count == 0 && !(dmach[idx].mode & DMA_AUTOINIT)) dmach[idx].mode |= DMA_MASKED;
         if (sh) sh->dma_bytes += k;
@@ -605,9 +626,15 @@ void __cdecl sc_dma_changed(int idx, u32 vm, u32 why)
     dmach[idx].addr = addr; dmach[idx].count = count; dmach[idx].mode = mode;
     dmach[idx].valid = 1;
     if (!(mode & DMA_MASKED)) {
+        u32 k;
         dmach[idx].base_addr = addr;
         dmach[idx].base_count = count;
         if (sh) { sh->debug[8] = addr; sh->debug[9] = count; sh->debug[10] = mode; }
+        k = dma_prove(idx, vm, addr, count);          /* awe.7: lock or alias it here, in VM context */
+        if (dbg_level && k != DMA_NEW + DMA_LOCKED && (k & DMA_NEW))
+            dbg('I', (k & 0xFF) == DMA_PHYS ? "DMA %u: physical address %08X (%u bytes, VDS lock), read through %08X"
+                                            : "DMA %u: address %08X (%u bytes) not readable, silence (%08X)",
+                idx ? (u32)cfg.dma16 : (u32)cfg.dma8, addr, count, dma_at(idx, addr, 1));
     }
 }
 
@@ -661,7 +688,7 @@ static void dsp_dma_id(u8 v)
     dsp.dmaid_x = (u8)((dsp.dmaid_x >> 2) | (dsp.dmaid_x << 6));
     if (!(trapped & ST_OK_DMA8) || !dmach[0].valid) return;
     if ((dmach[0].mode & DMA_MASKED) || !dmach[0].count) return;
-    *(volatile u8 *)dmach[0].addr = dsp.dmaid_a;
+    { u32 rd = dma_at(0, dmach[0].addr, 1); if (rd) *(volatile u8 *)rd = dsp.dmaid_a; else c_dmabad++; }
     dmach[0].addr++; dmach[0].count--;
     if (!dmach[0].count && !(dmach[0].mode & DMA_AUTOINIT)) dmach[0].mode |= DMA_MASKED;
     dma_push(0);
@@ -990,13 +1017,20 @@ void __cdecl sc_vm_gone(u32 vm)
     int i = vm_slot(vm, 0);
     if (i >= 0) vms[i].vm = 0;
     if (aw && aw->vm == vm) { aw->vm = 0; aw->vm_gone++; }   /* the AWE32 MIDI Synth may take the EMU8000 back */
+    if (vm && vm == owner_vm) {     /* awe.7: its DMA buffer goes with it - the timer read it after it was freed (0E in convert) */
+        if (xf.active) xf_stop();
+        dmach[0].valid = dmach[1].valid = 0;
+        dma_unprove(0); dma_unprove(1);
+        irq_line = 0; owner_vm = 0;
+        if (dbg_level) dbg('I', "DOS box gone while it owned the Sound Blaster: DMA stopped");
+    }
 }
 
-/* Create_VM (7) / Destroy_VM (0Ch) */
+/* Create_VM (7) / VM_Not_Executeable (0Bh) / Destroy_VM (0Ch) */
 void __cdecl sc_vm_msg(u32 vm, u32 msg)
 {
-    if (msg == 0x0C) sc_vm_gone(vm);
-    if (dbg_level) dbg('I', msg == 0x0C ? "DOS box stop vm=%08X" : "DOS box start vm=%08X", vm);
+    if (msg == 0x0B || msg == 0x0C) sc_vm_gone(vm);   /* VM_Not_Executeable (0Bh) comes first: stop reading its memory then */
+    if (dbg_level && msg != 0x0B) dbg('I', msg == 0x0C ? "DOS box stop vm=%08X" : "DOS box start vm=%08X", vm);
 }
 
 /* Sys_Dynamic_Device_Init: the debug link's clock starts here */
@@ -1413,6 +1447,7 @@ static void detach(void)
     if (trapped & ST_OK_IRQ) vxd_unvirt_irq();
     if (trapped & ST_OK_DMA8) vxd_unvirt_dma(0);
     if (trapped & ST_OK_DMA16) vxd_unvirt_dma(1);
+    dma_unprove(0); dma_unprove(1);
     if (trapped & ST_OK_JOY) vxd_remove_io(joy_port);
     if (trapped & ST_OK_JBIOS) vxd_hook_int15(0);
     if (hooked21) { vxd_hook_int21(0); hooked21 = 0; }

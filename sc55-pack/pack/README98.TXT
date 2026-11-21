@@ -493,6 +493,15 @@ nothing when it is silent.
                  gets "active sensing" after ~10 ms. A debug link line
                  "MPU-401: ... reads the status 2048 times in a row" shows
                  it happening.
+  Blue screen "exception 0E ... VxD SC55W(01) + 0000178A" while a DOS
+                 game plays sound (Descent at its main menu), or a loud
+                 burst of noise: fixed in beta.131-awe.8. A game whose
+                 DOS extender locks its sound buffer itself (DOS4GW /
+                 HMI SOS) hands Windows a physical address; SC55W read it
+                 as a normal one. It now locks or maps the buffer first
+                 and plays silence if it cannot - never a wrong address.
+                 Debug link level 2: "DMA n: physical address ..." lines
+                 and bad= on the F lines show it.
   Keys typed by themselves in a DOS game with a pad (stick drift, a
                  trigger resting half way): fixed in beta.130-w98.8 (as DOS
                  beta.125): a stick types its key past half the travel

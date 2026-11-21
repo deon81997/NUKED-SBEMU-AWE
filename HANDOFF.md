@@ -1,3 +1,35 @@
+## beta.131-awe.8 (2026-11-21, VxD 0E session): BLUE SCREEN 0E in SC55W.VXD at Descent's menu (user ASUS) - VxD reads DMA only via a proven address
+- User (P5PE-VM, awe.6 = awe.4's VxD): Descent in a Win98 DOS box at the main menu with music: "exception 0E at
+  0028:E994AB1A in VxD SC55W(01) + 0000178A, called from + 2B0" (photo testrig/w98dbg/user-asus-descent-0e.jpg) and
+  loud noise bursts. +178A = convert() reading the SB DMA buffer (dmach[].addr) from Timer_CB (+2B0).
+  User logs 11/20 23:33 / 23:45 (level 2, P5PE-VM): "F ... dma1=16D60/0" then 17D60 after 3.9 s (the F line printed
+  only the low 20 bits, so address kind unknown; now %08X + bad=). No crash in those two logs.
+- Fix (win98/vxd/dma98.c, #included by sbcore.c; host test win98/test/dmatest.sh): VDMAD_Get_Virt_State ESI = high
+  linear only while VDMAD translation is on; a VDS-locked buffer (DOS4GW/HMI) gives a PHYSICAL address, and Timer_CB
+  runs in any VM, so reading it = another VM's memory (noise) or not present (0E). Also V86 pages may be not present at
+  timer time. sc_dma_changed (VM context) proves [addr, addr+count) when the channel is armed unmasked: inside the VM's
+  CB_High_Linear 0..10FFFFh window -> _LinPageLock (63h) / unlock (64h) on change, box gone (sc_vm_gone) and detach;
+  below 16 MB -> one _MapPhysToLinear (6Ch) alias of 0..16 MB, made once, never freed; else unproven. xf_pull /
+  dsp_dma_id read only dma_at() (arithmetic, async-safe); unproven bytes = silence(k) (IRQs/position keep going,
+  c_dmabad, "bad=" on F lines, I line "DMA n: physical address ..." / "... not readable, silence"). Service ordinals
+  from the Win3.1/95 VMM table order (match 53/55/82/84/86/94/96/97 already used); _LinPageLock proven live in QEMU.
+  Also on this release (from the WIP): sc_vm_gone stops the transfer when the owning DOS box ends (VM_Not_Executeable).
+- Tests: dmatest/dbgtest/mputest PASS. QEMU acpi 512 MB hmi98.sh desc MENU=1 PLAY=600 DBGL=2 (new rig switches):
+  AWE32 620 (MIDIDEV=0xa008): 10 min at the menu, quit, box closed, 1921 F lines bad=0, address E541BA60 (= high
+  linear: QEMU keeps translation on, so the physical path is NOT exercised here), AWE voices mean 7.0 max 25;
+  MPU 330 -> AWE32 MIDI Synth: same, 25191 notes, 1706 F bad=0. vmquit98.sh old vs new: both Windows fine after 3
+  boxes closed mid-DMA (QEMU does not reproduce the box-closing crash either). 86Box r98.sh Duke 3D AWE32 (DUKEONLY,
+  300 s, /DBG:COM1:1): old voices mean 8.2 max 17, new 8.5 max 18; REC.WAV -25.9 vs -25.8 dBFS. Not done: 86Box
+  Descent menu run, cpu86.sh speed run (change = 3 compares per timer chunk + a lock per program).
+- Release: awe.7 zip (AWE tune session, released mid-chat) with SC55W.VXD (VERSION awe.8; tested binary = awe.7-stamped,
+  1 byte differs; other Win98 files = awe.7 zip's),
+  README98/HWTEST, SOURCE.ZIP + dma98.c/dmatest. Open: the user's 15-min menu run + serial log on the P5PE-VM
+  (HWTEST top item) to see which address kind the real PC uses.
+- Rig lessons: hmi98.sh logger retry 600; kill orphans with `pkill -f w98par/run.sh` (a killed hmi98 leaves run.sh
+  t/install sending keys into the next VM); setsid -f, not setsid &.
+- Test downloads: OW snapshot, JWasm, gcc-multilib, qemu mtools socat xdotool arj zstd xvfb openbox python3-serial
+  librtmidi6 imagemagick nasm; store-w98qi-qemu, store-86box-roms, store-86rig, store-w98qi-86box; testgames Descent + Duke.
+
 ## beta.131-awe.7 (2026-11-21, AWE tune session): AWE32 output tone matched to real-card recordings (emu8k.c)
 - References: priavte store-kitr-awe (KITR Part 20 AWE32 + Part 15 AWE64 Gold, AAC: ignore > 12.8 kHz). Real-driver
   captures (86Box P2B-LS, AWEREC SBEMU, testrig/awe/rec.sh): Duke 1.3D title GRABBAG + attract E1L1 (90 s), Descent level 1

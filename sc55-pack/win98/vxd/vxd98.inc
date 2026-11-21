@@ -68,6 +68,9 @@ endm
 @_HeapFree              equ 0051h
 @_PageAllocate          equ 0053h
 @_PageFree              equ 0055h
+@_LinPageLock           equ 0063h
+@_LinPageUnLock         equ 0064h
+@_MapPhysToLinear       equ 006Ch
 @Simulate_IO            equ 0094h
 @Install_IO_Handler     equ 0096h
 @Enable_Global_Trapping equ 0097h

@@ -26,6 +26,7 @@ VKD_DEVICE_ID               equ 000Dh
 @VKD_Get_Kbd_Owner          equ 0008h
 Create_VM_Msg               equ 0007h
 Destroy_VM_Msg              equ 000Ch
+VM_Not_Executeable_Msg      equ 000Bh
 @VTD_Get_Real_Time          equ 0007h
 @VTD_Begin_Min_Int_Period   equ 0003h
 @VTD_End_Min_Int_Period     equ 0004h
@@ -52,6 +53,7 @@ public _vxd_dma_get, _vxd_dma_set, _vxd_timer_arm
 public _vxd_install_io, _vxd_remove_io, _vxd_virt_irq, _vxd_unvirt_irq
 public _vxd_virt_dma, _vxd_unvirt_dma, _vxd_map_block, _vxd_unmap_block
 public _vxd_min_period
+public _vxd_vm_high, _vxd_map_phys, _vxd_lin_lock, _vxd_lin_unlock
 public _vxd_time_ms, _vxd_dbg_arm, _vxd_vcomm_open, _vxd_vcomm_close, _vxd_hang, _vxd_fault_test, _vxd_heap_alloc
 public _vxd_sys_vm, _vxd_port_in, _vxd_port_out, _vxd_hook_int15
 public _vxd_hook_int21, _vxd_kbd_owner, _vxd_force_keys
@@ -89,6 +91,8 @@ SC55W_Control proc near
         cmp     eax, Create_VM_Msg
         je      ctl_vm
         cmp     eax, Destroy_VM_Msg
+        je      ctl_vm
+        cmp     eax, VM_Not_Executeable_Msg
         je      ctl_vm
         cmp     eax, Sys_Dynamic_Device_Init
         je      ctl_init
@@ -551,6 +555,51 @@ ds_done:
         pop     ebx
         ret
 _vxd_dma_set endp
+
+; awe.7 (dma98.c): u32 vxd_vm_high(u32 vm) = CB_High_Linear of the VM (0 = current VM)
+_vxd_vm_high proc near
+        push    ebx
+        get_vm  [esp+8]
+        mov     eax, [ebx+4]            ; cb_s.CB_High_Linear
+        pop     ebx
+        ret
+_vxd_vm_high endp
+
+; u32 vxd_map_phys(u32 phys, u32 size): linear alias of a physical range (never freed), 0 = failed
+_vxd_map_phys proc near
+        push    0
+        push    dword ptr [esp+12]      ; size
+        push    dword ptr [esp+12]      ; phys
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @_MapPhysToLinear
+        add     esp, 12
+        cmp     eax, 0FFFFFFFFh
+        jne     mp_done
+        xor     eax, eax
+mp_done:
+        ret
+_vxd_map_phys endp
+
+; u32 vxd_lin_lock(u32 page, u32 npages) / vxd_lin_unlock: nonzero = done
+_vxd_lin_lock proc near
+        push    0
+        push    dword ptr [esp+12]      ; npages
+        push    dword ptr [esp+12]      ; page
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @_LinPageLock
+        add     esp, 12
+        ret
+_vxd_lin_lock endp
+
+_vxd_lin_unlock proc near
+        push    0
+        push    dword ptr [esp+12]
+        push    dword ptr [esp+12]
+        int 20h
+        dd (VMM_DEVICE_ID shl 16) + @_LinPageUnLock
+        add     esp, 12
+        ret
+_vxd_lin_unlock endp
 
 ; void vxd_timer_arm(u32 ms) - one outstanding global time-out at most
 _vxd_timer_arm proc near

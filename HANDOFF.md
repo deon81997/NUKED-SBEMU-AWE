@@ -1,3 +1,34 @@
+## beta.131-awe.7 (2026-11-21, AWE tune session): AWE32 output tone matched to real-card recordings (emu8k.c)
+- References: priavte store-kitr-awe (KITR Part 20 AWE32 + Part 15 AWE64 Gold, AAC: ignore > 12.8 kHz). Real-driver
+  captures (86Box P2B-LS, AWEREC SBEMU, testrig/awe/rec.sh): Duke 1.3D title GRABBAG + attract E1L1 (90 s), Descent level 1
+  (`DESCLEVEL=1 rec.sh descent EXE 110`: pilot "A", New Game; recdrv presses one Esc too many -> "Abort game?" box, music
+  goes on; drop the last Esc). Replayed on the host: harness -s REC [-r RATE] [-tone]. Clips found by chroma
+  (testrig/awe/kitrcmp.py aligns + 1/3-oct LTAS, width, rests, decay, attack; stwidth.py coherence/ILD; awetab.py one
+  table row): Duke p20 1179.5-1208 s of p20.wav (= video 1517.5-1546; p20.wav starts at video 338 s) <-> ours 0-40 s,
+  p15 689-717 s; Descent p20.wav 1088.5-1116.5 <-> ours 40-136, p15 1952-1980. Doom 2: no shareware here - not done.
+- Proven (4 of 4: 2 cards x 2 drivers, + our MIDI path GRABBAG): ours 2-3 dB low at 2.5-6.3 kHz -> output peaking EQ
+  +2.75 dB 3.6 kHz Q 1.2 (RBJ, Q12 32-bit, b1 = a1 trick, rounds toward 0: silence -> 0), off < 20 kHz output.
+  /K 22050 took every 2nd 44.1 kHz sample: Descent's 11-22 kHz is only 4 dB under 5.5-11 kHz -> folded grit; now a
+  39-tap half-band (Kaiser 7, flat to 9 kHz, -60 dB > 13.5 kHz). emu8k_set_tone(0) = old output (no switch exposed).
+  Mean dev 2.5-5 kHz (Duke p20/p15, Descent p20/p15): 22050 -1.4/-2.1/-3.2/-2.7 -> +0.1/-0.6/-1.6/-1.0 dB;
+  44100 -1.6/-2.2/-2.7/-2.1 -> 0.0/-0.5/-0.8/-0.2; Descent alias (8-11k vs 1-4k, 22050 vs 44100) +2.6 -> -1.1 dB.
+- Not proven / not changed: Duke wider on both cards (L/R corr 0.73-0.74 vs ours 0.92-0.94, mid-band ILD spread 7.5 vs
+  1.2 dB) but Descent's width matches (0.65 vs 0.62) -> likely Duke version (KITR probably Atomic) not the engine; reverb
+  wet level (Duke p20 wants +3 dB, p15 none, Descent indifferent); 8-10 kHz (Duke +1.6..+5.6, Descent ~0); envelopes /
+  attack equal (10-25 ms both). Models chapter: different material per card; where the same (CT3600~CT3630 chroma 0.87,
+  CT3930~CT3990 0.94) the 1/3-oct bands agree within 0.8 dB -> no card-model EQ.
+- Speed 86Box P2B-LS PII-450 duke.sh 60 s, alternated old/new x2-3: SBDIAG 10% -> 11%, AWE32 9% -> 10%, longest block
+  3.10-3.13 -> 3.24 ms; callgrind (gcc -m32 -march=pentium2) +6.9% of engine instructions (~0.65% CPU). Music cmp 0.1 dB,
+  env corr 0.996.
+- Tests: run_tests.sh PASS (harness keeps the EQ off: -tone turns it on), awemidi_tests.sh PASS (first int64 EQ failed
+  the "master volume 0" check: truncation limit cycle - fixed), ASan -tone at 11025/22050/32000/44100/48000 clean.
+  harness -s now honours -r (it wrote 44100 frames at any -r). kitrcmp resamples with resample_poly (np.interp drooped
+  22050 renders 3.5 dB at 8 kHz - wrong conclusions for an hour).
+- Release: mkrel.py from the awe.6 zip: DOS make clean; SC55WM/W2/W.EXE rebuilt (build98.sh minus drv/vxd/joy, imports
+  = awe.6's); VxD/DRV/JOY = awe.6's (copied into win98/out). Not run in the Win98 VM.
+- Next: Win98 VM check of the AWE32 MIDI Synth (rate it renders at: engine.cpp awe_render); Duke Atomic capture to settle
+  the width question; Doom 2 MAP01/09 if the user has DOOM2.WAD.
+
 ## beta.131-awe.6 (2026-11-20): AWE32 MIDI synth pan was ~17 dB left at centre (vs a real AWE32 recording)
 - Reference: KITR (Karl's Retro Channel) Part 20 AWE32 audio, priavte branch store-kitr-awe (README = chapters + clip
   times; Duke 3D AWE32 1517-1546 = GRABBAG.MID from its start, clip 0.5 s = song 1.3 s). Host: awemid -r AWE32.RAW -b the

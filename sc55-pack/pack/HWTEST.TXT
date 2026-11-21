@@ -1,6 +1,17 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.6)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.7)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.131-awe.7 AWE32 tone vs a real card (DOS, either PC, headphones;
+    keep awe.6's SBEMU.EXE as SBEMU6.EXE for an A/B). 1) Duke 3D 1.3D,
+    AWE32 music, SBEMU /AWE:620 at the default /K:22050: title song, then
+    E1L1 - with awe.7 the hi-hats and cymbals are clean (awe.6: a grainy,
+    hissy edge) and the leads/strings a touch more present. 2) The same in
+    Descent level 1 (its AWE32 driver) - cymbals were the grittiest there.
+    3) awe.7 at /K:44100 vs /K:22050: the same character, 44100 only adds
+    the top octave (awe.6 changed character between the two). 4) SBDIAG
+    after Duke: "AWE32 needs" about 1 point more than awe.6 (D810: say the
+    number). Say if anything sounds harsher or duller than a real AWE32.
 
 [ ] beta.131-awe.6 AWE32 MIDI Synth stereo: centre is centre
     (either PC, Windows 98, headphones). 1) Media Player on "AWE32 MIDI

@@ -597,9 +597,14 @@ CONTENTS
   games built on Creative's AWE32 kit rely on that: before, they found only
   1-2 free voices and cut their own notes off (thin music, wrong-sounding
   instruments, no reverb). Reverb and
-  chorus: /AWEFX (on by default; 0 = dry). Differences to a real card
-  (open work): the filter is a little brighter. AWE settings (except
-  /AWEFX) only change when SBEMU is loaded again.
+  chorus: /AWEFX (on by default; 0 = dry). Tone (beta.131-awe.7): set
+  against recordings of a real AWE32 and AWE64 Gold (Duke 3D, Descent):
+  +2.75 dB around 3.6 kHz like the cards, and at /K:22050 the top octave
+  is filtered before halving the rate (no more grit folded down from
+  11-22 kHz). Card models (CT2760 ... CT4330) sound the same within 1 dB,
+  so there is no per-model setting. Open: Duke 3D sounds wider on the
+  cards (maybe their Duke version). AWE settings (except /AWEFX) only
+  change when SBEMU is loaded again.
 
   The MPU-401 on the AWE32 itself (/AWEMPU:GM, GS or MT32, beta.130-awe.6):
   like AWEUTIL /EM:GM on a real AWE32, General MIDI sent to port 330 plays

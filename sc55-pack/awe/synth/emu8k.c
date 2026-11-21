@@ -83,7 +83,7 @@ typedef struct {
     int16_t  rs_prev[2];
     /* output stage (beta.131-awe.7): 2:1 half-band for 22050 Hz, real-card presence EQ */
     int      o_rate, eq_k, tone_off;
-    int16_t  hb[2][2 * 39];
+    int16_t  hb[2 * 2 * 39];    /* stereo frames, each written twice (a window never wraps) */
     int      hb_pos;
     int32_t  eq_x[2][2], eq_y[2][2];
     int      ok;
@@ -106,7 +106,8 @@ static int16_t  t_cubic[1024][4];        /* Catmull-Rom, Q14 */
 /* Output presence EQ, measured (beta.131-awe.7, testrig/awe/kitrcmp.py): next to KITR's real AWE32 (Part 20) and
  * AWE64 Gold (Part 15) recordings of the same Duke 3D and Descent music through the games' own drivers, the engine
  * was 2-3 dB low at 2.5-6.3 kHz on all four (1/3-octave long-term spectra; the bands below and the card models agree
- * within ~1 dB). Fit: peaking +2.75 dB at 3.6 kHz, Q 1.2, RBJ biquad; Q28 b0 b1 b2 -a1 -a2 per output rate. */
+ * within ~1 dB). Fit: peaking +2.75 dB at 3.6 kHz, Q 1.2, RBJ biquad; Q12 b0 b1 b2 -a1 -a2 per output rate
+ * (32-bit: |samples| < 65536 x the coefficient sum 6.1 x 4096 < 2^31). Off below 20 kHz output (Nyquist < 10k). */
 #define EQ_RATES 7
 static const int eq_rate[EQ_RATES] = { 8000, 11025, 16000, 22050, 32000, 44100, 48000 };
 static int32_t t_eq[EQ_RATES][5];
@@ -178,8 +179,8 @@ static void build_tables(void)
     }
     for (q = 0; q < EQ_RATES; q++) {
         double A = pow(10.0, 2.75 / 40.0), w0 = 2 * 3.14159265358979 * 3600.0 / eq_rate[q], al = sin(w0) / (2 * 1.2);
-        double a0 = 1 + al / A, k = 268435456.0 / a0;
-        if (3600.0 * 2 > eq_rate[q] * 0.9) { t_eq[q][0] = 268435456; t_eq[q][1] = t_eq[q][2] = t_eq[q][3] = t_eq[q][4] = 0; continue; }
+        double a0 = 1 + al / A, k = 4096.0 / a0;
+        if (eq_rate[q] < 20000) { t_eq[q][0] = 4096; t_eq[q][1] = t_eq[q][2] = t_eq[q][3] = t_eq[q][4] = 0; continue; }
         t_eq[q][0] = (int32_t) floor((1 + al * A) * k + 0.5);
         t_eq[q][1] = (int32_t) floor(-2 * cos(w0) * k + 0.5);
         t_eq[q][2] = (int32_t) floor((1 - al * A) * k + 0.5);
@@ -894,22 +895,21 @@ static void render_block(int16_t *dst, int n)
     E.wc = (uint16_t) (E.wc + n);
 }
 
-/* Output stage. eq_run: the presence EQ in place (int64 products: 16-bit samples x Q28; the feedback state keeps
- * 8 fraction bits, so silence stays 0 - no limit cycle). */
+/* Output stage. eq_run: the presence EQ in place, 32-bit (Q12); rounding toward zero, so silence decays to 0. */
 static void eq_run(int16_t *p, int n)
 {
     const int32_t *k = t_eq[E.eq_k];
+    const int32_t k0 = k[0], k2 = k[2], k3 = k[3], k4 = k[4];   /* peaking: b1 = a1, so k1 x1 + k3 y1 = k3 (y1 - x1) */
     int ch, i;
-    if (E.tone_off) return;
+    if (E.tone_off || !k3) return;
     for (ch = 0; ch < 2; ch++) {
         int32_t x1 = E.eq_x[ch][0], x2 = E.eq_x[ch][1], y1 = E.eq_y[ch][0], y2 = E.eq_y[ch][1];
         int16_t *s = p + ch;
         for (i = 0; i < n; i++, s += 2) {
-            int32_t x = *s, o, y = (int32_t) ((((int64_t) k[0] * x + (int64_t) k[1] * x1 + (int64_t) k[2] * x2) * 256 +
-                                               (int64_t) k[3] * y1 + (int64_t) k[4] * y2) >> 28);   /* Q8 */
+            int32_t x = *s, a = k0 * x + k2 * x2 + k3 * (y1 - x1) + k4 * y2, y;
+            y = (a + ((a >> 31) & 4095)) >> 12;   /* |y| < 2 x 32768 (impulse response sum < 2): a fits */
             x2 = x1; x1 = x; y2 = y1; y1 = y;
-            o = (y + 128) >> 8;
-            *s = (int16_t) (o > 32767 ? 32767 : o < -32768 ? -32768 : o);
+            *s = (int16_t) (y > 32767 ? 32767 : y < -32768 ? -32768 : y);
         }
         E.eq_x[ch][0] = x1; E.eq_x[ch][1] = x2; E.eq_y[ch][0] = y1; E.eq_y[ch][1] = y2;
     }
@@ -918,21 +918,23 @@ static void eq_run(int16_t *p, int n)
 /* 2:1 half-band low-pass (39 taps, Kaiser 7: flat to 9 kHz within 0.1 dB, -60 dB above 13.5 kHz) for 22050 Hz
  * output: a real EMU8000 runs at 44.1 kHz, and taking every 2nd sample folded everything above 11 kHz back
  * (Descent: the 11-22 kHz band is only 4 dB under 5.5-11 kHz -> hiss/grit at /K 22050). Q15, centre 0.5. */
-static const int16_t hb_c[10] = { 10337, -3206, 1661, -946, 537, -290, 142, -60, 20, -3 };
 static void hb_push(const int16_t *f)
 {
-    E.hb[0][E.hb_pos] = E.hb[0][E.hb_pos + 39] = f[0];
-    E.hb[1][E.hb_pos] = E.hb[1][E.hb_pos + 39] = f[1];
+    int16_t *h = E.hb + 2 * E.hb_pos;
+    h[0] = h[78] = f[0];
+    h[1] = h[79] = f[1];
     if (++E.hb_pos >= 39) E.hb_pos = 0;
 }
-static int16_t hb_out(int ch)
+static void hb_out(int16_t *o)
 {
-    const int16_t *w = E.hb[ch] + E.hb_pos + 19;       /* oldest .. newest = w[-19] .. w[19] */
-    int32_t y = 16384 * (int32_t) w[0] + 16384;
-    int j;
-    for (j = 0; j < 10; j++) y += hb_c[j] * ((int32_t) w[-(2 * j + 1)] + w[2 * j + 1]);
-    y >>= 15;
-    return (int16_t) (y > 32767 ? 32767 : y < -32768 ? -32768 : y);
+    const int16_t *w = E.hb + 2 * (E.hb_pos + 19);  /* oldest .. newest = w[-38] .. w[38], centre w[0] (L), w[1] (R) */
+    int32_t l = 16384 * (int32_t) w[0] + 16384, r = 16384 * (int32_t) w[1] + 16384;
+#define HB(j, c) l += (c) * ((int32_t) w[-2 * (j)] + w[2 * (j)]); r += (c) * ((int32_t) w[1 - 2 * (j)] + w[1 + 2 * (j)]);
+    HB(1, 10337) HB(3, -3206) HB(5, 1661) HB(7, -946) HB(9, 537) HB(11, -290) HB(13, 142) HB(15, -60) HB(17, 20) HB(19, -3)
+#undef HB
+    l >>= 15; r >>= 15;
+    o[0] = (int16_t) (l > 32767 ? 32767 : l < -32768 ? -32768 : l);
+    o[1] = (int16_t) (r > 32767 ? 32767 : r < -32768 ? -32768 : r);
 }
 static int16_t *ob_frame(void)
 {
@@ -958,8 +960,8 @@ void emu8k_render(int16_t *out, int frames, int rate)
         while (frames-- > 0) {
             hb_push(ob_frame());
             hb_push(ob_frame());
-            *out++ = hb_out(0);
-            *out++ = hb_out(1);
+            hb_out(out);
+            out += 2;
         }
         eq_run(out0, frames0);
         return;

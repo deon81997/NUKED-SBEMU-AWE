@@ -29,6 +29,7 @@
 #include "ac97_def.h"
 #include "emu10k1.h"
 #include "sc_sbliv.h"
+#include "sc_emujack.h"
 
 #define VOICE_FLAGS_MASTER      0x01
 #define VOICE_FLAGS_STEREO    0x02
@@ -442,13 +443,14 @@ static void snd_emu_spdif_jack(struct emu10k1_card *card)
   outl(card->iobase + 0x20, 0x7a0000);
   outl(card->iobase + 0x24, dig ? 0xFF000000 : 0);
  }else{
-  const int sw = dig ^ snd_emu_jack_inverted(card);
-  uint32_t io = inl(card->iobase + A_IOCFG), hc = inl(card->iobase + HCFG);
+  unsigned long io = inl(card->iobase + A_IOCFG), hc = inl(card->iobase + HCFG);
   /* beta.131: only the jack bit (04h). A_IOCFG_GPOUT0 (44h, as ALSA's "Analog/Digital Output Jack") also holds the
    * analog mute bit 40h (DISABLE_ANALOG, = 'enable' on the Audigy 2 family), so /SPDIF:1 muted the front/rear
    * analog outputs: no analog + S/PDIF at once. 40h stays as snd_emu10k1_hw_init set it (analog on). */
-  io = sw ? (io | A_IOCFG_ENABLE_DIGITAL) : (io & ~A_IOCFG_ENABLE_DIGITAL);
-  hc = sw ? (hc | HCFG_GPOUT0) : (hc & ~HCFG_GPOUT0);
+  /* beta.132: the bits come from sc_emujack.h (host-tested); the Audigy 2 ZS switches the whole 44h field (ALSA) */
+  const int inv_card = (card->chips&EMU_CHIPS_0151) && card->serial != 0x20071102;   /* = snd_emu_jack_inverted without /SPDIFINV */
+  (void)dig;
+  emujack_bits(card->serial, inv_card, SBLIVE_SpdifInv, SBLIVE_SpdifMode, &io, &hc);
   outl(card->iobase + A_IOCFG, io);
   outl(card->iobase + HCFG, hc);
  }
@@ -477,7 +479,7 @@ int SBLIVE_SpdifSet(int mode, char *t, int n)
    SBLIVE_SpdifMode, SBLIVE_ModeName[SBLIVE_SpdifMode % 3],
    card->card_capabilities->longname ? card->card_capabilities->longname : "Audigy", (unsigned)card->serial, card->chiprev,
    (card->chips&EMU_CHIPS_0108) ? (SBLIVE_SpdifMode ? "own-spdif-on" : "own-spdif-off") : (SBLIVE_SpdifMode ? "digital" : "analog"),
-   (card->chips&EMU_CHIPS_0108) ? "" : snd_emu_jack_inverted(card) ? "(inv)" : "",
+   (card->chips&EMU_CHIPS_0108) ? "" : snd_emu_jack_inverted(card) ? (emujack_is_zs(card->serial) ? "(inv,zs)" : "(inv)") : (emujack_is_zs(card->serial) ? "(zs)" : ""),
    SBLIVE_SpdifHz, snd_emu_analog_on(card) ? "on" : "MUTED", (unsigned)(inl(card->iobase + A_IOCFG) & 0xFFFF), (unsigned)inl(card->iobase + HCFG),
    (unsigned)emu10k1_readptr(card, SPCS0, 0));
 }
@@ -1275,6 +1277,7 @@ static emu_card_version_s emucard_versions[]={
 
  {"Audigy 4 PRO [SB0380]"      ,0x0004,0,0x20071102,EMU_CHIPS_10K2|EMU_CHIPS_0102|EMU_CHIPS_0151,8},
  {"Audigy 2 [SB0350b]"         ,0x0004,0,0x20061102,EMU_CHIPS_10K2|EMU_CHIPS_0102|EMU_CHIPS_0151,8},
+ {"Audigy 2 ZS [SB0350a]"      ,0x0004,0,0x20051102,EMU_CHIPS_10K2|EMU_CHIPS_0102|EMU_CHIPS_0151,8}, // beta.132, as Linux
  {"Audigy 2 ZS [SB0350]"       ,0x0004,0,0x20021102,EMU_CHIPS_10K2|EMU_CHIPS_0102|EMU_CHIPS_0151,8},
  {"Audigy 2 ZS [SB0360]"       ,0x0004,0,0x20011102,EMU_CHIPS_10K2|EMU_CHIPS_0102|EMU_CHIPS_0151,8},
  {"Audigy 2 [SB0240]"          ,0x0004,0,0x10071102,EMU_CHIPS_10K2|EMU_CHIPS_0102|EMU_CHIPS_0151,7},//??? 6.1,7.1

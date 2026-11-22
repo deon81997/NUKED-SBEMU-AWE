@@ -1,3 +1,13 @@
+## beta.132-awe.1 (2026-11-21, ZS S/PDIF session): NUKED-SBEMU beta.132 (Audigy 2 ZS S/PDIF out) on the AWE line
+- Sync: NUKED-SBEMU 1685d70 (sc_sbliv.c, new sc_emujack.h, sbdiag.c, testrig/spdif jacktest.c/jacktrace.txt/smoke86.sh)
+  applied cleanly (DOS only); README.TXT patch applied; HWTEST top item = beta.132 ZS item + AWE32-on line. makefile VERSION
+  -> 1.0.0-beta.132-awe.1-usb-sc55 (was still awe.7: awe.8 was VxD-only).
+- Tests: jacktest PASS (non-ZS 48/48 identical); make clean OK; QEMU testrig/spdif/run.sh PASS; 86Box P3B-F PII-450 ES1371
+  smoke86.sh awe.8 vs new: IDLEMTR 1632720/1610187 vs 1632719/1610185 (noise). Win98 files in the zip = awe.8 (compared).
+- Release: rezip.py from the awe.8 zip (19 members differ, none under WIN98). Wiki: AWE Sound-Cards gets the ZS line from
+  priavte wiki/out/awe (not posted, no browser).
+- Next: P5PE-VM HWTEST top item with AWE32 on.
+
 ## beta.131-awe.8 (2026-11-21, VxD 0E session): BLUE SCREEN 0E in SC55W.VXD at Descent's menu (user ASUS) - VxD reads DMA only via a proven address
 - User (P5PE-VM, awe.6 = awe.4's VxD): Descent in a Win98 DOS box at the main menu with music: "exception 0E at
   0028:E994AB1A in VxD SC55W(01) + 0000178A, called from + 2B0" (photo testrig/w98dbg/user-asus-descent-0e.jpg) and

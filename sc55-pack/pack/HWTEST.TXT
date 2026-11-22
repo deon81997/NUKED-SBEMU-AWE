@@ -1,6 +1,27 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.131-awe.8)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.132-awe.1)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.132 ASUS P5PE-VM + Audigy 2 ZS: S/PDIF out (before: no lock, any mode).
+    AWE line: same with SBEMU /AWE:620 on (AWE32 music in a game, step 3).
+    Jack: rear "Line Out 3" (Center/Sub/Digital Out) mini-jack, 3.5 mm
+    TRS-to-2xRCA cable, WHITE (left) RCA into the receiver's COAXIAL in.
+    1. SC55.BAT, then SBDIAG SPDIF > C:\SC55\SPDIFZS.TXT. Expected: card
+       "Audigy 2 ZS [SB03xx]", subsystem 2002/2001/2005/2006/1003 1102,
+       rev 4, jack DIGITAL (... [Audigy 2 polarity]), S/PDIF rate 48000,
+       "analog outputs (front / rear): MUTED", the "Audigy 2 ZS: ..." note,
+       raw IOCFG=... with bits 04h and 40h CLEAR.
+    2. SBDIAG TONE: receiver lock light on, display 48 kHz (PCM), tone
+       left, right, both. Front speakers quiet (expected on the ZS).
+    3. A 44.1 kHz game (e.g. Duke 3D music / CD-quality WAVs) and an
+       11/22 kHz one: receiver stays at 48 kHz, no clicks, no drop-outs.
+    4. SBDIAG SPDIF ONLY: same as 1-2. SBDIAG SPDIF 0: receiver loses
+       lock, front speakers play (IOCFG bits 04h and 40h SET).
+    5. SBDIAG SPDIF 1 after SBEMU /SPDIFINV:1 (SC55.BAT line): speakers
+       play, mini-jack analog; with a Live!Drive / front-panel digital
+       out, the receiver locks there instead.
+    Send SPDIFZS.TXT + lock yes/no for steps 2, 4, 5 and the receiver's
+    model. No lock in step 2: also try the RED plug, then send it all.
 
 [ ] beta.131-awe.8 No blue screen (0E in SC55W) with Descent's menu music
     (ASUS P5PE-VM, Windows 98, null-modem cable to the main PC running

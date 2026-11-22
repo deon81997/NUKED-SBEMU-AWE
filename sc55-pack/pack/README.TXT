@@ -674,7 +674,10 @@ CONTENTS
                            then). Always 48 kHz. On a loaded SBEMU it
                            switches at once; SBDIAG SPDIF shows it.
      /SPDIFINV:1           the jack's analog/digital switch the other way
-                           round (try it when /SPDIF:1 gives no lock)
+                           round (try it when /SPDIF:1 gives no lock).
+                           Audigy 2 ZS: speakers on + S/PDIF on the
+                           Live!Drive only (its mini-jack digital = analog
+                           off, beta.132)
      /DBG:COM1[,baud][,level]  serial debug link (beta.127): live lines
                            to a second PC (DBGLOG.PY). Level 1 events +
                            errors + stats/s (default), 2 + per-frame port/
@@ -1639,6 +1642,13 @@ CONTENTS
   back to the Center/Sub speakers. The S/PDIF stream is always 48 kHz.
   The front / rear speakers keep playing next to the S/PDIF out (before
   beta.131 /SPDIF:1 muted them); SBDIAG SPDIF shows "analog outputs: on".
+  AUDIGY 2 ZS (SB0350 / SB0353 / SB0360, beta.132): its card can only
+  make this jack digital with the analog outputs off (like Creative's
+  "Digital Output Only"), so /SPDIF:1 and ONLY give S/PDIF on the mini-
+  jack and quiet speakers (SBDIAG SPDIF: "analog ... MUTED", jack
+  DIGITAL). Want the speakers too? /SPDIF:1 /SPDIFINV:1: speakers play,
+  S/PDIF comes out of the Live!Drive / front panel digital out only.
+  Before beta.132 the ZS mini-jack never went digital (no lock at all).
 
   FREEZES YOU CANNOT EXPLAIN - WATCH SBEMU LIVE (beta.127): connect the
   DOS PC's COM1 to a second PC (null-modem cable + USB-serial adapter),

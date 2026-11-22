@@ -295,10 +295,13 @@ static void spdif_show(const char* t)
     sbc_field(t, "JACK=", v, sizeof v);
     if (!strncmp(v, "own-", 4)) printf("  S/PDIF out: its own jack, %s\n", strstr(v, "on") ? "on" : "off");
     else printf("  rear Digital Out / Center-Sub jack: %s%s\n", strncmp(v, "digital", 7) ? "ANALOG (center / subwoofer)" : "DIGITAL (coax S/PDIF on the tip)",
-                strstr(v, "(inv)") ? " [Audigy 2 polarity]" : "");
+                strstr(v, "(inv") ? " [Audigy 2 polarity]" : "");
     sbc_field(t, "RATE=", v, sizeof v); printf("  S/PDIF rate: %s Hz (channel status says the same)\n", v);
     if (strstr(t, "ANALOG=")) { sbc_field(t, "ANALOG=", v, sizeof v);   /* beta.131 */
         printf("  analog outputs (front / rear): %s\n", strcmp(v, "on") ? "MUTED" : "on"); }
+    { char j[64]; sbc_field(t, "JACK=", j, sizeof j);   /* beta.132 */
+      if (strstr(j, "zs")) printf("  Audigy 2 ZS: this jack is digital only with the analog outputs muted (as Creative's\n"
+                                  "  'Digital Output Only'); /SPDIFINV:1 = speakers on, S/PDIF on the Live!Drive / front panel only\n"); }
     printf("  raw: %s\n", strstr(t, "IOCFG=") ? strstr(t, "IOCFG=") : t);
 }
 

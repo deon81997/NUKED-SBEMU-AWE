@@ -7,7 +7,7 @@ DEBUG ?= 0
 # 0: original SBEMU build with the TinySoundFont SoundFont synth
 VSC55 ?= 1
 
-VERSION ?= 1.0.0-beta.133-awe.1-usb-sc55
+VERSION ?= 1.0.0-beta.134-awe.1-usb-sc55
 PACKVER = -DNSB_VER=\"$(VERSION)\" -include tools/packver.h
 
 INCLUDES := -I./mpxplay -I./sbemu -I./drivers/include -I./sc55 -I./third_party/nuked-opl3-fast
@@ -174,15 +174,18 @@ SHA_OBJ := output/$(CORE_DIR)/sha/sha224-256.o
 SC55_OBJS := $(CORE_OBJS) $(SHA_OBJ) output/sc55/sc55synth.o
 endif
 
-# ---- Roland MT-32 / CM-32L emulation (Munt libmt32emu 2.8.3, LGPL-2.1+, compiled unchanged) -------
+# ---- Roland MT-32 / CM-32L emulation (Munt libmt32emu 2.8.6, LGPL-2.1+, compiled unchanged) -------
+# 2.8.6: MT32EMU_WITH_STD_SNPRINTF became MT32EMU_WITH_SNPRINTF; MT32EMU_WITH_EXP2F (as upstream CMake sets it) keeps
+# the integer tables (Tables.cpp exp9) equal to 2.8.5 - without it EXP2F falls to std::exp(float) and they change.
+# DJGPP has no exp2f: third_party/mt32emu_exp2f.h gives 2.8.5's own formula (testrig/mt32host: av05 renders identical).
 MT32_DIR := third_party/mt32emu
 MT32_SRC := Analog BReverbModel Display File FileStream LA32FloatWaveGenerator LA32Ramp LA32WaveGenerator \
 	MidiStreamParser Part Partial PartialManager Poly ROMInfo Synth Tables TVA TVF TVP sha1/sha1 SampleRateConverter \
 	srchelper/srctools/src/FIRResampler srchelper/srctools/src/SincResampler srchelper/srctools/src/IIR2xResampler \
 	srchelper/srctools/src/LinearResampler srchelper/srctools/src/ResamplerModel srchelper/InternalResampler
 MT32_CXXFLAGS := -std=gnu++11 -O2 -march=i686 -mtune=pentium-m -fomit-frame-pointer -DNDEBUG \
-	-DMT32EMU_WITH_INTERNAL_RESAMPLER -DMT32EMU_WITH_STD_SNPRINTF -I./$(MT32_DIR) \
-	-include ./sbemu/mt32_silent.h -fno-builtin-printf
+	-DMT32EMU_WITH_INTERNAL_RESAMPLER -DMT32EMU_WITH_SNPRINTF -DMT32EMU_WITH_EXP2F -I./$(MT32_DIR) \
+	-include ./sbemu/mt32_silent.h -include ./third_party/mt32emu_exp2f.h -fno-builtin-printf
 MT32_OBJS :=
 ifeq ($(VSC55),1)
 MT32_OBJS := $(patsubst %,output/$(MT32_DIR)/%.o,$(MT32_SRC)) output/sbemu/vmpu_mt32.o

@@ -1870,7 +1870,7 @@ CONTENTS
 
   SBEMU (Baron-von-Riedesel, crazii, others), Nuked-SC55 and this port:
   GPL-2.0-or-later. Nuked-OPL3: LGPL-2.1+. TinySoundFont: MIT.
-  Munt libmt32emu 2.8.3 (MT-32 emulation, Dean Beeler, Jerome Fisher,
+  Munt libmt32emu 2.8.6 (MT-32 emulation, Dean Beeler, Jerome Fisher,
   Sergey V. Mikayev and others): LGPL-2.1+ (C:\SC55\MUNT-LIC.TXT), source
   at https://github.com/munt/munt.
   The screen font Terminus (Dimitar Zhekov): SIL Open Font Licence 1.1.

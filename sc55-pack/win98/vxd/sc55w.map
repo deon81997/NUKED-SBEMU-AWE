@@ -1,7 +1,7 @@
-Open Watcom Linker Version 2.0 beta Nov 20 2026 07:47:02 (64-bit)
+Open Watcom Linker Version 2.0 beta Nov 27 2026 09:07:09 (64-bit)
 Copyright (c) 2002-2026 The Open Watcom Contributors. All Rights Reserved.
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       26/11/21 01:43:03
+Created on:       26/11/27 11:06:58
 Executable Image: SC55W.VXD
 creating a Windows VxD dynamic link library
 
@@ -125,4 +125,4 @@ Module: sbcore.obj(sbcore.obj)
 
 Stack size:  0000 (0.)
 Memory size:  a4ab (42155.)
-Link time: 00:00.93
+Link time: 00:00.24

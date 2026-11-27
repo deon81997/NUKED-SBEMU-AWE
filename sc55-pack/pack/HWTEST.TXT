@@ -1,6 +1,19 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.133-awe.1)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.134-awe.1)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.134 Munt 2.8.6 (MT-32 / CM-32L), D810 AND P5PE-VM, plain SC55.BAT boot:
+    1. SETTINGS: MIDI synth = MT-32 (or SC55 /VMT32:MT32). Play an MT-32 game
+       (Monkey Island, Indy 4, Ultima, a Sierra game) or MIDPLAY an MT-32
+       .MID for 5 minutes: sounds the same as beta.133, no hangs, the LCD
+       text shows as before. Then the same with /VMT32:CM32L if you have
+       CM-32L ROMs.
+    2. SBDIAG START, play 2 minutes, quit, SBDIAG > C:\SC55\MT32CPU.TXT:
+       "MT-32 needs N% of real time" should be the same or LOWER than on
+       beta.133 (86Box PII-450: 49% -> 44%). Same on both PCs if you can.
+    3. Windows 98: SC55W Settings > MIDI synth = MT-32, play an MT-32 MIDI
+       in Media Player and an MT-32 game in a DOS box: sounds as before.
+    Send: pass/fail per step, which PC, MT32CPU.TXT (beta.133 and 134).
 
 [ ] beta.133 upstream SBEMU fixes, D810 AND P5PE-VM (plain SC55.BAT boot):
     1. PC speaker: a game set to "PC Speaker" sound (or its sound test)

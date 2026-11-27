@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later - part of NUKED SB-EMU, https://github.com/deon81997/NUKED-SBEMU-MUXED
 # Builds what build98.sh links besides our own code, for one CPU target:
 #   $N/$OBJ/*.o          Nuked-SC55 core (this repo's upstream/Nuked-SC55, config.h = sc55/config/config.h)
-#   $M/$LIB/libmt32emu.a Munt mt32emu (github.com/munt/munt d885a95, 2.8.5, static, internal resampler)
+#   $M/$LIB/libmt32emu.a Munt mt32emu (github.com/munt/munt tag libmt32emu_2_8_6 = 91d2205, 2.8.6, static, internal resampler)
 # Release target (Pentium M, SSE2):   sh tools/build-deps.sh
 # 86Box test target (Pentium II):     ARCH="-march=pentium2 -O2" OBJ=build98p2 LIB=b98p2 sh tools/build-deps.sh
 # Needs i686-w64-mingw32-g++ on PATH from tools/build-gcc.sh (msvcrt + win32 threads; NOT xPack, which is UCRT) and $MUNT = the munt checkout.
@@ -25,15 +25,16 @@ done
 $CC $ARCH -DNDEBUG -c "$N/src/backend/sha/sha224-256.c" -o "$N/$OBJ/sha224-256.o" &
 wait
 
-# Munt: config.h by hand (static, all API types, no version tagging)
+# Munt: config.h by hand (static, all API types, no version tagging). 2.8.6: EXP2F via third_party/mt32emu_exp2f.h
+# (2.8.5's own formula, as the DOS build) so the tables stay = 2.8.5 and no exp2f import is needed.
 mkdir -p "$M/b98" "$M/$LIB/obj"
 cat > "$M/b98/config.h" <<'EOF'
 #ifndef MT32EMU_CONFIG_H
 #define MT32EMU_CONFIG_H
-#define MT32EMU_VERSION      "2.8.5"
+#define MT32EMU_VERSION      "2.8.6"
 #define MT32EMU_VERSION_MAJOR 2
 #define MT32EMU_VERSION_MINOR 8
-#define MT32EMU_VERSION_PATCH 5
+#define MT32EMU_VERSION_PATCH 6
 #define MT32EMU_EXPORTS_TYPE 3
 #define MT32EMU_WITH_VERSION_TAGGING 0
 #undef MT32EMU_RUNTIME_VERSION_CHECK
@@ -45,7 +46,7 @@ SRCS="Analog BReverbModel Display File FileStream LA32FloatWaveGenerator LA32Ram
  srchelper/srctools/src/FIRResampler srchelper/srctools/src/SincResampler srchelper/srctools/src/IIR2xResampler
  srchelper/srctools/src/LinearResampler srchelper/srctools/src/ResamplerModel srchelper/InternalResampler"
 for s in $SRCS; do
-  $CXX -std=c++11 $ARCH -DNDEBUG -DMT32EMU_WITH_INTERNAL_RESAMPLER -I"$M/b98" -I"$M/src" \
+  $CXX -std=c++11 $ARCH -DNDEBUG -DMT32EMU_WITH_INTERNAL_RESAMPLER -DMT32EMU_WITH_EXP2F -include "$P/third_party/mt32emu_exp2f.h" -I"$M/b98" -I"$M/src" \
     -c "$M/src/$s.cpp" -o "$M/$LIB/obj/$(echo "$s" | tr / _).o" &
 done
 wait

@@ -544,7 +544,7 @@ first: UNINSTAL.BAT deletes C:\SC55 including C:\SC55\WIN98.
   FILES\WIN98\SOURCE.ZIP    source code of all of them
   FILES\WIN98\COPYING.TXT   GNU General Public License, version 2
 
-  Built on: Nuked-SC55 (nukeykt, jcmoyer fork; GPL v2+), Munt mt32emu
+  Built on: Nuked-SC55 (nukeykt, jcmoyer fork; GPL v2+), Munt mt32emu 2.8.6
   (LGPL v2.1+), TinySoundFont (MIT), DOSBox DBOPL (GPL v2+), Nuked OPL3
   (LGPL v2.1+), the SBEMU sources (GPL). SC55W itself is GPL v2 or later.
   Roland ROMs are not included in the source; use your own dumps.

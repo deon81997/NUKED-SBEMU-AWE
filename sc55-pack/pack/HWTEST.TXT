@@ -18,6 +18,11 @@ C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
        first sample (beta.132 hung there in the emulator test).
     4. Duke 3D + a SC-55 or MT-32 run as usual for 5 minutes: nothing
        new should change (music, effects, USB pad, no hangs).
+    5. AWE line: Duke 3D with AWE32 music (SBEMU /AWE:620), 5 minutes.
+       Music plays as before but follows Duke's music volume slider like
+       a real SB16 mixer (at Duke's default it is quieter than on
+       beta.132-awe.1; full slider = loudest). No hang, no
+       noise; SBDIAG AWE % about the same as on beta.132-awe.1.
     Send: pass/fail per step, which PC, and C:\SC55\SBLOG.TXT if any fails.
 
 [ ] beta.132 ASUS P5PE-VM + Audigy 2 ZS: S/PDIF out (before: no lock, any mode).

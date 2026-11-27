@@ -2181,7 +2181,7 @@ int main(int argc, char* argv[])
 
 #if SBEMU_VSC55
     //naming a ROM folder or ROM set implies /VMPU, unless /VMPU was given explicitly (e.g. /VMPU=0)
-    if(!(MAIN_Options[OPT_VMPU_VOICES].setcmd&MAIN_SETCMD_SET)
+    if(!(MAIN_Options[OPT_VMPU_VOICES].setcmd&MAIN_SETCMD_SET) && _8087
         && ((MAIN_Options[OPT_VMPU_SF].setcmd&MAIN_SETCMD_SET) || (MAIN_Options[OPT_VSC_SET].setcmd&MAIN_SETCMD_SET) || MAIN_USE_SF))
         MAIN_Options[OPT_VMPU_VOICES].value = 1;
     if(MAIN_Options[OPT_VSC_VOICES].value < 0 || MAIN_Options[OPT_VSC_VOICES].value > 28 || (MAIN_Options[OPT_VSC_VOICES].value > 0 && MAIN_Options[OPT_VSC_VOICES].value < 4)
@@ -2278,7 +2278,7 @@ int main(int argc, char* argv[])
     //Auto-load: on a fresh install (a second run already exited above), switch the SC-55 on by itself when
     //a ROM folder with files in it is found, so plain "SBEMU" is enough. /VMPU=0 turns this off; real MPU
     //options (/SCMPU, /MPUCOM) or an explicit /VMPU leave the choice to the user.
-    if(!(MAIN_Options[OPT_VMPU_VOICES].setcmd&MAIN_SETCMD_SET) && !VMPU_ENABLED
+    if(!(MAIN_Options[OPT_VMPU_VOICES].setcmd&MAIN_SETCMD_SET) && !VMPU_ENABLED && _8087   /* no FPU: synths stay off */
         && !MAIN_Options[OPT_SCMPU].value && (MAIN_Options[OPT_MPUCOMPORT].value == 9 || MAIN_Options[OPT_MPUCOMPORT].value == 0)
         && MAIN_Options[OPT_MPUADDR].value)
     {

@@ -471,7 +471,9 @@ typedef struct fx_t {
 } fx_t;
 
 static inline int32_t mulq(int32_t a, int32_t b) { return (a * b) >> 12; }
-static int32_t q15(double x) { return (int32_t) floor(x * 4096.0 + 0.5); }   /* Q12 */
+/* Q12 of n/d, = floor(n/d * 4096 + 0.5) for every register value, integer only: fx_reg() runs in the EMU8000 port
+ * trap, where floating point would change the game's FPU state (MUXED beta.133 /PCS fix, upstream 488ab82) */
+static int32_t qdiv(unsigned n, unsigned d) { return (int32_t) ((n * 8192u + d) / (2u * d)); }
 
 /* The delay elements run over a whole block each, in at most two runs without a wrap check (every line is longer
  * than a block); same arithmetic as per sample. d1 + d2 = 1, so the damped sum stays in 32 bits. */
@@ -561,14 +563,14 @@ static void fx_reg(int reg, int ch, uint16_t w)
     case EMU8K_INIT1:
         switch (ch) {
         case 0x03: f->out_mix = w & 0xFF; break;
-        case 0x05: for (i = 0; i < 4; i++) f->diff[i].fb = q15((w & 0xFF) / 255.0); break;
+        case 0x05: for (i = 0; i < 4; i++) f->diff[i].fb = qdiv(w & 0xFF, 255); break;
         case 0x07: f->link_type = w == 0x8474; break;
-        case 0x0F: f->refl[0].gain = q15(((w >> 4) & 15) / 15.0); break;
-        case 0x17: f->refl[1].gain = q15(((w >> 4) & 15) / 15.0); break;
-        case 0x1F: f->refl[2].gain = q15(((w >> 4) & 15) / 15.0); break;
-        case 0x09: f->refl[0].fb = q15((w & 15) / 15.0); break;
-        case 0x11: f->refl[1].fb = q15((w & 15) / 15.0); break;
-        case 0x19: f->refl[2].fb = q15((w & 15) / 15.0); break;
+        case 0x0F: f->refl[0].gain = qdiv((w >> 4) & 15, 15); break;
+        case 0x17: f->refl[1].gain = qdiv((w >> 4) & 15, 15); break;
+        case 0x1F: f->refl[2].gain = qdiv((w >> 4) & 15, 15); break;
+        case 0x09: f->refl[0].fb = qdiv(w & 15, 15); break;
+        case 0x11: f->refl[1].fb = qdiv(w & 15, 15); break;
+        case 0x19: f->refl[2].fb = qdiv(w & 15, 15); break;
         }
         return;
     case EMU8K_INIT2:
@@ -582,16 +584,16 @@ static void fx_reg(int reg, int ch, uint16_t w)
         case 0x16:
             if (f->link_type) { f->tail[1].size = (((w >> 8) & 15) + 19) * REV_STEP; f->tail[1].pos = 0; }
             break;
-        case 0x07: f->refl[3].gain = q15(((w >> 4) & 15) / 15.0); break;
-        case 0x0F: f->refl[4].gain = q15(((w >> 4) & 15) / 15.0); break;
-        case 0x17: f->refl[5].gain = q15(((w >> 4) & 15) / 15.0); break;
+        case 0x07: f->refl[3].gain = qdiv((w >> 4) & 15, 15); break;
+        case 0x0F: f->refl[4].gain = qdiv((w >> 4) & 15, 15); break;
+        case 0x17: f->refl[5].gain = qdiv((w >> 4) & 15, 15); break;
         case 0x1D:
-            for (i = 0; i < 6; i++) { f->refl[i].d1 = q15((w & 0xFF) / 255.0); f->refl[i].d2 = q15((0xFF - (w & 0xFF)) / 255.0); f->refl[i].fs = 0; }
+            for (i = 0; i < 6; i++) { f->refl[i].d1 = qdiv(w & 0xFF, 255); f->refl[i].d2 = qdiv(0xFF - (w & 0xFF), 255); f->refl[i].fs = 0; }
             f->damper.d1 = f->refl[0].d1; f->damper.d2 = f->refl[0].d2; f->damper.fs = 0;
             break;
-        case 0x01: f->refl[3].fb = q15((w & 15) / 15.0); break;
-        case 0x09: f->refl[4].fb = q15((w & 15) / 15.0); break;
-        case 0x11: f->refl[5].fb = q15((w & 15) / 15.0); break;
+        case 0x01: f->refl[3].fb = qdiv(w & 15, 15); break;
+        case 0x09: f->refl[4].fb = qdiv(w & 15, 15); break;
+        case 0x11: f->refl[5].fb = qdiv(w & 15, 15); break;
         }
         return;
     case EMU8K_INIT3:
@@ -611,7 +613,7 @@ static void fx_hwcf(void)
     fx_t *f = E.fx;
     if (!f || E.init1[0] == 0x03FF) return;
     f->right16 = (int32_t) ((E.hwcf4 & 0x1FFFFF) << 8);                      /* 1/256 sample units */
-    f->lfo_inc = (uint32_t) (E.hwcf5 * (4294967296.0 / 1000.0 / 44100.0));  /* milli-Hz */
+    f->lfo_inc = (uint32_t) (((uint64_t) E.hwcf5 << 32) / 44100000u);   /* milli-Hz; integer (port trap: no FPU use) */
 }
 
 static inline int32_t cho_tap(const int32_t *b, int32_t p16)

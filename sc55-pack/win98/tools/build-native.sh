@@ -12,5 +12,5 @@ W=$(cd "$(dirname "$0")/.." && pwd); H=$W/helper
 for f in opts romscan synths engine midiroute; do $CXX -c $H/$f.cpp -o $f.o; done
 g++ -std=c++17 -O2 -c $S/dbopl.cpp -o dbopl.o
 gcc -O2 -c $O/opl3.c -o opl3.o
-$CXX -c $W/test/enginetest.cpp -o enginetest.o; $CXX -c $W/test/w32shim/fakemidi.cpp -o fakemidi.o
-g++ -o enginetest enginetest.o opts.o romscan.o synths.o engine.o midiroute.o fakemidi.o dbopl.o opl3.o be/*.o mt/*.o -lpthread
+$CXX -c $W/test/enginetest.cpp -o enginetest.o; $CXX -c $W/test/w32shim/fakemidi.cpp -o fakemidi.o; $CXX -c $W/test/w32shim/awestub.cpp -o awestub.o   # AWE line: AWE off
+g++ -o enginetest enginetest.o opts.o romscan.o synths.o engine.o midiroute.o fakemidi.o awestub.o dbopl.o opl3.o be/*.o mt/*.o -lpthread

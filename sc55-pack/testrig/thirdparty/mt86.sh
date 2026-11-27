@@ -8,6 +8,7 @@ L=$1; X=$2; OPTS=${3:-}; MAX=${4:-900}; T=$(cd "$(dirname "$0")/.." && pwd); P=$
 B86=${B86:-/home/claude/86box/src/build/src/86Box}; ROMS86=${ROMS86:-/home/claude/86box/roms}
 MTROMS=${MTROMS:-/home/claude/tmp/p52/NUKEDSB/FILES/ROMS}; Q=${Q:-60}
 R=/tmp/mt86/root-$L V=/tmp/mt86/vm-$L; rm -rf $R $V; mkdir -p $R/SC55/ROMS $R/HDPMI $V
+[ -n "${AWEROM:-}" ] && cp "$AWEROM" $R/SC55/ROMS/   # AWE line: /AWE:620 runs (AWE32.RAW, found by content)
 cp "$X" $R/SC55/SBEMU.EXE; cp $P/output/sbdiag.exe $R/SC55/SBDIAG.EXE; cp $P/output/midplay.exe $R/SC55/MIDPLAY.EXE
 cp ${HDPMI:-/home/claude/rel/NUKEDSB/FILES/HDPMI/HDPMI32I.EXE} $R/HDPMI/; cp $MTROMS/MT107.ROM $MTROMS/MTPCM.ROM $R/SC55/ROMS/
 if [ -n "${MID:-}" ]; then cp "$MID" $R/T.MID; else python3 $T/mt32host/smf2ev.py --gen /tmp/mt86.ev $R/T.MID; fi
@@ -25,4 +26,4 @@ done
 kill $PID 2>/dev/null; pkill -f "86Box.*-P $V"; sleep 1
 for f in SB.TXT DIAG1.TXT DIAG2.TXT; do mtype -i "$V/hd.img@@32256" ::/$f > $V/$f 2>/dev/null; done
 { echo "== $L $(( $(date +%s) - t0 ))s"; tr -d '\r' < $V/SB.TXT | grep -a -m2 "^SBEMU 1\|MPU: Roland"
-  for i in 1 2; do tr -d '\r' < $V/DIAG$i.TXT | grep -a "Measured\|uses .*CPU\|needs .*real time" | head -3; done; } | tee -a /tmp/mt86.txt
+  for i in 1 2; do tr -d '\r' < $V/DIAG$i.TXT | grep -a "Measured\|uses .*CPU\|needs .*real time\|AWE" | head -4; done; } | tee -a /tmp/mt86.txt

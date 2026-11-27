@@ -2,6 +2,23 @@ NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.134-awe.1)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
 
+[ ] beta.134-awe.1 AWE line synced to NUKED-SBEMU beta.134, D810 AND P5PE-VM:
+    1. DOS (SC55.BAT, SETTINGS: AWE32 on): Duke 3D with Music = AWE32 for 5
+       minutes: music plays, no stuck notes, no hang. The music is QUIETER
+       than on beta.132-awe.1 (about 10 dB with Duke's default Music volume
+       200): that is the SB16 mixer's real 2 dB steps now (a real AWE32 does
+       the same). Duke's Sound menu > Music volume up to the top: about as
+       loud as before. Effects volume slider: even steps, silent at 0.
+    2. Same with /PCS:0 on the SBEMU line: AWE32 music unchanged, PC
+       speaker beeps come only from the PC's own speaker.
+    3. SBDIAG START, Duke 2 minutes, quit, SBDIAG > C:\SC55\AWECPU.TXT:
+       "AWE32 needs N% of real time" same as beta.132-awe.1 (86Box PII-450:
+       10% both).
+    4. Windows 98: SC55W /VER says 1.0.0-beta.134-awe.1 for every file;
+       Duke with AWE32 music in a DOS box 5 minutes, and an MT-32 MIDI in
+       Media Player (Munt 2.8.6): sound as before.
+    Send: pass/fail per step, which PC, AWECPU.TXT.
+
 [ ] beta.134 Munt 2.8.6 (MT-32 / CM-32L), D810 AND P5PE-VM, plain SC55.BAT boot:
     1. SETTINGS: MIDI synth = MT-32 (or SC55 /VMT32:MT32). Play an MT-32 game
        (Monkey Island, Indy 4, Ultima, a Sierra game) or MIDPLAY an MT-32

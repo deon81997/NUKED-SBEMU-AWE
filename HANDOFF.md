@@ -1,21 +1,27 @@
-## beta.13x-awe.1 (2026-11-27, AWE sync session): IN PROGRESS - waiting for NUKED-SBEMU's Munt 2.8.6 + JEMM 5.87 tag
-- Branch wip/awe-b133-2026-11-27 (pushed): 1e911de emu8k.c fx_reg/fx_hwcf integer-only (24/24 harness renders
-  bit-identical, run_tests PASS; the DOS trap wrappers already fnsave since beta.84, so this is no-FPU hygiene);
-  a0fc3bc = NUKED beta.133 (upstream SBEMU 82c2d66..9df0421) applied -3: conflicts main.c (AWE opts + /PCS: both),
-  qemm.c (AWE split-port trap + _8087 guard), makefile, HWTEST header; no-FPU also turns /AWE off (emu8k tables use doubles).
-  beta.131/132 files (sc_sbliv.c, sc_emujack.h, sbdiag.c beta.132 part) were already on AWE main (md5 = NUKED).
-- Duke AWE32 music is ~11 dB quieter on purpose: Duke writes MusicVolume 200 -> reg 34h C8h = -12 dB on a real CT1745
-  (old code read -2 dB); raw EMU8000 level unchanged (86Box AWE64 wavetable -39 dBFS - 12 = our -51..-53).
-- Measured (old = awe.1): 86Box PII-450 Duke AWE32 11% / AWE 10% / 3.08 ms both; idle smoke86 1632719/1610185 vs
-  1634513/1611943; Win98 cpu86 OPTS=/AWE:620 old 157 157 156 156 188 188 (new run after the Munt sync).
-- Next: 1) when NUKED tags the Munt/JEMM beta (wip/thirdparty-2026-11-27): git diff --binary v1.0.0-beta.133-usb..NEW
-  -- . ':!release' ':!README.md' ':!HANDOFF.md' | git apply -3 --index (dry run vs 37c271f applied clean); Win98 rebuild
-  with munt libmt32emu_2_8_6 (build-deps.sh both targets); JEMM EXEs from NUKED's zip. 2) tests (duke.sh, dbgtest/
-  routetest/mputest, cpu86 new). 3) mkrel.py awe.1 zip -> beta.NN-awe.1, README/wiki news, merge to main, tag.
-- Rig note: vms/bin/86run.sh starts Xvfb :86 only if NO Xvfb runs - with duke.sh's :9 up, the Qt 86Box dies (xcb):
-  start `Xvfb :86` + openbox by hand first.
+## beta.134-awe.1 (2026-11-27, AWE sync session): NUKED-SBEMU beta.133 + beta.134 on the AWE line (RELEASED, tag v1.0.0-beta.134-awe.1-usb)
+- Sync: v1.0.0-beta.132-usb..133 (upstream SBEMU 82c2d66..9df0421) then 133..134 (Munt 2.8.6; JEMM 5.87 skipped upstream =
+  stays 5.86), git apply -3 minus release/README.md/HANDOFF.md (+ NUKED's prebuilt win98 VXD/obj/map: rebuilt here).
+  Hand fixes: main.c AWE options + /PCS both kept; qemm.c AWE split-port trap gets the _8087 guard; no FPU -> /AWE off too
+  (emu8k tables are built with doubles); README98 = ours + "Munt mt32emu 2.8.6"; makefile/win98 VERSION/nsbver.h ->
+  beta.134-awe.1. emu8k.c fx_reg/fx_hwcf integer-only (24/24 harness renders bit-identical; run_tests PASS): the trap
+  wrappers already fnsave since beta.84, so it is no-FPU hygiene, not a fix. SB16 2 dB table feeds VAWE_MixInto via
+  midivol (no other AWE mix path reads the mixer). beta.131/132 sc_sbliv.c/sc_emujack.h/sbdiag.c were already on main.
+- Level: Duke AWE music ~11 dB quieter on purpose (MusicVolume 200 -> 34h C8h = -12 dB on a real CT1745; old read -2 dB);
+  86Box AWE64 wavetable raw -39 dBFS - 12 = ours -51..-53. News + HWTEST say so.
+- Tests: DOS clean build (63 warnings, none new); Win98 buildall with munt libmt32emu_2_8_6 (both targets), chkimp
+  imports = awe.1; dbgtest/routetest/mputest PASS; duke.sh himem + jemm (QPIEMU) music plays, 0% lost ticks; 86Box
+  PII-450 Duke: SBEMU 11% / AWE 10% / 3.08 ms old = new; smoke86 idle 1632719/1610185 -> 1634513/1611943; Win98 cpu86
+  OPTS=/AWE:620 (24E x2, 301 x2, 620 x2; ticks): awe.1 157 157 156 156 188 188 / rerun 159 159 160 160 190 190,
+  new 153 153 153 153 184 184. Not run: win98 enginetest mt32 (upstream showed 2.8.5 = 2.8.6 byte-identical).
+- Zip = mkrel.py from the beta.132-awe.1 zip (28 members: DOS EXEs, README/HWTEST, README98 x2, all WIN98 binaries,
+  SOURCE.ZIP); FILES/JEMM unchanged (5.86).
+- Next: 1) HWTEST top item (D810 + P5PE-VM: Duke AWE level + volume steps, /PCS:0, AWECPU.TXT, Win98 /VER + MT-32);
+  2) AWE wiki Changelog/Home row (priavte wiki/src, post job); 3) delete wip/awe-b133-2026-11-27 (= main) in the browser.
+- Rig notes: vms/bin/86run.sh starts Xvfb :86 only if NO Xvfb runs - with duke.sh's :9 up the Qt 86Box dies (xcb):
+  start `Xvfb :86` + openbox by hand; Qt 86Box also needs apt libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 ...
 - Test downloads: DJGPP v3.4, OW snapshot, JWasm, munt (d885a95 + libmt32emu_2_8_6), 86Box 0935207 + xpad (SDL build
-  /home/claude/86box/86box), apt mingw-w64 gcc-multilib qt xcb libs; store-86rig/dos71/w98qi-86box/86box-roms/personal.
+  /home/claude/86box/86box), apt mingw-w64 gcc-multilib cmake ninja SDL2/openal/slirp/serialport dev, pefile;
+  store-86rig/dos71/w98qi-86box/86box-roms/personal.
 
 ## beta.132-awe.1 (2026-11-21, ZS S/PDIF session): NUKED-SBEMU beta.132 (Audigy 2 ZS S/PDIF out) on the AWE line
 - Sync: NUKED-SBEMU 1685d70 (sc_sbliv.c, new sc_emujack.h, sbdiag.c, testrig/spdif jacktest.c/jacktrace.txt/smoke86.sh)

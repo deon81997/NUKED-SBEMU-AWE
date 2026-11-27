@@ -1209,6 +1209,9 @@ struct MAIN_OPT
     "/AWEROM", "AWE ROM: a 1 MB EMU8000 ROM dump, or a folder searched by content (default: ROMS, then AWE)", (uintptr_t)"", MAIN_SETCMD_STR,
     "/AWEMPU", "With /AWE: 1 = the MPU-401 keeps its synth (SC-55, SoundFont, MT-32, USB MIDI), like an AWE32 with a Sound Canvas on its MIDI port; GM, GS or MT32 = the MPU-401 plays on the EMU8000 (as AWEUTIL /EM:GM, with your SYNTHGM/GS/MT.SBK from the ROM folder); 0 = AWE only, MPU silent", 1, MAIN_SETCMD_BASE10,
     "/AWEFX", "With /AWE the EMU8000's reverb and chorus (as the game or AWEUTIL sets them; 0 = off, dry, a little less CPU). Changes at once when SBEMU runs again", 1, MAIN_SETCMD_BASE10,
+#if SBEMU_PCSPEAKER
+    "/PCS", "PC speaker emulation: the PC speaker's beeps and tunes (ports 42h, 43h, 61h) played through the sound card (1=on, 0=off)", 1, MAIN_SETCMD_BASE10,
+#endif
     NULL, NULL, 0,
 };
 enum EOption
@@ -1296,6 +1299,9 @@ enum EOption
     OPT_AWEROM,
     OPT_AWEMPU,
     OPT_AWEFX,
+#if SBEMU_PCSPEAKER
+    OPT_PCS,
+#endif
     OPT_COUNT,
 };
 
@@ -2128,6 +2134,26 @@ int main(int argc, char* argv[])
         MAIN_HDPMI_Present = hasHDPMI;
     }
     MAIN_Options[OPT_OPL].value = !!MAIN_Options[OPT_OPL].value;
+    {   /* upstream bbac6ef/4587cba: CPUs without an FPU (DM&P Vortex86SX). SET SBEMU_FPU=0 / 1 overrides the
+         * detection (the FNINIT test can return garbage there). Upstream's "no CPUID = no FPU" guess is not taken:
+         * a 486DX without CPUID has an FPU. */
+        const char* fpuenv = getenv("SBEMU_FPU");
+        if(fpuenv && (*fpuenv == '0' || *fpuenv == '1'))
+            _8087 = (*fpuenv == '1') ? 3 : 0;
+    }
+    if(!_8087) //no FPU: OPL3, the MIDI synths and the PC speaker use floating point
+    {
+        if((MAIN_Options[OPT_OPL].value || MAIN_Options[OPT_AWE].value) && !padlog_only)
+            MAIN_CPrintf(YELLOW, "No FPU: OPL3 (FM) emulation, AWE32, MIDI synths and PC speaker emulation off.\n");
+        MAIN_Options[OPT_OPL].value = 0;
+        MAIN_Options[OPT_AWE].value = 0;   /* AWE line: emu8k.c builds its tables with doubles (render itself is integer) */
+#if SBEMU_VMPU
+        MAIN_Options[OPT_VMPU_VOICES].value = 0;
+#endif
+#if SBEMU_PCSPEAKER
+        MAIN_Options[OPT_PCS].value = 0;
+#endif
+    }
     if(MAIN_Options[OPT_VSBVOL].value < 0 || MAIN_Options[OPT_VSBVOL].value > 100
     || MAIN_Options[OPT_VOPLVOL].value < 0 || MAIN_Options[OPT_VOPLVOL].value > 100
     || MAIN_Options[OPT_VMIDIVOL].value < 0 || MAIN_Options[OPT_VMIDIVOL].value > 400)
@@ -2830,6 +2856,8 @@ int main(int argc, char* argv[])
     // Now that the audio device is running, aui.freq_card is valid for PC Speaker setup.
     // QEMM accepts the whole 3-port table in one call.
     // HDPMI needs two calls because 0x42-0x43 and 0x61 are not contiguous.
+    if(MAIN_Options[OPT_PCS].value)  /* upstream 488ab82: /PCS:0 turns it off (default on) */
+    {
     VPCSPEAKER_Init(aui.freq_card);
 
     if(enableRM)
@@ -2846,6 +2874,7 @@ int main(int argc, char* argv[])
 
     printf("PC Speaker emulation (Ports 42,43,61): ");
     MAIN_Print_Enabled_Newline(MAIN_PCSPEAKER_Installed);
+    }
 #endif // SBEMU_PCSPEAKER
 
     if(MAIN_Options[OPT_JOY].value && !MAIN_Options[OPT_USB].value)
@@ -3097,12 +3126,14 @@ int main(int argc, char* argv[])
  * (fnsave resets it) but keeps the program's control word, so a game's own IRQ handler called from here rounds
  * as the game set it, like on real hardware. */
 #ifdef DJGPP
-#define MAIN_FPU_ENTER() unsigned char main_fpu_state[108]; asm volatile("fnsave %0\n\tfldcw %0" : "+m"(main_fpu_state))
-#define MAIN_FPU_LEAVE() asm volatile("frstor %0" :: "m"(main_fpu_state))
+#define MAIN_FPU_ENTER() unsigned char main_fpu_state[108]; if(_8087) asm volatile("fnsave %0\n\tfldcw %0" : "+m"(main_fpu_state)) /* no FPU: nothing to save (upstream bbac6ef) */
+#define MAIN_FPU_LEAVE() if(_8087) asm volatile("frstor %0" :: "m"(main_fpu_state))
 #else
 #define MAIN_FPU_ENTER() do {} while(0)
 #define MAIN_FPU_LEAVE() do {} while(0)
 #endif
+/* SB16 mixer gain per 5-bit register value, 2 dB steps, 256 = 0 dB (upstream a09b08b's Q12 table / 16) */
+static const uint16_t MAIN_SB16Gain8[32] = {0,0,0,0,0,1,1,1,1,2,2,3,3,4,5,6,8,10,13,16,20,26,32,41,51,64,81,102,128,162,203,256};
 static void MAIN_InterruptPM()
 {
     const uint8_t irq = PIC_GetIRQ();
@@ -3253,11 +3284,12 @@ static void MAIN_Interrupt()
     }
     else if(MAIN_Options[OPT_TYPE].value == 6) //SB16
     {
-        // TODO: This only uses the left channel volume as volume for both left and right
-        vol = (SBEMU_GetMixerReg(SBEMU_MIXERREG_MASTERSTEREO)>>4)*256/15; //4:4
-        voicevol = (SBEMU_GetMixerReg(SBEMU_MIXERREG_VOICESTEREO)>>4)*256/15; //4:4
-        midivol = (SBEMU_GetMixerReg(SBEMU_MIXERREG_MIDISTEREO)>>4)*256/15; //4:4
-        cdvol = (SBEMU_GetMixerReg(SBEMU_MIXERREG_CDSTEREO)>>4)*100/15; //4:4
+        // upstream a09b08b: 5-bit registers, 2 dB per step like the real CT1745 (31 = 0 dB, 0 = mute; was a
+        // linear 4-bit factor, so 0x30 = 08h was already silence). Left channel for both, as before.
+        vol = MAIN_SB16Gain8[SBEMU_GetMixerReg(SBEMU_MIXRREG_MASTERL) >> 3];
+        voicevol = MAIN_SB16Gain8[SBEMU_GetMixerReg(SBEMU_MIXRREG_VOICEL) >> 3];
+        midivol = MAIN_SB16Gain8[SBEMU_GetMixerReg(SBEMU_MIXRREG_MIDIL) >> 3];
+        cdvol = MAIN_SB16Gain8[SBEMU_GetMixerReg(SBEMU_MIXRREG_CDL) >> 3] * 100 / 256;
         //_LOG("vol: %d, voicevol: %d, midivol: %d\n", vol, voicevol, midivol);
     }
     else //SBPro
@@ -3346,7 +3378,7 @@ static void MAIN_Interrupt()
             count = min(count, max(1,(DMA_Count)/samplesize/channels)); //max for stereo initial 1 byte
             count = min(count, max(1,(SB_Bytes-SB_Pos)/samplesize/channels)); //max for stereo initial 1 byte. 1/2channel = 0, make it 1
             if(SBEMU_GetBits()<8) //ADPCM 8bit
-                count = max(1, count / (9 / SBEMU_GetBits()));
+                count = max(2, count / (9 / SBEMU_GetBits())); //upstream 11d5924: ADPCM starts by eating 1 byte; 1 crashed in cv_bits_n_to_m
             _LOG("samples:%d %d %d, %d %d, %d %d\n", samples, pos+count, count, DMA_Count, DMA_Index, SB_Bytes, SB_Pos);
             int bytes = count * samplesize * channels;
 
@@ -3972,7 +4004,7 @@ static void MAIN_TSR_Interrupt()
 
             char* fpustate = (char*)alloca(108);
             #ifdef DJGPP //make vscode happy
-            asm("fsave %0\n\t finit":"=m"(*fpustate));
+            if(_8087) asm("fsave %0\n\t finit":"=m"(*fpustate));
             #endif
             int irq = aui.card_irq;
             PIC_MaskIRQ(irq);
@@ -4031,7 +4063,13 @@ static void MAIN_TSR_Interrupt()
                 mpxplay_audio_decoder_info_s adi = {NULL, 0, 1, samplerate, SBEMU_CHANNELS, SBEMU_CHANNELS, NULL, SBEMU_BITS, SBEMU_BITS/8, 0};
                 AU_setrate(&aui, &adi);
                 if(OPT_CHANGED(OPT_RATE))
+                {
                     OPL3EMU_Init(aui.freq_card);
+                    #if SBEMU_PCSPEAKER
+                    if(MAIN_PCSPEAKER_Installed)
+                        VPCSPEAKER_Init(aui.freq_card); //upstream 488ab82: PC speaker follows the new rate
+                    #endif
+                }
                 AU_prestart(&aui); //setsamplerate/reset will do stop
                 AU_start(&aui);
             }
@@ -4041,7 +4079,7 @@ static void MAIN_TSR_Interrupt()
                 AU_setmixer_one(&aui, AU_MIXCHAN_MASTER, MIXER_SETMODE_ABSOLUTE, MAIN_Options[OPT_VOL].value);
             }
             #ifdef DJGPP //make vscode happy
-            asm("frstor %0" ::"m"(*fpustate));
+            if(_8087) asm("frstor %0" ::"m"(*fpustate));
             #endif
             PIC_UnmaskIRQ(irq);
 

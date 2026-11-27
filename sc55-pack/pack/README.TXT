@@ -641,6 +641,12 @@ CONTENTS
                            after 2 s of silence, until the game writes
                            to the FM chip again)
      /FIXTC:0|1            fix the time constant to match 11/22/44 kHz
+     /PCS:0|1              PC speaker emulation: the PC speaker's beeps and
+                           tunes (ports 42h/43h/61h) through the sound card
+                           (default on; 0 = the real speaker only)
+     SET SBEMU_FPU=0|1     before SBEMU: say the CPU has no FPU (0) or has
+                           one (1). No FPU = FM, MIDI synths and PC speaker
+                           emulation off; digital sound still plays
      /VOL:n                master volume (default 80)
      /VSBVOL:pct           sound effects (digital Sound Blaster) volume,
                            0-100 (default 100), on top of the game's mixer

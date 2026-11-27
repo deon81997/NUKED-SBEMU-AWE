@@ -142,7 +142,7 @@ void VPCSPEAKER_Shutdown(void)
 
 int VPCSPEAKER_IsActive(void)
 {
-    return spc.initialized;
+    return spc.initialized && (spc.spkr_mode != SPKR_OFF || spc.beep_latch); // upstream 488ab82 (no CPU while silent); latched short beeps still play
 }
 
 // ---------------------------------------------------------------------------

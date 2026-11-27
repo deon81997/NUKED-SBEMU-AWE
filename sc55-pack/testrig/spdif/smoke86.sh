@@ -16,6 +16,6 @@ while sleep 10; do
   mtype -i "$V/hd.img@@32256" ::/STAGE.TXT 2>/dev/null | grep -q DONE && break
   [ $(( $(date +%s) - t0 )) -gt $MAX ] && { echo "TIMEOUT"; break; }
 done
-kill $P 2>/dev/null; pkill -f "86Box.*-P $V"; sleep 1
+kill $P 2>/dev/null; pkill -9 -f "86Box.*-P $V"; sleep 1
 for f in SB.TXT SPDIF.TXT M.LOG; do mtype -i "$V/hd.img@@32256" ::/$f > /tmp/smk.$f 2>/dev/null; done
 { echo "== $L $(( $(date +%s) - t0 ))s"; tr -d '\r' < /tmp/smk.SB.TXT | grep -i -m3 "sbemu\|es1371\|found\|error"; tr -d '\r' < /tmp/smk.SPDIF.TXT; tr -d '\r' < /tmp/smk.M.LOG; } | tee -a /tmp/smoke86.txt

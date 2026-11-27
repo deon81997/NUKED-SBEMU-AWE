@@ -98,7 +98,8 @@ static void QEMM_TrapHandler()
                 if(DIAG_Armed) DIAG_Trap(port);
                 {   /* the program's FPU state stays its own (see HDPMIPT_TrapHandler) */
                     unsigned char fpu_state[108];
-                    asm volatile("fnsave %0\n\tfldcw %0" : "+m"(fpu_state));
+                    extern int _8087;   /* 0 = no FPU (upstream bbac6ef) */
+                    if(_8087) asm volatile("fnsave %0\n\tfldcw %0" : "+m"(fpu_state));
                     if((link->iodt[i].port & QEMM_IODT_SPLIT) && (out & 0x18))
                     {   /* 16/32-bit IN/OUT (CL bits 3-4: 01 word, 10 dword; bit 2 = OUT): one byte call per port,
                          * low byte first, as HDPMI's trap API does (AWE32 EMU8000 ports) */
@@ -110,7 +111,7 @@ static void QEMM_TrapHandler()
                     }
                     else
                         QEMM_TrapHandlerREG.h.al = link->iodt[i].handler(port, val, out);
-                    asm volatile("frstor %0" :: "m"(fpu_state));
+                    if(_8087) asm volatile("frstor %0" :: "m"(fpu_state));
                 }
                 if(DBGL_On) DBGL_Trap(port, out ? val : QEMM_TrapHandlerREG.h.al, out);
                 return;

@@ -1,6 +1,24 @@
-NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.132-awe.1)
+NUKED SB-EMU - REAL HARDWARE CHECKLIST (beta.133-awe.1)
 Things an emulator cannot confirm. Tick each one; for any failure keep
 C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
+
+[ ] beta.133 upstream SBEMU fixes, D810 AND P5PE-VM (plain SC55.BAT boot):
+    1. PC speaker: a game set to "PC Speaker" sound (or its sound test)
+       beeps through the speakers / headphones as before. Then add /PCS:0
+       to the SBEMU line (SETTINGS or SC55.BAT): SBEMU's start text has no
+       "PC Speaker emulation" line and the beeps come only from the PC's
+       own speaker.
+    2. SB16 volume (SETTINGS card type SB16, or /T:6): in a game whose
+       sound menu has an effects volume slider (Descent, Duke 3D), move it
+       down one step at a time: quieter in even steps, silent only at the
+       bottom. Same with the master slider of a DOS mixer program, if you
+       have one (Creative SB16 MIXERSET, SBMIX).
+    3. A game with Creative ADPCM speech or effects (some Sierra / Dynamix
+       titles; hard to tell - skip if you have none): no hang at the
+       first sample (beta.132 hung there in the emulator test).
+    4. Duke 3D + a SC-55 or MT-32 run as usual for 5 minutes: nothing
+       new should change (music, effects, USB pad, no hangs).
+    Send: pass/fail per step, which PC, and C:\SC55\SBLOG.TXT if any fails.
 
 [ ] beta.132 ASUS P5PE-VM + Audigy 2 ZS: S/PDIF out (before: no lock, any mode).
     AWE line: same with SBEMU /AWE:620 on (AWE32 music in a game, step 3).

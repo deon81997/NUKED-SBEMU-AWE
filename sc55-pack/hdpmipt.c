@@ -69,9 +69,10 @@ uint32_t __attribute__((noinline, used)) HDPMIPT_TrapHandler()
             {   /* the program was stopped at its port access, maybe in the middle of FPU math; some handlers use
                  * the FPU (SB DSP writes, DBOPL, the joystick axes): they get a clean one, the program keeps its own */
                 unsigned char fpu_state[108]; uint32_t r;
-                asm volatile("fnsave %0\n\tfldcw %0" : "+m"(fpu_state));
+                extern int _8087;   /* 0 = no FPU (upstream bbac6ef): nothing to save */
+                if(_8087) asm volatile("fnsave %0\n\tfldcw %0" : "+m"(fpu_state));
                 r = link->iodt[i].handler(port, value, out);
-                asm volatile("frstor %0" :: "m"(fpu_state));
+                if(_8087) asm volatile("frstor %0" :: "m"(fpu_state));
                 if(DBGL_On) DBGL_Trap(port, out ? value : r, out);
                 return r;
             }

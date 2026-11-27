@@ -1,3 +1,17 @@
+## beta.134-awe.1 Munt check (2026-11-27, Munt session; no new release): the AWE sync chat already shipped Munt 2.8.6 in beta.134-awe.1
+- This chat's wip/awe-munt286-2026-11-27 (MUXED beta.134 Munt files) = beta.134-awe.1's Munt files byte for byte (rebase
+  dropped it as "already upstream"), so no beta.134-awe.2: only test-rig fixes + one HWTEST line went to main.
+- Tests old = beta.132-awe.1 (Munt 2.8.5) vs new (2.8.6): testrig/mt32host avmidi 05 MT-32 + CM-32L + float renderer
+  byte-identical; MT32TEST differs from 10.7 s (2.8.6 update order; old vs old with events +1 frame differs 97%, octave
+  bands within 0.35 dB). QEMU notetest /VMT32:MT32 MT32TEST 0 dropped both. Win98 enginetest mt32 old = new (byte-identical
+  WAV; the AWE line's native build was broken: engine.cpp needs awe_* -> test/w32shim/awestub.cpp = AWE off), routetest
+  PASS; SC55WM/SC55W2 imports = the awe.8 zip's. 86Box P3B-F PII-450 mt86.sh x2: MT-32 49% -> 44%, CPU 45% -> 42%;
+  /AWE:620 + MT-32: AWE32 1% both, MT-32 48-49% -> 44%.
+- mt86.sh: AWEROM= env (copies AWE32.RAW) + AWE line in the summary; kill -9 (Qt 86Box ignores SIGTERM: every run left
+  one 86Box running, 5 at once by the 5th run).
+- Branch wip/awe-munt286-2026-11-27 (mine, = c0c3545/358670e, superseded) can be deleted.
+- Next: HWTEST beta.134 item (MT-32 with AWE32 off, AWE32 alone).
+
 ## beta.134-awe.1 (2026-11-27, AWE sync session): NUKED-SBEMU beta.133 + beta.134 on the AWE line (RELEASED, tag v1.0.0-beta.134-awe.1-usb)
 - Sync: v1.0.0-beta.132-usb..133 (upstream SBEMU 82c2d66..9df0421) then 133..134 (Munt 2.8.6; JEMM 5.87 skipped upstream =
   stays 5.86), git apply -3 minus release/README.md/HANDOFF.md (+ NUKED's prebuilt win98 VXD/obj/map: rebuilt here).

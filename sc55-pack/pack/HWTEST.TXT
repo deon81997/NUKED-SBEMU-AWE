@@ -30,6 +30,9 @@ C:\SC55\BUGREP.TXT (MENU > Tests > Bug report) and CRASH.TXT if there is one.
        beta.133 (86Box PII-450: 49% -> 44%). Same on both PCs if you can.
     3. Windows 98: SC55W Settings > MIDI synth = MT-32, play an MT-32 MIDI
        in Media Player and an MT-32 game in a DOS box: sounds as before.
+    AWE line: test steps 1-3 with AWE32 OFF (SETTINGS) and AWE32 on its own
+    (item above), not both at once - one SBDIAG number per synth. Compare
+    with beta.132-awe.1 (86Box PII-450 /VMT32:MT32: 49% -> 44%).
     Send: pass/fail per step, which PC, MT32CPU.TXT (beta.133 and 134).
 
 [ ] beta.133 upstream SBEMU fixes, D810 AND P5PE-VM (plain SC55.BAT boot):

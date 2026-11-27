@@ -23,7 +23,7 @@ while sleep 10; do
   mtype -i "$V/hd.img@@32256" ::/STAGE.TXT 2>/dev/null | grep -q DONE && break
   [ $(( $(date +%s) - t0 )) -gt $MAX ] && { echo "TIMEOUT"; break; }
 done
-kill $PID 2>/dev/null; pkill -f "86Box.*-P $V"; sleep 1
+kill -9 $PID 2>/dev/null; pkill -9 -f "86Box.*-P $V"; sleep 1   # Qt 86Box ignores SIGTERM: without -9 every run leaves one running
 for f in SB.TXT DIAG1.TXT DIAG2.TXT; do mtype -i "$V/hd.img@@32256" ::/$f > $V/$f 2>/dev/null; done
 { echo "== $L $(( $(date +%s) - t0 ))s"; tr -d '\r' < $V/SB.TXT | grep -a -m2 "^SBEMU 1\|MPU: Roland"
   for i in 1 2; do tr -d '\r' < $V/DIAG$i.TXT | grep -a "Measured\|uses .*CPU\|needs .*real time\|AWE" | head -4; done; } | tee -a /tmp/mt86.txt

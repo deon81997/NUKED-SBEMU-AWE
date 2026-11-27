@@ -1,7 +1,7 @@
 ## Floppy install set (2026-11-27, branch wip/floppy-2026-11-27, not merged)
-- sc55-pack/tools/floppy: beta.134-awe.1 zip -> 5 x 1.44 MB images (xz per file, CRC32), A:\INSTALL [drive] unpacks to
-  C:\NUKEDSB then runs SETUP. 86Box MS-DOS 7.1: full 5-disk install, 128/128 files byte-identical, corrupt disk 3
-  reported + retry OK. Personal set (+ store-personal p52 ROMs/drivers, no ROMHASH.CAC) is private: never commit or
+- sc55-pack/tools/floppy: beta.134-awe.1 zip -> 5 x 1.44 MB images (spanning xz stream, CRC32), A:\INSTALL [drive]
+  unpacks to C:\NUKEDSB then runs SETUP. 86Box MS-DOS 7.1: 5-disk install with corrupt disk 3 (named, good copy,
+  retry) 128/128 byte-identical; personal set 16 disks (AWEROM.BIN dropped = AWE32.RAW dup) 181/181, 42 ROMs in C:\SC55\ROMS. Personal set (+ store-personal p52 ROMs/drivers, no ROMHASH.CAC) is private: never commit or
   attach its images. Not done: real floppies, Win98 DOS box run, adding the public set to the release.
 
 ## beta.134-awe.1 Munt check (2026-11-27, Munt session; no new release): the AWE sync chat already shipped Munt 2.8.6 in beta.134-awe.1

@@ -1,6 +1,6 @@
 NUKED SB-EMU AWE32 Edition @VER@ - floppy install set (@N@ disks)
 
-Same files as the release zip, packed onto 1.44 MB disks.
+@WHAT@
 
 Install (DOS or a Windows 98 DOS box):
   1. Put disk 1 in drive A:
@@ -8,10 +8,10 @@ Install (DOS or a Windows 98 DOS box):
      A:\INSTALL D       installs to drive D:
      A:\INSTALL C B     disks are in drive B:
   3. Swap disks when asked. Every file is CRC-checked while it is unpacked;
-     a bad disk is reported by number, so only that disk needs writing again.
+     a bad disk is reported by number; write that one again and carry on.
   4. INSTALL then runs SETUP.BAT, the same as after unzipping the pack.
 
-Needs about 25 MB free and a 386 or newer with 4 MB RAM or more.
+Needs about @MB@ MB free and a 386 or newer with 4 MB RAM or more.
 The pack is unpacked to C:\NUKEDSB first (README.TXT is there).
 Plain DOS shortens two long names: DOWNLOADS.TXT -> DOWNLOAD.TXT,
 FILES\DOSMODE\CDROM-D810.TXT -> CDROM-D8.TXT.

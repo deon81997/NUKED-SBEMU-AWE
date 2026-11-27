@@ -1,59 +1,98 @@
-/* UNPAK.EXE - unpacks one DISKn.PAK of the NUKED SB-EMU floppy set (xz streams, CRC32 checked).
-   usage: UNPAK disk.pak destdir      unpack (creates folders)
-          UNPAK /T disk.pak           test the disk only (read + decode everything, write nothing)
-   exit: 0 ok, 10 ok and last disk, 1 usage, 2 bad/unreadable disk, 3 cannot write (disk full?)
+/* UNPAK.EXE - unpacks the NUKED SB-EMU floppy set (one xz stream per file, CRC32, files may span disks).
+   usage: UNPAK A:\DISK1.PAK destdir    asks for each next disk itself; on a damaged disk it asks for
+                                        that disk again and redoes the file.  /T instead of destdir = test only.
+   exit: 0 ok, 2 stopped (Esc), 3 cannot write (disk full?), 1 usage
    Uses XZ Embedded (0BSD). Part of NUKED SB-EMU, GPL-2.0-or-later. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include "xz.h"
+#ifdef __DJGPP__
+#include <conio.h>
+#define WAITKEY() getch()
+#else
+#define WAITKEY() (getenv("UNPAK_NOWAIT") ? 0 : getchar())
+#endif
 #define INB 16384
 #define OUTB 32768
 static unsigned char inb[INB], outb[OUTB];
+static char pat[300];              /* "A:\DISK%u.PAK" */
+static FILE *vf; static unsigned vdisk, vndisks, vset, vstart, vlen, vpos;   /* current volume */
 static unsigned rd32(const unsigned char *p) { return p[0] | p[1] << 8 | (unsigned) p[2] << 16 | (unsigned) p[3] << 24; }
-static int mkdirs(char *path)          /* create every folder of path (not the last part) */
+static void stop(void) { puts("\nStopped. Run INSTALL again to start over."); exit(2); }
+static void waitkey(void) { int c = WAITKEY(); if (c == 27 || c == 3) stop(); }
+/* open volume n so that stream position spos can be read; prompts until the right disk is in */
+static void openvol(unsigned n, unsigned spos, const char *why)
+{
+    char path[300]; unsigned char h[20];
+    if (vf) { fclose(vf); vf = NULL; }
+    for (;;) {
+        FILE *f; snprintf(path, sizeof path, pat, n);
+        if (why) { printf("\n %s\n Insert disk %u in drive %c: and press any key  (Esc = stop)\n", why, n, pat[0]); waitkey(); }
+        why = "";
+        if (!(f = fopen(path, "rb"))) { why = "Disk not found or not readable."; continue; }
+        if (fread(h, 1, 20, f) != 20 || memcmp(h, "NSBVOL2", 8)) { fclose(f); why = "That is not a disk of this set."; continue; }
+        if (h[8] != n || (vset && rd32(h + 12) != vset)) { fclose(f); why = "Wrong disk."; continue; }
+        vdisk = n; vndisks = h[9]; vset = rd32(h + 12); vstart = rd32(h + 16);
+        fseek(f, 0, SEEK_END); vlen = ftell(f) - 20;
+        if (spos < vstart || spos > vstart + vlen) { fclose(f); why = "Wrong disk."; continue; }
+        fseek(f, 20 + spos - vstart, SEEK_SET); vpos = spos; vf = f; return;
+    }
+}
+/* read k bytes at the current stream position; 0 = read error on this disk */
+static int rd(unsigned char *b, unsigned k)
+{
+    while (k) {
+        unsigned left = vstart + vlen - vpos, t = k < left ? k : left;
+        if (!left) { openvol(vdisk + 1, vpos, ""); continue; }
+        if (fread(b, 1, t, vf) != t) return 0;
+        b += t; k -= t; vpos += t;
+    }
+    return 1;
+}
+static int mkdirs(char *path)
 {
     char *p;
     for (p = path + 1; *p; p++)
         if (*p == '\\' || *p == '/') {
-            char c = *p; *p = 0;
-            if (mkdir(path, 0777) && errno != EEXIST) { struct stat st; if (stat(path, &st)) { *p = c; return -1; } }
+            char c = *p; struct stat st; *p = 0;
+            if (mkdir(path, 0777) && stat(path, &st)) { *p = c; return -1; }
             *p = c;
         }
     return 0;
 }
 int main(int argc, char **argv)
 {
-    int test = 0, ai = 1; FILE *f; unsigned char h[12]; unsigned n, i, total = 0; const char *dst = "";
-    if (argc > 1 && (!strcmp(argv[1], "/T") || !strcmp(argv[1], "/t"))) { test = 1; ai = 2; }
-    if (argc - ai != (test ? 1 : 2)) { puts("usage: UNPAK disk.pak destdir   or   UNPAK /T disk.pak"); return 1; }
-    if (!test) dst = argv[ai + 1];
+    unsigned char h[8]; unsigned n, i; unsigned long total = 0; int test; const char *dst; char *d;
+    if (argc != 3) { puts("usage: UNPAK A:\\DISK1.PAK destdir   (or /T instead of destdir: test the disks)"); return 1; }
+    test = !strcmp(argv[2], "/T") || !strcmp(argv[2], "/t"); dst = argv[2];
+    snprintf(pat, sizeof pat - 4, "%s", argv[1]);
+    d = strrchr(pat, '1'); if (!d) { puts("name must be ...DISK1.PAK"); return 1; }
+    memmove(d + 2, d + 1, strlen(d + 1) + 1); d[0] = '%'; d[1] = 'u';
     xz_crc32_init();
-    if (!(f = fopen(argv[ai], "rb")) || fread(h, 1, 12, f) != 12 || memcmp(h, "NSBPAK1", 8)) {
-        printf("Cannot read %s (wrong disk or bad floppy)\n", argv[ai]); return 2; }
-    n = h[10] | h[11] << 8;
-    printf("Disk %u of %u, %u files%s\n", h[8], h[9], n, test ? " (test only)" : "");
+    openvol(1, 0, NULL);
+    if (!rd(h, 8) || memcmp(h, "NSBPAK2", 7)) { puts("Disk 1 unreadable or not disk 1 of this set."); return 2; }
+    if (!rd(h, 2)) { puts("Disk 1 read error."); return 2; }
+    n = h[0] | h[1] << 8;
+    printf("%u files on %u disks%s\n", n, vndisks, test ? " (test only, nothing is written)" : "");
     for (i = 0; i < n; i++) {
-        unsigned char e[10]; char name[200], path[400]; unsigned nl, size, xl, got = 0; FILE *o = NULL;
-        struct xz_dec *s; struct xz_buf b; enum xz_ret r = XZ_OK;
-        if (fread(e, 1, 2, f) != 2 || (nl = e[0] | e[1] << 8) >= sizeof name || fread(name, 1, nl, f) != nl || fread(e, 1, 8, f) != 8) {
-            puts("\nRead error: bad floppy?"); return 2; }
+        unsigned char e[10]; char name[200], path[400]; unsigned nl, size, xl, got, sdisk, spos;
+        struct xz_dec *s; struct xz_buf b; enum xz_ret r; FILE *o;
+    again:
+        *name = 0; sdisk = vdisk; spos = vpos; got = 0; o = NULL; r = XZ_OK;
+        if (!rd(e, 2) || (nl = e[0] | e[1] << 8) >= sizeof name || !rd((unsigned char *) name, nl) || !rd(e, 8)) goto bad;
         name[nl] = 0; size = rd32(e); xl = rd32(e + 4);
-        snprintf(path, sizeof path, "%s%s%s", dst, *dst ? "\\" : "", name);
+        snprintf(path, sizeof path, "%s\\%s", dst, name);
         printf("  %-46s %8u\r", name, size); fflush(stdout);
-        if (!test) {
-            if (mkdirs(path) || !(o = fopen(path, "wb"))) { printf("\nCannot create %s\n", path); return 3; }
-        }
-        s = xz_dec_init(XZ_DYNALLOC, 1u << 26);
-        if (!s) { puts("\nOut of memory"); return 3; }
+        if (!test && (mkdirs(path) || !(o = fopen(path, "wb")))) { printf("\nCannot create %s\n", path); return 3; }
+        if (!(s = xz_dec_init(XZ_DYNALLOC, 1u << 26))) { puts("\nOut of memory"); return 3; }
         b.in = inb; b.in_pos = b.in_size = 0; b.out = outb; b.out_pos = 0; b.out_size = OUTB;
         while (r == XZ_OK) {
             if (b.in_pos == b.in_size && xl) {
                 unsigned k = xl < INB ? xl : INB;
-                if (fread(inb, 1, k, f) != k) { printf("\nRead error in %s: bad floppy?\n", name); return 2; }
+                if (!rd(inb, k)) { r = XZ_DATA_ERROR; break; }
                 b.in_size = k; b.in_pos = 0; xl -= k;
             }
             r = xz_dec_run(s, &b);
@@ -66,11 +105,16 @@ int main(int argc, char **argv)
         xz_dec_end(s);
         if (o && fclose(o)) { printf("\nWrite error: %s (disk full?)\n", path); return 3; }
         if (r != XZ_STREAM_END || got != size || xl || b.in_pos != b.in_size) {
-            printf("\nCRC/data error in %s: bad floppy, make this disk again\n", name); return 2; }
-        total += size;
-        printf("  %-46s %8u ok\n", name, size);
+        bad: ;
+            {   char why[300]; unsigned bd = vdisk;
+                if (sdisk == bd) snprintf(why, sizeof why, "Disk %u is damaged%s%s. Write disk %u again.", bd, *name ? " in " : "", name, bd);
+                else snprintf(why, sizeof why, "Data error in %s (disks %u-%u): write those disks again.", name, sdisk, bd);
+                if (o) remove(path);
+                openvol(sdisk, spos, why); *name = 0; goto again; }
+        }
+        total += size; printf("  %-46s %8u ok\n", name, size);
     }
-    fclose(f);
-    printf("Disk %u ok, %u bytes\n", h[8], total);
-    return h[8] == h[9] ? 10 : 0;   /* 10 = that was the last disk */
+    if (vf) fclose(vf);
+    printf("All %u disks ok, %lu bytes.\n", vndisks, total);
+    return 0;
 }

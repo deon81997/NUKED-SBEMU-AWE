@@ -26,9 +26,6 @@ namespace MT32Emu {
 
 namespace Test {
 
-static const Bit16u *exp9;
-static const Bit16u *logsin9;
-
 static void initTables() {
 	static bool firstRun = true;
 
@@ -37,8 +34,6 @@ static void initTables() {
 		const Tables &tables = Tables::getInstance();
 		LA32IntPartialPair::initTables(tables);
 		LA32FloatPartialPair::initTables(tables);
-		exp9 = tables.exp9;
-		logsin9 = tables.logsin9;
 	}
 }
 
@@ -101,12 +96,24 @@ struct Context {
 
 	void generateNextSample() {
 		const Bit32u masterCutoffVal = masterCutoff << 18;
-		intPair.generateNextSample(LA32PartialPair::MASTER, masterAmp, masterPitch, masterCutoffVal);
-		floatPair.generateNextSample(LA32PartialPair::MASTER, masterAmp, masterPitch, masterCutoffVal);
+		intPair.setAmp(LA32PartialPair::MASTER, masterAmp);
+		intPair.setPitch(LA32PartialPair::MASTER, masterPitch);
+		intPair.setCutoff(LA32PartialPair::MASTER, masterCutoffVal);
+		intPair.generateNextSample(LA32PartialPair::MASTER);
+		floatPair.setAmp(LA32PartialPair::MASTER, masterAmp);
+		floatPair.setPitch(LA32PartialPair::MASTER, masterPitch);
+		floatPair.setCutoff(LA32PartialPair::MASTER, masterCutoffVal);
+		floatPair.generateNextSample(LA32PartialPair::MASTER);
 
 		const Bit32u slaveCutoffVal = slaveCutoff << 18;
-		intPair.generateNextSample(LA32PartialPair::SLAVE, slaveAmp, slavePitch, slaveCutoffVal);
-		floatPair.generateNextSample(LA32PartialPair::SLAVE, slaveAmp, slavePitch, slaveCutoffVal);
+		intPair.setAmp(LA32PartialPair::SLAVE, slaveAmp);
+		intPair.setPitch(LA32PartialPair::SLAVE, slavePitch);
+		intPair.setCutoff(LA32PartialPair::SLAVE, slaveCutoffVal);
+		intPair.generateNextSample(LA32PartialPair::SLAVE);
+		floatPair.setAmp(LA32PartialPair::SLAVE, slaveAmp);
+		floatPair.setPitch(LA32PartialPair::SLAVE, slavePitch);
+		floatPair.setCutoff(LA32PartialPair::SLAVE, slaveCutoffVal);
+		floatPair.generateNextSample(LA32PartialPair::SLAVE);
 	}
 
 	IntSample nextIntOutSample() {

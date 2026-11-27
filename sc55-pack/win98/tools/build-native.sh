@@ -6,7 +6,8 @@ N=/home/claude/nsc55j; M=/home/claude/munt/mt32emu; S=/home/claude/sbemu-src/sbe
 CXX="g++ -std=c++23 -O2 -I$(cd "$(dirname "$0")/.." && pwd)/test/w32shim -D_stricmp=strcasecmp -I$N/build98/backend -I$N/src -I$N/src/backend -I$M/b98 -I$M/src -I$S -I$O"
 mkdir -p be mt
 [ -f be/.done ] || { ls $N/src/backend/*.cpp | xargs -P2 -I{} sh -c "$CXX -c {} -o be/\$(basename {} .cpp).o"; gcc -O2 -c $N/src/backend/sha/sha224-256.c -o be/sha.o; touch be/.done; }
-[ -f mt/.done ] || { ls $M/src/*.cpp $M/src/sha1/*.cpp | grep -v VersionTagging | xargs -P2 -I{} sh -c "g++ -std=c++11 -O2 -DMT32EMU_EXPORTS_TYPE=3 -I$M/b98 -I$M/src -c {} -o mt/\$(basename {} .cpp).o"; touch mt/.done; }
+XF=$(cd "$(dirname "$0")/../.." && pwd)/third_party/mt32emu_exp2f.h
+[ -f mt/.done ] || { ls $M/src/*.cpp $M/src/sha1/*.cpp | grep -v VersionTagging | xargs -P2 -I{} sh -c "g++ -std=c++11 -O2 -DMT32EMU_EXPORTS_TYPE=3 -DMT32EMU_WITH_EXP2F -include $XF -I$M/b98 -I$M/src -c {} -o mt/\$(basename {} .cpp).o"; touch mt/.done; }
 W=$(cd "$(dirname "$0")/.." && pwd); H=$W/helper
 for f in opts romscan synths engine midiroute; do $CXX -c $H/$f.cpp -o $f.o; done
 g++ -std=c++17 -O2 -c $S/dbopl.cpp -o dbopl.o
